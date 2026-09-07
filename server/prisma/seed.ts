@@ -6,6 +6,16 @@ const prisma = new PrismaClient();
 
 const DEFAULT_ADMIN_EMAIL = "admin@test.test";
 const DEFAULT_ADMIN_PASSWORD = "Admin123!";
+const SIDE_ARMS_RAISE = {
+    name: "Side Arms Raise",
+    description:
+        "Stand upright with your arms at your sides. Keeping your elbows straight, raise both arms out to shoulder height, then lower them slowly and with control.",
+    analysisModelKey: "side_arms_raise_v1",
+    image: {
+        imageName: "Side Arms Raise",
+        filepath: "/exercises/arms_raise.jpg"
+    }
+};
 
 const seedAdmin = async (): Promise<void> => {
     const email = process.env.SEED_ADMIN_EMAIL ?? DEFAULT_ADMIN_EMAIL;
@@ -40,8 +50,41 @@ const seedAdmin = async (): Promise<void> => {
     }
 };
 
+const seedExerciseCatalog = async (): Promise<void> => {
+    const exercise = await prisma.exercise.upsert({
+        where: { name: SIDE_ARMS_RAISE.name },
+        update: {
+            description: SIDE_ARMS_RAISE.description,
+            analysisModelKey: SIDE_ARMS_RAISE.analysisModelKey,
+            isActive: true,
+            archivedAt: null,
+            images: {
+                deleteMany: {},
+                create: SIDE_ARMS_RAISE.image
+            }
+        },
+        create: {
+            name: SIDE_ARMS_RAISE.name,
+            description: SIDE_ARMS_RAISE.description,
+            analysisModelKey: SIDE_ARMS_RAISE.analysisModelKey,
+            images: {
+                create: SIDE_ARMS_RAISE.image
+            }
+        },
+        select: {
+            name: true,
+            analysisModelKey: true
+        }
+    });
+
+    console.log(
+        `Seeded exercise: ${exercise.name} (${exercise.analysisModelKey})`
+    );
+};
+
 const main = async (): Promise<void> => {
     await seedAdmin();
+    await seedExerciseCatalog();
 };
 
 main()

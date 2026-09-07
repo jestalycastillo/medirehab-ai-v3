@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
+import { supportsSideArmsRaiseGuidance } from "@/lib/pose/side-arms-raise-guidance";
+import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 
 interface CameraRecorderProps {
     exerciseName?: string;
@@ -9,6 +12,13 @@ interface CameraRecorderProps {
     assignmentId?: string;
     onSave?: (blob: Blob) => void;
 }
+
+const MAX_RECORDING_SECONDS = 20;
+const LIVE_COACHING_COOLDOWN_MS = 7_000;
+const GUIDANCE_MESSAGES_TO_SKIP = new Set([
+    "Preparing live guidance...",
+    "Preparing live guidance…",
+]);
 
 export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, onSave}: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
@@ -29,13 +39,102 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     });
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
     const [checkInMessage, setCheckInMessage] = useState<string | null>(null);
+    const [liveCoachingMessage, setLiveCoachingMessage] = useState<string | null>(null);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const blobRef = useRef<Blob | null>(null);
+    const liveGuidanceFeedbackRef = useRef<string[]>([]);
+    const isRecordingRef = useRef(false);
+    const lastLiveCoachingAtRef = useRef(0);
+    const liveCoachingRequestIdRef = useRef(0);
+    const liveGuidanceEnabled =
+        isOpen &&
+        Boolean(stream) &&
+        !recordedUrl &&
+        supportsSideArmsRaiseGuidance(exerciseName);
+    const liveGuidance = useSideArmsRaiseGuidance(
+        liveGuidanceEnabled,
+        videoRef,
+    );
 
+    useEffect(() => {
+        isRecordingRef.current = isRecording;
+    }, [isRecording]);
+
+    useEffect(() => {
+        if (
+            !isRecording ||
+            liveGuidance.status !== "ready" ||
+            !liveGuidance.message ||
+            GUIDANCE_MESSAGES_TO_SKIP.has(liveGuidance.message)
+        ) {
+            return;
+        }
+
+        if (!liveGuidanceFeedbackRef.current.includes(liveGuidance.message)) {
+            liveGuidanceFeedbackRef.current = [
+                ...liveGuidanceFeedbackRef.current,
+                liveGuidance.message,
+            ];
+        }
+    }, [isRecording, liveGuidance.message, liveGuidance.status]);
+
+    useEffect(() => {
+        if (!isRecording || !assignmentId || liveGuidance.status !== "ready") {
+            return;
+        }
+
+        const event = liveGuidance.justCompletedRepetition
+            ? "repetition_completed"
+            : liveGuidance.resolvedIssues.length > 0
+              ? "issue_resolved"
+              : null;
+        const now = Date.now();
+
+        if (!event || now - lastLiveCoachingAtRef.current < LIVE_COACHING_COOLDOWN_MS) {
+            return;
+        }
+
+        lastLiveCoachingAtRef.current = now;
+        const requestId = liveCoachingRequestIdRef.current + 1;
+        liveCoachingRequestIdRef.current = requestId;
+
+        api.requestLiveCoaching(exerciseId, assignmentId, event)
+            .then((response) => {
+                if (
+                    liveCoachingRequestIdRef.current !== requestId
+                    || !isRecordingRef.current
+                ) {
+                    return;
+                }
+
+                setLiveCoachingMessage(response.message);
+                if (!liveGuidanceFeedbackRef.current.includes(response.message)) {
+                    liveGuidanceFeedbackRef.current = [
+                        ...liveGuidanceFeedbackRef.current,
+                        response.message,
+                    ];
+                }
+                speakLiveCoaching(response.message);
+            })
+            .catch((coachingError: unknown) => {
+                console.warn(
+                    "Failed to load live coaching:",
+                    getErrorMessage(coachingError, "Unknown error"),
+                );
+            });
+    }, [
+        assignmentId,
+        exerciseId,
+        isRecording,
+        liveGuidance.justCompletedRepetition,
+        liveGuidance.resolvedIssues,
+        liveGuidance.status,
+    ]);
 
     // Clean up streams on unmount or close
     useEffect(() => {
@@ -46,6 +145,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (countdownIntervalRef.current) {
                 clearInterval(countdownIntervalRef.current);
             }
+            if (recordingTimeoutRef.current) {
+                clearTimeout(recordingTimeoutRef.current);
+            }
         };
     }, [stream]);
 
@@ -54,14 +156,19 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setRecordedUrl(null);
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "user" },
+                video: {
+                    facingMode: "user",
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 10 },
+                },
                 audio: false
             });
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error accessing camera:", err);
             setError(
                 "Could not access your front camera. Please check your camera permissions and ensure no other application is using it."
@@ -89,6 +196,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
         }
+        if (recordingTimeoutRef.current) {
+            clearTimeout(recordingTimeoutRef.current);
+            recordingTimeoutRef.current = null;
+        }
         setCountdown(null);
         setIsRecording(false);
         setIsOpen(false);
@@ -96,7 +207,6 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setRecordedUrl(null);
         setIsEvaluating(false);
         setEvaluationScore(null);
-        blobRef.current = null;
         setSessionId(null);
         setIsCheckInOpen(false);
         setCheckIn({
@@ -107,6 +217,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         });
         setIsSubmittingCheckIn(false);
         setCheckInMessage(null);
+        setLiveCoachingMessage(null);
+        liveCoachingRequestIdRef.current += 1;
+        lastLiveCoachingAtRef.current = 0;
+        stopLiveCoachingPlayback();
+        liveGuidanceFeedbackRef.current = [];
+        blobRef.current = null;
     };
 
     const initiateCountdown = () => {
@@ -129,13 +245,17 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const startRecording = () => {
         if (!stream) return;
         chunksRef.current = [];
+        liveGuidanceFeedbackRef.current = [];
+        setLiveCoachingMessage(null);
+        liveCoachingRequestIdRef.current += 1;
+        lastLiveCoachingAtRef.current = 0;
 
         try {
             const options = { mimeType: "video/webm;codecs=vp9" };
             let recorder: MediaRecorder;
             try {
                 recorder = new MediaRecorder(stream, options);
-            } catch (e) {
+            } catch {
                 // Fallback for browsers that don't support VP9
                 recorder = new MediaRecorder(stream);
             }
@@ -147,6 +267,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             };
 
             recorder.onstop = () => {
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
                 const mimeType = recorder.mimeType || "video/webm";
                 const blob = new Blob(chunksRef.current, { type: mimeType });
                 blobRef.current = blob;
@@ -161,6 +285,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             mediaRecorderRef.current = recorder;
             recorder.start(); // Start recording without timeslice for maximum stability
             setIsRecording(true);
+            recordingTimeoutRef.current = setTimeout(() => {
+                if (recorder.state === "recording") {
+                    liveCoachingRequestIdRef.current += 1;
+                    recorder.stop();
+                    setIsRecording(false);
+                }
+            }, MAX_RECORDING_SECONDS * 1000);
         } catch (err) {
             console.error("Failed to start recording:", err);
             setError("Failed to initialize video recording.");
@@ -168,7 +299,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     };
 
     const stopRecording = () => {
+        if (recordingTimeoutRef.current) {
+            clearTimeout(recordingTimeoutRef.current);
+            recordingTimeoutRef.current = null;
+        }
         if (mediaRecorderRef.current && isRecording) {
+            liveCoachingRequestIdRef.current += 1;
+            stopLiveCoachingPlayback();
             mediaRecorderRef.current.stop();
             setIsRecording(false);
         }
@@ -187,14 +324,33 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (res.success) {
                 setEvaluationScore(res.score);
                 setSessionId(res.sessionId);
+                const sessionFeedback = [
+                    ...(res.feedback ?? []),
+                    ...liveGuidanceFeedbackRef.current,
+                ].filter((message, index, messages) => messages.indexOf(message) === index);
+
+                if (sessionFeedback.length > 0) {
+                    try {
+                        await api.updateSessionFeedback(
+                            res.sessionId,
+                            sessionFeedback,
+                        );
+                    } catch (feedbackError: unknown) {
+                        console.warn(
+                            "Failed to save live guidance feedback:",
+                            getErrorMessage(feedbackError, "Unknown error"),
+                        );
+                    }
+                }
                 setIsOpen(false);
                 setIsCheckInOpen(true);
             } else {
                 setError(res.message || "Failed to evaluate exercise.");
             }
-        } catch (err: any) {
-            console.error("Evaluation error:", err);
-            setError(err.message || "An error occurred during evaluation.");
+        } catch (err: unknown) {
+            const message = getErrorMessage(err, "An error occurred during evaluation.");
+            console.warn("Evaluation request failed:", message);
+            setError(message);
         } finally {
             setIsEvaluating(false);
         }
@@ -212,9 +368,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         try {
             await api.submitCheckIn(sessionId, checkIn);
             setCheckInMessage("Check-in saved for your doctor.");
-        } catch (err: any) {
-            console.error("Check-in error:", err);
-            setError(err.message || "Unable to submit your check-in.");
+        } catch (err: unknown) {
+            const message = getErrorMessage(err, "Unable to submit your check-in.");
+            console.warn("Check-in request failed:", message);
+            setError(message);
         } finally {
             setIsSubmittingCheckIn(false);
         }
@@ -231,6 +388,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             confidenceLevel: 10,
             note: "",
         });
+        liveGuidanceFeedbackRef.current = [];
     };
 
     const updateCheckInField = (
@@ -272,11 +430,14 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         style={{
                             width: "100%",
                             maxWidth: "960px",
+                            height: "min(720px, calc(100dvh - 40px))",
+                            maxHeight: "calc(100dvh - 40px)",
                             backgroundColor: "var(--color-surface)",
                             overflow: "hidden",
                             position: "relative",
                             display: "flex",
                             flexDirection: "column",
+                            minHeight: 0,
                             boxShadow: "var(--shadow-elevated)",
                         }}
                         onClick={(e) => e.stopPropagation()}
@@ -327,8 +488,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             style={{
                                 position: "relative",
                                 backgroundColor: "#000",
-                                aspectRatio: "16/9",
                                 width: "100%",
+                                flex: "1 1 0",
+                                minHeight: 0,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -344,8 +506,31 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     {error}
                                 </div>
                             ) : evaluationScore !== null ? (
-                                <div style={{ color: "var(--color-text-primary)", fontSize: "14px", textAlign: "center" }}>
-                                    Evaluation complete.
+                                /* Evaluation Success Screen */
+                                <div style={{ color: "#FFF", padding: "40px 24px", textAlign: "center" }}>
+                                    <div style={{
+                                        width: "80px",
+                                        height: "80px",
+                                        borderRadius: "50%",
+                                        backgroundColor: "rgba(22, 163, 74, 0.2)",
+                                        border: "3px solid #16A34A",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        margin: "0 auto 20px auto",
+                                        color: "#16A34A"
+                                    }}>
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <h4 style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px 0" }}>Evaluation Complete!</h4>
+                                    <p style={{ color: "rgba(255,255,255,0.7)", margin: "0 0 16px 0", fontSize: "14px" }}>
+                                        Your exercise performance has been evaluated.
+                                    </p>
+                                    <div style={{ fontSize: "48px", fontWeight: 800, color: "#16A34A", margin: "16px 0" }}>
+                                        {evaluationScore} <span style={{ fontSize: "20px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>/ 100</span>
+                                    </div>
                                 </div>
                             ) : recordedUrl ? (
                                 /* Post-Recording Preview */
@@ -353,7 +538,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     <video
                                         src={recordedUrl}
                                         controls
-                                        style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
+                                        style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
                                     />
                                     {isEvaluating && (
                                         <div style={{
@@ -386,10 +571,108 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         style={{
                                             width: "100%",
                                             height: "100%",
-                                            objectFit: "cover",
+                                            objectFit: "contain",
                                             transform: "scaleX(-1)", // Mirror the front camera output
                                         }}
                                     />
+
+                                    {liveGuidanceEnabled && (
+                                        <>
+                                            <div
+                                                style={{
+                                                    position: "absolute",
+                                                    top: "16px",
+                                                    right: "16px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "7px",
+                                                    padding: "6px 10px",
+                                                    borderRadius: "9999px",
+                                                    backgroundColor: "rgba(15, 23, 42, 0.72)",
+                                                    color: "#FFF",
+                                                    fontSize: "12px",
+                                                    fontWeight: 700,
+                                                    zIndex: 10,
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        width: "8px",
+                                                        height: "8px",
+                                                        borderRadius: "50%",
+                                                        backgroundColor:
+                                                            liveGuidance.status === "ready"
+                                                                ? "#2DD4BF"
+                                                                : liveGuidance.status === "error"
+                                                                  ? "#F59E0B"
+                                                                  : "#94A3B8",
+                                                    }}
+                                                />
+                                                Live guidance
+                                            </div>
+                                            <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
+                                            {liveCoachingMessage && (
+                                                <div
+                                                    aria-live="polite"
+                                                    style={{
+                                                        position: "absolute",
+                                                        left: "50%",
+                                                        bottom: "92px",
+                                                        transform: "translateX(-50%)",
+                                                        width: "min(90%, 540px)",
+                                                        padding: "9px 13px",
+                                                        borderRadius: "10px",
+                                                        backgroundColor: "rgba(13, 148, 136, 0.92)",
+                                                        color: "#FFF",
+                                                        textAlign: "center",
+                                                        fontSize: "13px",
+                                                        fontWeight: 600,
+                                                        lineHeight: 1.4,
+                                                        zIndex: 10,
+                                                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
+                                                    }}
+                                                >
+                                                    {liveCoachingMessage}
+                                                </div>
+                                            )}
+                                            <div
+                                                aria-live="polite"
+                                                style={{
+                                                    position: "absolute",
+                                                    left: "50%",
+                                                    bottom: "18px",
+                                                    transform: "translateX(-50%)",
+                                                    width: "min(90%, 620px)",
+                                                    padding: "10px 14px",
+                                                    borderRadius: "12px",
+                                                    backgroundColor: liveGuidance.justCompletedRepetition
+                                                        ? "rgba(13, 148, 136, 0.9)"
+                                                        : "rgba(15, 23, 42, 0.78)",
+                                                    color: "#FFF",
+                                                    textAlign: "center",
+                                                    fontSize: "14px",
+                                                    fontWeight: 600,
+                                                    lineHeight: 1.4,
+                                                    zIndex: 10,
+                                                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
+                                                }}
+                                            >
+                                                <div>{liveGuidance.message}</div>
+                                                {liveGuidance.status === "ready" && (
+                                                    <div
+                                                        style={{
+                                                            marginTop: "3px",
+                                                            color: "rgba(255, 255, 255, 0.72)",
+                                                            fontSize: "11px",
+                                                            fontWeight: 500,
+                                                        }}
+                                                    >
+                                                        Detected repetitions: {liveGuidance.repetitions}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
 
                                     {/* Recording Status Overlay */}
                                     {isRecording && (
@@ -420,7 +703,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                     display: "inline-block",
                                                 }}
                                             />
-                                            REC
+                                            REC · {MAX_RECORDING_SECONDS}s max
                                         </div>
                                     )}
 
@@ -477,6 +760,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     className="btn btn-primary"
                                     onClick={() => {
                                         handleClose();
+                                        window.location.reload();
                                     }}
                                     style={{ minWidth: "140px" }}
                                 >
@@ -589,7 +873,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         <div style={{ padding: "22px 22px 18px 22px", borderBottom: "1px solid var(--color-border)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start" }}>
                                 <div>
-                                    <div style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: "6px" }}>
+                                    <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: "6px" }}>
                                         Post Exercise Check-in
                                     </div>
                                     <h3 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
@@ -671,6 +955,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 />
                             </label>
 
+                            {error && (
+                                <div style={{ padding: "10px 12px", borderRadius: "12px", backgroundColor: "#FEE2E2", color: "#991B1B", fontSize: "13px" }}>
+                                    {error}
+                                </div>
+                            )}
+
                             {checkInMessage && (
                                 <div style={{ padding: "10px 12px", borderRadius: "12px", backgroundColor: "#DCFCE7", color: "#166534", fontSize: "13px" }}>
                                     {checkInMessage}
@@ -691,4 +981,21 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             )}
         </>
     );
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function speakLiveCoaching(message: string): void {
+    if (!("speechSynthesis" in window)) return;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+}
+
+function stopLiveCoachingPlayback(): void {
+    if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+    }
 }

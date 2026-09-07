@@ -13,7 +13,7 @@ function ArrowIcon() {
 function ArrowLeftIcon() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>;
 }
-  
+
 function HeartPulseIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.8 8.8a5 5 0 0 0-8.8-2.9a5 5 0 1 0-8.8 2.9L12 19l8.8-10.2Z" /><path d="M4 12h4l1.5-3 2.5 6 1.5-3H20" /></svg>;
 }

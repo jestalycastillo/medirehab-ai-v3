@@ -439,7 +439,7 @@ export default function ExercisesPage() {
                 Close
               </button>
             </div>
-            
+
             <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", lineHeight: "1.6", marginBottom: "20px", whiteSpace: "pre-wrap" }}>
               {viewingExercise.description || "No description provided."}
             </p>

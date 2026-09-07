@@ -200,7 +200,7 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
         const authUser = getAuthenticatedUser(req);
         const userId = validateUserIdParam(req.params.userId);
         const input = validateUpdatePatientInput(req.body);
-        
+
         const patient = authUser.role === Role.ADMIN
             ? await updatePatientProfile(userId, input)
             : await updatePatientProfileForDoctor(userId, authUser.userId, input);
@@ -333,7 +333,7 @@ export const updatePatientStatus = async (
         const authUser = getAuthenticatedUser(req);
         const userId = validateUserIdParam(req.params.userId);
         const input = validateAccountStatusInput(req.body);
-        
+
         const patient = authUser.role === Role.ADMIN
             ? await updatePatientAccountStatus(userId, input)
             : await updatePatientAccountStatusForDoctor(userId, authUser.userId, input);
@@ -367,7 +367,7 @@ export const archivePatient = async (req: Request, res: Response): Promise<void>
     try {
         const authUser = getAuthenticatedUser(req);
         const userId = validateUserIdParam(req.params.userId);
-        
+
         const patient = authUser.role === Role.ADMIN
             ? await updatePatientAccountStatus(userId, { isActive: false })
             : await updatePatientAccountStatusForDoctor(userId, authUser.userId, { isActive: false });

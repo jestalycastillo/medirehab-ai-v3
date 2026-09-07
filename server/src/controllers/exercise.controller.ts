@@ -15,6 +15,7 @@ import {
     evaluateExercise
 } from "../services/exercise.service";
 import { recordExerciseSession } from "../services/care.service";
+import { createLiveCoachingMessage } from "../services/live-coaching.service";
 import { HttpError } from "../utils/httpError";
 import {
     validateAssignExerciseInput,
@@ -23,7 +24,17 @@ import {
     validateExerciseIdParam,
     validateUpdateExerciseInput
 } from "../utils/exerciseValidation";
+import { validateLiveCoachingInput } from "../utils/liveCoachingValidation";
 import { validateUserIdParam } from "../utils/userValidation";
+
+const MAX_EXERCISE_RECORDING_BYTES = 50 * 1024 * 1024;
+const SUPPORTED_EXERCISE_RECORDING_TYPES = new Set([
+    "application/octet-stream",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+    "video/x-msvideo"
+]);
 
 const getAuthenticatedUserId = (req: Request): string => {
     if (!req.user?.userId) {
@@ -63,6 +74,28 @@ export const getExercises = async (req: Request, res: Response): Promise<void> =
         });
     } catch (error) {
         handleExerciseError(error, res, "Unable to load exercises.");
+    }
+};
+
+export const createLiveCoaching = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const patientUserId = getAuthenticatedUserId(req);
+        const exerciseId = validateExerciseIdParam(req.params.exerciseId);
+        const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const input = validateLiveCoachingInput(req.body);
+        const coaching = await createLiveCoachingMessage(
+            patientUserId,
+            exerciseId,
+            assignmentId,
+            input.event
+        );
+
+        res.status(200).json({ success: true, ...coaching });
+    } catch (error) {
+        handleExerciseError(error, res, "Unable to create live coaching.");
     }
 };
 
@@ -272,41 +305,50 @@ export const evaluateExerciseAssignment = async (
         const authenticatedUserId = getAuthenticatedUserId(req);
         const exerciseId = validateExerciseIdParam(req.params.exerciseId);
         const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const contentType = (req.headers["content-type"] ?? "")
+            .split(";", 1)[0]
+            ?.trim()
+            .toLowerCase() ?? "";
 
-        if (!authenticatedUserId) {
-            throw new HttpError(403, "Forbidden. You can only evaluate your own exercises.");
+        if (!SUPPORTED_EXERCISE_RECORDING_TYPES.has(contentType)) {
+            throw new HttpError(415, "Unsupported exercise recording format.");
         }
 
         const chunks: Buffer[] = [];
-        req.on("data", (chunk) => chunks.push(chunk));
-        
-        req.on("end", async () => {
-            try {
-                const videoBuffer = Buffer.concat(chunks);
-                const result = await evaluateExercise(
-                    authenticatedUserId,
-                    exerciseId,
-                    assignmentId,
-                    videoBuffer
-                );
+        let totalBytes = 0;
 
-                const session = await recordExerciseSession(
-                    authenticatedUserId,
-                    assignmentId,
-                    exerciseId,
-                    result.score,
-                    result.feedback
-                );
+        for await (const chunk of req) {
+            const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            totalBytes += bufferChunk.length;
 
-                res.status(200).json({
-                    success: true,
-                    message: "Exercise evaluated successfully.",
-                    ...result,
-                    sessionId: session.id
-                });
-            } catch (innerError) {
-                handleExerciseError(innerError, res, "Error evaluating exercise recording.");
+            if (totalBytes > MAX_EXERCISE_RECORDING_BYTES) {
+                throw new HttpError(413, "Exercise recording exceeds the 50 MB limit.");
             }
+
+            chunks.push(bufferChunk);
+        }
+
+        const videoBuffer = Buffer.concat(chunks);
+        const result = await evaluateExercise(
+            authenticatedUserId,
+            exerciseId,
+            assignmentId,
+            videoBuffer,
+            contentType
+        );
+        const session = await recordExerciseSession(
+            authenticatedUserId,
+            assignmentId,
+            exerciseId,
+            result.score,
+            result.feedback
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Exercise evaluated successfully.",
+            ...result,
+            sessionId: session.id
         });
     } catch (error) {
         handleExerciseError(error, res, "Unable to process exercise evaluation.");

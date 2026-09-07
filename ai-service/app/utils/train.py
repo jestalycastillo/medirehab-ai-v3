@@ -1,14 +1,24 @@
-import os
+from pathlib import Path
+
 import torch
 import numpy as np
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 
+
+CHECKPOINT_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "training"
+    / "checkpoints"
+    / "side_arms_raise_v1.pth"
+)
+
+
 def train_model(model, train_data, val_data):
     best_val_loss = float("inf")
 
-    if os.path.exists("training/model.pth"):
-        model_checkpoint = torch.load("training/model.pth", map_location="cpu")
+    if CHECKPOINT_PATH.exists():
+        model_checkpoint = torch.load(CHECKPOINT_PATH, map_location="cpu")
         model.load_state_dict(model_checkpoint["model"])
         best_val_loss = model_checkpoint.get("best_val_loss", float("inf"))
 
@@ -94,13 +104,14 @@ def train_model(model, train_data, val_data):
             k = 3.0
             beta = float(np.log(2.0) / (k * std_val_loss))
 
+            CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
             torch.save({
                 "model": model.state_dict(),
                 "best_val_loss": best_val_loss,
                 "mean_val_loss": mean_val_loss,
                 "std_val_loss": std_val_loss,
                 "beta": beta
-            }, "training/model.pth")
+            }, CHECKPOINT_PATH)
             
             print(f"Saved new best model with val loss: {best_val_loss:.6f} at epoch {epoch+1:03d}")
             print(f"Calibrated stats -> Mean: {mean_val_loss:.6f}, Std: {std_val_loss:.6f}, Beta: {beta:.4f}")

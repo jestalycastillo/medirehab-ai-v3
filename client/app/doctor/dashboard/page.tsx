@@ -32,7 +32,11 @@ export default function DoctorDashboardPage() {
 
     async function loadDashboard() {
       try {
-        const [profileRes, patientsRes, notificationsRes] = await Promise.all([api.getProfile(), api.getPatients(), api.getMyNotifications()]);
+        const [profileRes, patientsRes, notificationsRes] = await Promise.all([
+          api.getProfile(),
+          api.getPatients(),
+          api.getMyNotifications().catch(() => ({ notifications: [] })),
+        ]);
         const assignmentEntries = await Promise.all(
           patientsRes.patients.map(async (patient) => {
             try {

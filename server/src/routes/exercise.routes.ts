@@ -12,7 +12,8 @@ import {
     removeAssignedExercise,
     restoreExerciseCatalogItem,
     updateExerciseCatalogItem,
-    evaluateExerciseAssignment
+    evaluateExerciseAssignment,
+    createLiveCoaching
 } from "../controllers/exercise.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requirePasswordChanged } from "../middlewares/password.middleware";
@@ -41,6 +42,14 @@ router.post(
     requirePasswordChanged,
     requireRole(Role.PATIENT),
     evaluateExerciseAssignment
+);
+
+router.post(
+    "/patients/exercises/:exerciseId/assignments/:assignmentId/live-coaching",
+    authMiddleware,
+    requirePasswordChanged,
+    requireRole(Role.PATIENT),
+    createLiveCoaching
 );
 
 router.post(

@@ -418,12 +418,27 @@ export const api = {
   },
 
   evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob) {
-    return request<{ success: boolean; score: number; sessionId: string; message?: string }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
+    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
       },
       body: videoBlob,
+    });
+  },
+
+  requestLiveCoaching(
+    exerciseId: string,
+    assignmentId: string,
+    event: "issue_resolved" | "repetition_completed",
+  ) {
+    return request<{
+      success: boolean;
+      message: string;
+      source: "ollama" | "fallback";
+    }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/live-coaching`, {
+      method: "POST",
+      body: JSON.stringify({ event }),
     });
   },
 
@@ -436,6 +451,12 @@ export const api = {
     return request<{ success: boolean; sessions: CareSession[] }>(`/care/patients/${patientUserId}/sessions`);
   },
 
+  updateSessionFeedback(sessionId: string, aiFeedback: string[]) {
+    return request<{ success: boolean; session: CareSession }>(`/care/sessions/${sessionId}/feedback`, {
+      method: "PATCH",
+      body: JSON.stringify({ aiFeedback }),
+    });
+  },
 
   submitCheckIn(sessionId: string, data: { painLevel: number; difficultyLevel: number; confidenceLevel: number; note?: string }) {
     return request<{ success: boolean; session: CareSession }>(`/care/sessions/${sessionId}/check-in`, {

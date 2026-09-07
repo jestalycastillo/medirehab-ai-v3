@@ -4,3 +4,4 @@ raw_videos
 __pycache__
 data/videos/user*
 data/trace/user*
+data/evaluations/*

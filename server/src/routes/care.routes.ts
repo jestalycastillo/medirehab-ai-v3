@@ -7,7 +7,8 @@ import {
     getMyNotifications,
     getMySessions,
     markMyNotificationRead,
-    submitCheckIn
+    submitCheckIn,
+    updateSessionFeedback
 } from "../controllers/care.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requirePasswordChanged } from "../middlewares/password.middleware";
@@ -37,6 +38,14 @@ router.get(
     requirePasswordChanged,
     requireRole(Role.ADMIN),
     getAdminSessions
+);
+
+router.patch(
+    "/sessions/:sessionId/feedback",
+    authMiddleware,
+    requirePasswordChanged,
+    requireRole(Role.PATIENT),
+    updateSessionFeedback
 );
 
 router.post(

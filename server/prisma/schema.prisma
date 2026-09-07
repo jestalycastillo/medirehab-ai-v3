@@ -82,11 +82,12 @@ enum Role {
 }
 
 model Exercise {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String
-  isActive    Boolean   @default(true)
-  archivedAt  DateTime?
+  id               String    @id @default(cuid())
+  name             String    @unique
+  description      String
+  analysisModelKey String?   @unique
+  isActive         Boolean   @default(true)
+  archivedAt       DateTime?
 
   images      ExerciseImage[]
   assignments ExerciseAssignment[]

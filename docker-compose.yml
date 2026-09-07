@@ -10,10 +10,13 @@ services:
     build: ./server
     environment:
       DATABASE_URL: "postgres://user:password@db:5432/medirehab_ai"
+      AI_SERVICE_URL: "http://ai-service:8000"
+      AI_SERVICE_TIMEOUT_MS: "120000"
     ports:
       - "5000:5000"
     depends_on:
       - db
+      - ai-service
 
   ai-service:
     build: ./ai-service

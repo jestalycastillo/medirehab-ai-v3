@@ -39,7 +39,7 @@ export default function PatientDashboardPage() {
         const [profileRes, assignedRes, notificationsRes] = await Promise.all([
           api.getProfile(),
           api.getMyAssignedExercises(),
-          api.getMyNotifications(),
+          api.getMyNotifications().catch(() => ({ notifications: [] })),
         ]);
 
         if (mounted) {
