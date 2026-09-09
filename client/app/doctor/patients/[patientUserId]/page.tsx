@@ -14,6 +14,7 @@ import { ChatPanel } from "@/components/care/chat-panel";
 import { ScoreSummary } from "@/components/care/score-summary";
 import { formatScore } from "@/lib/score";
 import { DoctorAlerts } from "@/components/care/doctor-alerts";
+import { ProgressReport } from "@/components/care/progress-report";
 
 function ActivityIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
@@ -301,6 +302,8 @@ export default function PatientDetailPage() {
       <ScoreSummary sessions={sessions} />
 
       <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} onResolve={handleResolveHelp} />
+
+      <ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} />
 
       <ChatPanel role="doctor" patientUserId={patient.id} counterpartName={patientName(patient)} />
 
