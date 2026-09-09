@@ -107,7 +107,9 @@ export const listChatMessages = async (
         select: chatMessageSelect
     });
 
-    return { messages: messages.map(mapMessage), context };
+    const counterpartUserId = userId === context.patientUserId ? context.doctorUserId : context.patientUserId;
+    const counterpart = await prisma.user.findUnique({ where: { id: counterpartUserId }, select: { lastSeenAt: true } });
+    return { messages: messages.map(mapMessage), context, counterpartLastSeenAt: counterpart?.lastSeenAt ?? null };
 };
 
 export const sendChatMessage = async (

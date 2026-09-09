@@ -4,6 +4,7 @@ import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -104,6 +105,14 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (loading || user?.role !== "DOCTOR" || user.mustChangePassword) return;
+    const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 60_000);
+    return () => window.clearInterval(interval);
+  }, [loading, user]);
 
   if (loading || !user || user.role !== "DOCTOR" || user.mustChangePassword) {
     return (

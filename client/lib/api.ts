@@ -525,7 +525,7 @@ export const api = {
   // --- Live text chat ---
   getChatMessages(patientUserId?: string) {
     const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
-    return request<{ success: boolean; messages: ChatMessage[] }>(`/chat/messages${query}`);
+    return request<{ success: boolean; messages: ChatMessage[]; counterpartLastSeenAt: string | null }>(`/chat/messages${query}`);
   },
 
   sendChatMessage(body: string, patientUserId?: string) {

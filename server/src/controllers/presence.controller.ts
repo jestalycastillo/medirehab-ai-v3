@@ -10,6 +10,12 @@ const getPatientUserId = (req: Request): string => {
     return req.user.userId;
 };
 
+const getAuthenticatedUserId = (req: Request): string => {
+    if (!req.user) throw new HttpError(401, "Unauthorized.");
+    if (req.user.role !== Role.PATIENT && req.user.role !== Role.DOCTOR) throw new HttpError(403, "Presence is unavailable for this account.");
+    return req.user.userId;
+};
+
 const assignmentId = (req: Request): string => requireString(req.params.assignmentId, "Assignment id");
 
 const handleError = (error: unknown, res: Response, fallback: string) => {
@@ -22,7 +28,7 @@ const handleError = (error: unknown, res: Response, fallback: string) => {
 
 export const heartbeat = async (req: Request, res: Response): Promise<void> => {
     try {
-        await recordPatientHeartbeat(getPatientUserId(req));
+        await recordPatientHeartbeat(getAuthenticatedUserId(req));
         res.status(200).json({ success: true });
     } catch (error) { handleError(error, res, "Unable to update presence."); }
 };

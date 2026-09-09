@@ -29,7 +29,7 @@ export const getMessages = async (req: Request, res: Response): Promise<void> =>
     try {
         const user = getUser(req);
         const result = await listChatMessages(user.userId, user.role, patientUserIdFromQuery(req));
-        res.status(200).json({ success: true, messages: result.messages });
+        res.status(200).json({ success: true, messages: result.messages, counterpartLastSeenAt: result.counterpartLastSeenAt });
     } catch (error) {
         handleError(error, res, "Unable to load messages.");
     }
