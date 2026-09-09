@@ -11,6 +11,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { CareTimeline } from "@/components/care/care-timeline";
 import { ChatPanel } from "@/components/care/chat-panel";
+import { ScoreSummary } from "@/components/care/score-summary";
+import { formatScore } from "@/lib/score";
 
 function ActivityIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
@@ -222,7 +224,7 @@ export default function PatientDetailPage() {
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
         <StatCard title="Assigned Exercises" value={assignments.length} icon={<ActivityIcon />} />
-        <StatCard title="Latest Score" value={assignments[0]?.result?.score ?? 0} icon={<ActivityIcon />} />
+        <StatCard title="Latest Score" value={formatScore(sessions[0]?.score)} icon={<ActivityIcon />} />
       </section>
 
       <section className="doctor-two-column">
@@ -251,7 +253,7 @@ export default function PatientDetailPage() {
               {assignments.slice(0, 5).map((assignment) => (
                 <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
                   <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
-                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {assignment.result?.score ?? 0}</div>
+                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {formatScore(assignment.result?.score)}</div>
                 </div>
               ))}
               <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
@@ -286,6 +288,8 @@ export default function PatientDetailPage() {
         </div>
         <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
       </section>
+
+      <ScoreSummary sessions={sessions} />
 
       <ChatPanel role="doctor" patientUserId={patient.id} counterpartName={patientName(patient)} />
 

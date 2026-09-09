@@ -6,6 +6,7 @@ import { MyExerciseList } from "@/components/patient/my-exercise-list";
 import { CareTimeline } from "@/components/care/care-timeline";
 import { NotificationsPanel } from "@/components/care/notifications-panel";
 import { ChatPanel } from "@/components/care/chat-panel";
+import { ScoreSummary } from "@/components/care/score-summary";
 
 export default function PatientExercisesPage() {
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
@@ -106,6 +107,8 @@ export default function PatientExercisesPage() {
           <NotificationsPanel notifications={notifications.slice(0, 5)} />
         </div>
       </section>
+
+      <ScoreSummary sessions={sessions} />
 
       <ChatPanel role="patient" counterpartName="your doctor" />
     </div>

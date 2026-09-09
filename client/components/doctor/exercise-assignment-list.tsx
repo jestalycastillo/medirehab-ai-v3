@@ -1,6 +1,7 @@
 "use client";
 
 import { type ExerciseAssignment } from "@/lib/api";
+import { formatScore } from "@/lib/score";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -37,7 +38,7 @@ export function ExerciseAssignmentList({
                 )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <span className="badge badge-blue">Score {assignment.result?.score ?? 0}</span>
+                <span className="badge badge-blue">Score {formatScore(assignment.result?.score)}</span>
                 <button className="btn btn-danger" onClick={() => onRemove(assignment)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>
                   Remove
                 </button>

@@ -6,6 +6,7 @@ import {
     ValidatedCommentInput,
     ValidatedSessionUpdateInput
 } from "../utils/careValidation";
+import { roundScore } from "../utils/score";
 
 const exerciseSelect = {
     id: true,
@@ -321,6 +322,7 @@ export const recordExerciseSession = async (
     score: number,
     aiFeedback: string[] = []
 ) => {
+    const roundedScore = roundScore(score);
     const { patientProfile, assignment } = await ensureAssignmentForPatient(
         patientUserId,
         assignmentId
@@ -334,7 +336,7 @@ export const recordExerciseSession = async (
         data: {
             assignmentId: assignment.id,
             patientUserId,
-            score,
+            score: roundedScore,
             aiFeedback
         },
         select: sessionSelect
@@ -344,10 +346,10 @@ export const recordExerciseSession = async (
         where: { assignmentId: assignment.id },
         create: {
             assignmentId: assignment.id,
-            score
+            score: roundedScore
         },
         update: {
-            score
+            score: roundedScore
         }
     });
 
@@ -361,12 +363,12 @@ export const recordExerciseSession = async (
                 firstName: patientProfile.firstName,
                 lastName: patientProfile.lastName
             }
-        })} completed ${assignment.exercise.name} with a score of ${score.toFixed(0)}.`,
+        })} completed ${assignment.exercise.name} with a score of ${roundedScore.toFixed(2)}.`,
         link: `/doctor/patients/${patientUserId}`,
         meta: {
             assignmentId: assignment.id,
             sessionId: session.id,
-            score
+            score: roundedScore
         }
     });
 

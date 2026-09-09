@@ -2,6 +2,7 @@
 
 import { type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
+import { formatScore } from "@/lib/score";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -52,7 +53,7 @@ export function MyExerciseList({
                 Assigned {formatDate(assignment.assignedAt)}
               </p>
             </div>
-            <span className="badge badge-blue">Score {assignment.result?.score ?? 0}</span>
+            <span className="badge badge-blue">Score {formatScore(assignment.result?.score)}</span>
           </div>
 
           <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: 0 }}>

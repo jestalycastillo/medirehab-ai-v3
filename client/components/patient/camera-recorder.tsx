@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
 import { supportsSideArmsRaiseGuidance } from "@/lib/pose/side-arms-raise-guidance";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
+import { formatScore } from "@/lib/score";
 
 interface CameraRecorderProps {
     exerciseName?: string;
@@ -535,7 +536,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         Your exercise performance has been evaluated.
                                     </p>
                                     <div style={{ fontSize: "48px", fontWeight: 800, color: "#16A34A", margin: "16px 0" }}>
-                                        {evaluationScore} <span style={{ fontSize: "20px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>/ 100</span>
+                                        {formatScore(evaluationScore)} <span style={{ fontSize: "20px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>/ 100</span>
                                     </div>
                                 </div>
                             ) : recordedUrl ? (
@@ -886,7 +887,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         How did that session feel?
                                     </h3>
                                     <p style={{ margin: "8px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-                                        Share a quick self-report for your doctor after scoring {evaluationScore ?? 0}/100.
+                                        Share a quick self-report for your doctor after scoring {formatScore(evaluationScore)}/100.
                                     </p>
                                 </div>
                                 <button

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
+import { roundScore } from "../utils/score";
 import {
     ValidatedAssignExerciseInput,
     ValidatedCreateExerciseInput,
@@ -542,14 +543,15 @@ export const evaluateExercise = async (
         throw new HttpError(502, "Exercise evaluation service returned an invalid score.");
     }
 
+    const roundedScore = roundScore(evaluationResult.score);
     const result = await prisma.exerciseResult.upsert({
         where: { assignmentId: assignment.id },
         create: {
             assignmentId: assignment.id,
-            score: evaluationResult.score
+            score: roundedScore
         },
         update: {
-            score: evaluationResult.score
+            score: roundedScore
         },
         select: { score: true }
     });

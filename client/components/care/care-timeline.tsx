@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { type CareSession } from "@/lib/api";
+import { formatScore } from "@/lib/score";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -67,7 +68,7 @@ export function CareTimeline({
                   Performed {formatDate(session.performedAt)}
                 </p>
               </div>
-              <span className="badge badge-blue">Score {session.score ?? session.assignment.result?.score ?? 0}</span>
+              <span className="badge badge-blue">Score {formatScore(session.score ?? session.assignment.result?.score)}</span>
             </div>
 
             <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "14px" }}>
