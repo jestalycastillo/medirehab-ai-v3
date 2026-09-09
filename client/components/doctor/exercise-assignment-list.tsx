@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { type ExerciseAssignment } from "@/lib/api";
 import { formatScore } from "@/lib/score";
 
@@ -11,12 +12,15 @@ function formatDate(value?: string) {
 export function ExerciseAssignmentList({
   assignments,
   onRemove,
+  onUpdatePlan,
   isBusy,
 }: {
   assignments: ExerciseAssignment[];
   onRemove: (assignment: ExerciseAssignment) => void;
+  onUpdatePlan: (assignmentId: string, data: { targetSessionsPerWeek: number; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => Promise<void> | void;
   isBusy?: boolean;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   return (
     <div className="card" style={{ padding: "0", overflow: "hidden" }}>
       <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--color-border)" }}>
@@ -36,9 +40,31 @@ export function ExerciseAssignmentList({
                 {assignment.exercise?.description && (
                   <div style={{ color: "var(--color-text-secondary)", fontSize: "14px", marginTop: "6px", maxWidth: "56ch" }}>{assignment.exercise.description}</div>
                 )}
+                <div style={{ color: "var(--color-text-secondary)", fontSize: "13px", marginTop: "8px" }}>
+                  Target {assignment.targetSessionsPerWeek ?? 3}/week · {assignment.sessions?.filter((session) => Date.now() - new Date(session.performedAt).getTime() <= 7 * 86_400_000).length ?? 0} completed this week
+                </div>
+                {assignment.doctorInstructions && <div style={{ marginTop: "6px", fontSize: "13px" }}><strong>Instructions:</strong> {assignment.doctorInstructions}</div>}
+                {editingId === assignment.id && <form onSubmit={async (event) => {
+                  event.preventDefault();
+                  const form = new FormData(event.currentTarget);
+                  await onUpdatePlan(assignment.id, {
+                    targetSessionsPerWeek: Number(form.get("targetSessionsPerWeek")),
+                    dueDate: String(form.get("dueDate") || "") || null,
+                    reviewDate: String(form.get("reviewDate") || "") || null,
+                    doctorInstructions: String(form.get("doctorInstructions") || "") || null,
+                  });
+                  setEditingId(null);
+                }} style={{ marginTop: "12px", display: "grid", gap: "8px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per week<input className="input" name="targetSessionsPerWeek" type="number" min="1" max="14" defaultValue={assignment.targetSessionsPerWeek ?? 3} /></label>
+                  <label style={{ fontSize: "12px", fontWeight: 700 }}>Due date<input className="input" name="dueDate" type="date" defaultValue={assignment.dueDate?.slice(0, 10) ?? ""} /></label>
+                  <label style={{ fontSize: "12px", fontWeight: 700 }}>Review date<input className="input" name="reviewDate" type="date" defaultValue={assignment.reviewDate?.slice(0, 10) ?? ""} /></label>
+                  <label style={{ fontSize: "12px", fontWeight: 700 }}>Instructions<textarea className="input" name="doctorInstructions" maxLength={2000} defaultValue={assignment.doctorInstructions ?? ""} style={{ minHeight: "70px", paddingTop: "8px" }} /></label>
+                  <div><button className="btn btn-primary" type="submit" disabled={isBusy}>Save plan</button></div>
+                </form>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <span className="badge badge-blue">Score {formatScore(assignment.result?.score)}</span>
+                <button className="btn btn-secondary" onClick={() => setEditingId(editingId === assignment.id ? null : assignment.id)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>Plan</button>
                 <button className="btn btn-danger" onClick={() => onRemove(assignment)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>
                   Remove
                 </button>

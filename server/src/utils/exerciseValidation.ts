@@ -26,6 +26,13 @@ export type ValidatedAssignExerciseInput = {
     exerciseId: string;
 };
 
+export type ValidatedAssignmentPlanInput = {
+    targetSessionsPerWeek?: number;
+    dueDate?: Date | null;
+    reviewDate?: Date | null;
+    doctorInstructions?: string | null;
+};
+
 const validateImages = (value: unknown): ValidatedExerciseImageInput[] => {
     if (value === undefined || value === null) {
         return [];
@@ -83,4 +90,28 @@ export const validateExerciseIdParam = (value: unknown): string => {
 
 export const validateAssignmentIdParam = (value: unknown): string => {
     return requireString(value, "Assignment id");
+};
+
+export const validateAssignmentPlanInput = (body: Record<string, unknown>): ValidatedAssignmentPlanInput => {
+    const input: ValidatedAssignmentPlanInput = {};
+    if (body.targetSessionsPerWeek !== undefined) {
+        if (!Number.isInteger(body.targetSessionsPerWeek) || (body.targetSessionsPerWeek as number) < 1 || (body.targetSessionsPerWeek as number) > 14) {
+            throw new HttpError(400, "Weekly target must be an integer between 1 and 14.");
+        }
+        input.targetSessionsPerWeek = body.targetSessionsPerWeek as number;
+    }
+    for (const field of ["dueDate", "reviewDate"] as const) {
+        const value = body[field];
+        if (value === null || value === "") input[field] = null;
+        else if (typeof value === "string" && !Number.isNaN(new Date(value).getTime())) input[field] = new Date(value);
+        else if (value !== undefined) throw new HttpError(400, `${field === "dueDate" ? "Due date" : "Review date"} is invalid.`);
+    }
+    if (body.doctorInstructions === null || body.doctorInstructions === "") input.doctorInstructions = null;
+    else if (body.doctorInstructions !== undefined) {
+        const value = requireString(body.doctorInstructions, "Doctor instructions");
+        if (value.length > 2_000) throw new HttpError(400, "Doctor instructions must be 2,000 characters or fewer.");
+        input.doctorInstructions = value;
+    }
+    ensureAtLeastOneDefined(input);
+    return input;
 };

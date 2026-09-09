@@ -137,6 +137,11 @@ export interface ExerciseAssignment {
   startedAt?: string | null;
   activeAt?: string | null;
   completedAt?: string | null;
+  targetSessionsPerWeek?: number;
+  dueDate?: string | null;
+  reviewDate?: string | null;
+  doctorInstructions?: string | null;
+  sessions?: { performedAt: string }[];
   exercise: ApiExercise;
   result?: ExerciseResult;
 }
@@ -466,6 +471,13 @@ export const api = {
 
   getPatientSessions(patientUserId: string) {
     return request<{ success: boolean; sessions: CareSession[] }>(`/care/patients/${patientUserId}/sessions`);
+  },
+
+  updateAssignmentPlan(patientId: string, assignmentId: string, data: { targetSessionsPerWeek: number; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) {
+    return request<{ success: boolean; assignment: ExerciseAssignment }>(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   },
 
   updateSessionFeedback(sessionId: string, aiFeedback: string[]) {

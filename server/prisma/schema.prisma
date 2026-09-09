@@ -129,6 +129,10 @@ model ExerciseAssignment {
   startedAt          DateTime?
   activeAt           DateTime?
   completedAt        DateTime?
+  targetSessionsPerWeek Int      @default(3)
+  dueDate             DateTime?
+  reviewDate          DateTime?
+  doctorInstructions  String?
 
   exercise         Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)

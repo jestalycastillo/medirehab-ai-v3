@@ -4,6 +4,7 @@ import { HttpError } from "../utils/httpError";
 import { roundScore } from "../utils/score";
 import {
     ValidatedAssignExerciseInput,
+    ValidatedAssignmentPlanInput,
     ValidatedCreateExerciseInput,
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
@@ -33,6 +34,10 @@ const assignmentSelect = {
     startedAt: true,
     activeAt: true,
     completedAt: true,
+    targetSessionsPerWeek: true,
+    dueDate: true,
+    reviewDate: true,
+    doctorInstructions: true,
     exercise: {
         select: exerciseSelect
     },
@@ -41,6 +46,11 @@ const assignmentSelect = {
             id: true,
             score: true
         }
+    },
+    sessions: {
+        select: { performedAt: true },
+        orderBy: { performedAt: "desc" as const },
+        take: 50
     }
 } satisfies Prisma.ExerciseAssignmentSelect;
 
@@ -372,6 +382,26 @@ export const archivePatientExerciseAssignment = async (
     return prisma.exerciseAssignment.update({
         where: { id: assignment.id },
         data: { archivedAt: new Date() },
+        select: assignmentSelect
+    });
+};
+
+export const updatePatientExercisePlan = async (
+    patientUserId: string,
+    doctorUserId: string,
+    assignmentId: string,
+    input: ValidatedAssignmentPlanInput
+) => {
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const assignment = await prisma.exerciseAssignment.findFirst({
+        where: { id: assignmentId, patientProfileId, archivedAt: null },
+        select: { id: true }
+    });
+    if (!assignment) throw new HttpError(404, "Assigned exercise not found.");
+
+    return prisma.exerciseAssignment.update({
+        where: { id: assignment.id },
+        data: input,
         select: assignmentSelect
     });
 };

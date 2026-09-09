@@ -89,6 +89,18 @@ export default function PatientExercisesPage() {
     });
   };
 
+  const handleUpdatePlan = async (assignmentId: string, data: { targetSessionsPerWeek: number; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => {
+    setBusy(true);
+    try {
+      await api.updateAssignmentPlan(patientUserId, assignmentId, data);
+      await loadData();
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Failed to update care plan.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
 
   if (error) {
@@ -115,7 +127,7 @@ export default function PatientExercisesPage() {
 
       <section className="doctor-two-column">
         <ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} />
-        <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} isBusy={busy} />
+        <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} onUpdatePlan={handleUpdatePlan} isBusy={busy} />
       </section>
 
       <ConfirmDialog

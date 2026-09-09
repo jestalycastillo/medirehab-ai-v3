@@ -59,6 +59,11 @@ export function MyExerciseList({
           <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: 0 }}>
             {assignment.exercise?.description || "Follow the rehabilitation plan provided by your doctor."}
           </p>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <span className="badge badge-blue">Target {assignment.targetSessionsPerWeek ?? 3}/week</span>
+            {assignment.dueDate && <span className="badge badge-blue">Due {formatDate(assignment.dueDate)}</span>}
+          </div>
+          {assignment.doctorInstructions && <div style={{ padding: "10px 12px", backgroundColor: "var(--color-primary-light)", borderRadius: "var(--radius-md)", fontSize: "13px" }}><strong>Doctor instructions:</strong> {assignment.doctorInstructions}</div>}
 
           {assignment.exercise?.images?.length ? (
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

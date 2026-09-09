@@ -12,6 +12,7 @@ import {
     listExercises,
     restoreExercise,
     updateExercise,
+    updatePatientExercisePlan,
     evaluateExercise
 } from "../services/exercise.service";
 import { recordExerciseSession } from "../services/care.service";
@@ -21,6 +22,7 @@ import { HttpError } from "../utils/httpError";
 import {
     validateAssignExerciseInput,
     validateAssignmentIdParam,
+    validateAssignmentPlanInput,
     validateCreateExerciseInput,
     validateExerciseIdParam,
     validateUpdateExerciseInput
@@ -295,6 +297,23 @@ export const removeAssignedExercise = async (
         });
     } catch (error) {
         handleExerciseError(error, res, "Unable to remove assigned exercise.");
+    }
+};
+
+export const updateAssignedExercisePlan = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const doctorUserId = getAuthenticatedUserId(req);
+        const patientUserId = validateUserIdParam(req.params.patientUserId);
+        const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const assignment = await updatePatientExercisePlan(
+            patientUserId,
+            doctorUserId,
+            assignmentId,
+            validateAssignmentPlanInput(req.body)
+        );
+        res.status(200).json({ success: true, message: "Care plan updated successfully.", assignment });
+    } catch (error) {
+        handleExerciseError(error, res, "Unable to update care plan.");
     }
 };
 
