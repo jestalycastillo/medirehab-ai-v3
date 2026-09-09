@@ -3,7 +3,7 @@ import { HttpError } from "../utils/httpError";
 import type { LiveCoachingEvent } from "../utils/liveCoachingValidation";
 
 const DEFAULT_AI_SERVICE_BASE_URL = "http://127.0.0.1:8000";
-const LIVE_COACHING_TIMEOUT_MS = 5_000;
+const DEFAULT_AI_SERVICE_TIMEOUT_MS = 120_000;
 
 type AiServiceCoachingResponse = {
     success?: unknown;
@@ -30,12 +30,28 @@ const getAiServiceBaseUrl = (): string => {
     }
 };
 
+const getAiServiceTimeoutMs = (): number => {
+    const configuredTimeout = process.env.AI_SERVICE_TIMEOUT_MS?.trim();
+
+    if (!configuredTimeout) {
+        return DEFAULT_AI_SERVICE_TIMEOUT_MS;
+    }
+
+    const timeoutMs = Number(configuredTimeout);
+
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 600_000) {
+        throw new HttpError(503, "Live coaching timeout is not configured correctly.");
+    }
+
+    return timeoutMs;
+};
+
 const requestCoachingMessage = async (
     exerciseName: string,
     event: LiveCoachingEvent
 ): Promise<{ message: string; source: "ollama" | "fallback" } | null> => {
     const abortController = new AbortController();
-    const timeout = setTimeout(() => abortController.abort(), LIVE_COACHING_TIMEOUT_MS);
+    const timeout = setTimeout(() => abortController.abort(), getAiServiceTimeoutMs());
 
     try {
         const response = await fetch(`${getAiServiceBaseUrl()}/coaching`, {
