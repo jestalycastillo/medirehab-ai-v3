@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
+import { api } from "@/lib/api";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -91,6 +92,15 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (loading || user?.role !== "PATIENT" || user.mustChangePassword) return;
+
+    const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 60_000);
+    return () => window.clearInterval(interval);
+  }, [loading, user]);
 
   if (loading || !user || user.role !== "PATIENT" || user.mustChangePassword) {
     return (

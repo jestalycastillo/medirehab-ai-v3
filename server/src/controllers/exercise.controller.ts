@@ -15,6 +15,7 @@ import {
     evaluateExercise
 } from "../services/exercise.service";
 import { recordExerciseSession } from "../services/care.service";
+import { completeExerciseActivity } from "../services/presence.service";
 import { createLiveCoachingMessage } from "../services/live-coaching.service";
 import { HttpError } from "../utils/httpError";
 import {
@@ -343,6 +344,7 @@ export const evaluateExerciseAssignment = async (
             result.score,
             result.feedback
         );
+        await completeExerciseActivity(authenticatedUserId, assignmentId);
 
         res.status(200).json({
             success: true,

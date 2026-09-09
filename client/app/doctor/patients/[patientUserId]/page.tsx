@@ -10,6 +10,7 @@ import { PatientForm } from "@/components/doctor/patient-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { CareTimeline } from "@/components/care/care-timeline";
+import { ChatPanel } from "@/components/care/chat-panel";
 
 function ActivityIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
@@ -31,6 +32,11 @@ function DetailField({ label, value }: { label: string; value?: string | null })
       <div style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{value || "-"}</div>
     </div>
   );
+}
+
+function formatTimestamp(value?: string | null) {
+  if (!value) return "Never";
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
 }
 
 export default function PatientDetailPage() {
@@ -79,6 +85,8 @@ export default function PatientDetailPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPatient();
+    const interval = window.setInterval(() => void loadPatient(), 30_000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientUserId]);
 
@@ -190,6 +198,8 @@ export default function PatientDetailPage() {
     );
   }
 
+  const activeAssignment = assignments.find((assignment) => assignment.activeAt && Date.now() - new Date(assignment.activeAt).getTime() < 2 * 60_000);
+
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -251,12 +261,33 @@ export default function PatientDetailPage() {
       </section>
 
       <section className="card" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "18px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Patient Activity</h2>
+          {activeAssignment ? <span className="badge badge-blue" style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Taking {activeAssignment.exercise.name}</span> : <span className="badge badge-blue">Not currently exercising</span>}
+        </div>
+        <div className="doctor-form-grid">
+          <DetailField label="Last online" value={formatTimestamp(patient.lastSeenAt)} />
+          <DetailField label="Last login" value={formatTimestamp(patient.lastLoginAt)} />
+        </div>
+        {assignments.length > 0 && <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          {assignments.map((assignment) => <div key={assignment.id} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "10px", display: "grid", gridTemplateColumns: "minmax(140px, 1fr) repeat(3, minmax(100px, auto))", gap: "12px", fontSize: "13px", alignItems: "center" }}>
+            <strong>{assignment.exercise.name}</strong>
+            <span style={{ color: "var(--color-text-secondary)" }}>Viewed: {formatTimestamp(assignment.viewedAt)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Started: {formatTimestamp(assignment.startedAt)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Finished: {formatTimestamp(assignment.completedAt)}</span>
+          </div>)}
+        </div>}
+      </section>
+
+      <section className="card" style={{ padding: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
           <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
           <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
         </div>
         <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
       </section>
+
+      <ChatPanel role="doctor" patientUserId={patient.id} counterpartName={patientName(patient)} />
 
       <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} />
       <ConfirmDialog

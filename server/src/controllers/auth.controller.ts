@@ -101,7 +101,9 @@ export const me = async (req: Request, res: Response): Promise<void> => {
                 isActive: user.isActive,
                 archivedAt: user.archivedAt,
                 mustChangePassword: user.mustChangePassword,
-                passwordChangedAt: user.passwordChangedAt
+                passwordChangedAt: user.passwordChangedAt,
+                lastLoginAt: user.lastLoginAt,
+                lastSeenAt: user.lastSeenAt
             }
         });
     } catch (error) {

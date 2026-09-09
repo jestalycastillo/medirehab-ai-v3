@@ -22,6 +22,8 @@ const baseUserSelect = {
     archivedAt: true,
     mustChangePassword: true,
     passwordChangedAt: true,
+    lastLoginAt: true,
+    lastSeenAt: true,
     createdAt: true,
     updatedAt: true
 } satisfies Prisma.UserSelect;

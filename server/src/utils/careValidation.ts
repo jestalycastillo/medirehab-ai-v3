@@ -17,6 +17,10 @@ export type ValidatedCommentInput = {
     body: string;
 };
 
+export type ValidatedChatMessageInput = {
+    body: string;
+};
+
 export const validateSessionIdParam = (value: unknown): string => {
     return requireString(value, "Session id");
 };
@@ -82,3 +86,15 @@ export const validateCommentInput = (
 ): ValidatedCommentInput => ({
     body: requireString(body.body, "Comment")
 });
+
+export const validateChatMessageInput = (
+    body: Record<string, unknown>
+): ValidatedChatMessageInput => {
+    const message = requireString(body.body, "Message");
+
+    if (message.length > 2_000) {
+        throw new HttpError(400, "Message must be 2,000 characters or fewer.");
+    }
+
+    return { body: message };
+};

@@ -11,6 +11,8 @@ type SafeUser = {
     archivedAt: Date | null;
     mustChangePassword: boolean;
     passwordChangedAt: Date | null;
+    lastLoginAt: Date | null;
+    lastSeenAt: Date | null;
 };
 
 export class InvalidCredentialsError extends Error {
@@ -27,7 +29,9 @@ const toSafeUser = (user: SafeUser): SafeUser => ({
     isActive: user.isActive,
     archivedAt: user.archivedAt,
     mustChangePassword: user.mustChangePassword,
-    passwordChangedAt: user.passwordChangedAt
+    passwordChangedAt: user.passwordChangedAt,
+    lastLoginAt: user.lastLoginAt,
+    lastSeenAt: user.lastSeenAt
 });
 
 export const loginUser = async (
@@ -52,14 +56,20 @@ export const loginUser = async (
         throw new InvalidCredentialsError();
     }
 
+    const now = new Date();
+    const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: now, lastSeenAt: now }
+    });
+
     const token = signAuthToken({
         userId: user.id,
-        role: user.role
+        role: updatedUser.role
     });
 
     return {
         token,
-        user: toSafeUser(user)
+        user: toSafeUser(updatedUser)
     };
 };
 
@@ -73,7 +83,9 @@ export const getCurrentUser = async (userId: string): Promise<SafeUser | null> =
             isActive: true,
             archivedAt: true,
             mustChangePassword: true,
-            passwordChangedAt: true
+            passwordChangedAt: true,
+            lastLoginAt: true,
+            lastSeenAt: true
         }
     });
 };

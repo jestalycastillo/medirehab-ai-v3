@@ -28,6 +28,10 @@ const assignmentSelect = {
     id: true,
     assignedAt: true,
     archivedAt: true,
+    viewedAt: true,
+    startedAt: true,
+    activeAt: true,
+    completedAt: true,
     exercise: {
         select: exerciseSelect
     },

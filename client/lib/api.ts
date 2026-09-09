@@ -14,6 +14,8 @@ export interface ApiUser {
   archivedAt: string | null;
   mustChangePassword: boolean;
   passwordChangedAt: string | null;
+  lastLoginAt?: string | null;
+  lastSeenAt?: string | null;
 }
 
 export interface DoctorProfile {
@@ -106,7 +108,7 @@ export interface CareSession {
 
 export interface CareNotification {
   id: string;
-  type: "SESSION_RESULT" | "SESSION_CHECKIN" | "DOCTOR_COMMENT" | "REMINDER";
+  type: "SESSION_RESULT" | "SESSION_CHECKIN" | "DOCTOR_COMMENT" | "REMINDER" | "CHAT_MESSAGE";
   title: string;
   body: string;
   link: string | null;
@@ -116,10 +118,25 @@ export interface CareNotification {
   updatedAt: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderUserId: string;
+  recipientUserId: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sender: SessionAuthor;
+}
+
 export interface ExerciseAssignment {
   id: string;
   assignedAt: string;
   archivedAt: string | null;
+  viewedAt?: string | null;
+  startedAt?: string | null;
+  activeAt?: string | null;
+  completedAt?: string | null;
   exercise: ApiExercise;
   result?: ExerciseResult;
 }
@@ -480,5 +497,44 @@ export const api = {
     return request<{ success: boolean; notification: CareNotification }>(`/care/notifications/${notificationId}/read`, {
       method: "PATCH",
     });
+  },
+
+  // --- Live text chat ---
+  getChatMessages(patientUserId?: string) {
+    const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
+    return request<{ success: boolean; messages: ChatMessage[] }>(`/chat/messages${query}`);
+  },
+
+  sendChatMessage(body: string, patientUserId?: string) {
+    const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
+    return request<{ success: boolean; message: ChatMessage }>(`/chat/messages${query}`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  markChatMessagesRead(patientUserId?: string) {
+    const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
+    return request<{ success: boolean }>(`/chat/messages/read${query}`, { method: "PATCH" });
+  },
+
+  // --- Patient presence & exercise activity ---
+  sendPresenceHeartbeat() {
+    return request<{ success: boolean }>("/presence/heartbeat", { method: "POST" });
+  },
+
+  markExercisesViewed(assignmentIds: string[]) {
+    return request<{ success: boolean }>("/presence/assignments/viewed", {
+      method: "POST",
+      body: JSON.stringify({ assignmentIds }),
+    });
+  },
+
+  startExerciseActivity(assignmentId: string) {
+    return request<{ success: boolean }>(`/presence/assignments/${assignmentId}/start`, { method: "POST" });
+  },
+
+  stopExerciseActivity(assignmentId: string) {
+    return request<{ success: boolean }>(`/presence/assignments/${assignmentId}/stop`, { method: "POST" });
   },
 };

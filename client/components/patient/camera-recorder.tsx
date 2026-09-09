@@ -267,6 +267,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             };
 
             recorder.onstop = () => {
+                if (assignmentId) {
+                    void api.stopExerciseActivity(assignmentId).catch(() => undefined);
+                }
                 if (recordingTimeoutRef.current) {
                     clearTimeout(recordingTimeoutRef.current);
                     recordingTimeoutRef.current = null;
@@ -285,6 +288,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             mediaRecorderRef.current = recorder;
             recorder.start(); // Start recording without timeslice for maximum stability
             setIsRecording(true);
+            if (assignmentId) {
+                void api.startExerciseActivity(assignmentId).catch(() => undefined);
+            }
             recordingTimeoutRef.current = setTimeout(() => {
                 if (recorder.state === "recording") {
                     liveCoachingRequestIdRef.current += 1;
