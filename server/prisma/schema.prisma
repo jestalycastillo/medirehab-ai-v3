@@ -26,6 +26,8 @@ model User {
   authoredExerciseSessionComments ExerciseSessionComment[]
   sentChatMessages ChatMessage[] @relation("SentChatMessages")
   receivedChatMessages ChatMessage[] @relation("ReceivedChatMessages")
+  patientHelpRequests HelpRequest[] @relation("PatientHelpRequests")
+  doctorHelpRequests HelpRequest[] @relation("DoctorHelpRequests")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,6 +141,7 @@ model ExerciseAssignment {
   assignedByDoctor DoctorProfile  @relation(fields: [assignedByDoctorId], references: [id], onDelete: Restrict)
   result           ExerciseResult?
   sessions         ExerciseSession[]
+  helpRequests     HelpRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -242,10 +245,31 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
+model HelpRequest {
+  id            String    @id @default(cuid())
+  patientUserId String
+  doctorUserId  String
+  assignmentId  String?
+  message       String
+  resolvedAt    DateTime?
+
+  patient    User                @relation("PatientHelpRequests", fields: [patientUserId], references: [id], onDelete: Cascade)
+  doctor     User                @relation("DoctorHelpRequests", fields: [doctorUserId], references: [id], onDelete: Cascade)
+  assignment ExerciseAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([doctorUserId, resolvedAt, createdAt])
+  @@index([patientUserId, createdAt])
+  @@map("help_requests")
+}
+
 enum NotificationType {
   SESSION_RESULT
   SESSION_CHECKIN
   DOCTOR_COMMENT
   REMINDER
   CHAT_MESSAGE
+  PATIENT_HELP
 }

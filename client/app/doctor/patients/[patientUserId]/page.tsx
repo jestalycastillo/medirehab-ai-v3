@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
+import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type HelpRequest, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { PatientForm } from "@/components/doctor/patient-form";
@@ -13,6 +13,7 @@ import { CareTimeline } from "@/components/care/care-timeline";
 import { ChatPanel } from "@/components/care/chat-panel";
 import { ScoreSummary } from "@/components/care/score-summary";
 import { formatScore } from "@/lib/score";
+import { DoctorAlerts } from "@/components/care/doctor-alerts";
 
 function ActivityIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
@@ -48,6 +49,7 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<ApiPatient | null>(null);
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
+  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -69,14 +71,16 @@ export default function PatientDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [patientRes, assignmentsRes, sessionsRes] = await Promise.all([
+      const [patientRes, assignmentsRes, sessionsRes, helpRes] = await Promise.all([
         api.getPatient(patientUserId),
         api.getAssignedExercises(patientUserId),
         api.getPatientSessions(patientUserId),
+        api.getPatientHelpRequests(patientUserId),
       ]);
       setPatient(patientRes.patient);
       setAssignments(assignmentsRes.assignments);
       setSessions(sessionsRes.sessions);
+      setHelpRequests(helpRes.requests);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load patient.");
     } finally {
@@ -115,6 +119,11 @@ export default function PatientDetailPage() {
     } finally {
       setCommentLoading(false);
     }
+  };
+
+  const handleResolveHelp = async (requestId: string) => {
+    try { await api.resolveHelpRequest(requestId); await loadPatient(); }
+    catch (err) { alert(err instanceof ApiError ? err.message : "Unable to resolve help request."); }
   };
 
   const resetPassword = () => {
@@ -290,6 +299,8 @@ export default function PatientDetailPage() {
       </section>
 
       <ScoreSummary sessions={sessions} />
+
+      <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} onResolve={handleResolveHelp} />
 
       <ChatPanel role="doctor" patientUserId={patient.id} counterpartName={patientName(patient)} />
 

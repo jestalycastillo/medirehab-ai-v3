@@ -13,8 +13,13 @@ import {
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requirePasswordChanged } from "../middlewares/password.middleware";
 import { requireRole } from "../middlewares/role.middleware";
+import { getPatientHelpRequests, requestHelp, resolvePatientHelpRequest } from "../controllers/help.controller";
 
 const router = Router();
+
+router.post("/help-requests", authMiddleware, requirePasswordChanged, requireRole(Role.PATIENT), requestHelp);
+router.get("/patients/:patientUserId/help-requests", authMiddleware, requirePasswordChanged, requireRole(Role.DOCTOR), getPatientHelpRequests);
+router.patch("/help-requests/:requestId/resolve", authMiddleware, requirePasswordChanged, requireRole(Role.DOCTOR), resolvePatientHelpRequest);
 
 router.get(
     "/me/sessions",

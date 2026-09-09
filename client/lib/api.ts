@@ -108,7 +108,7 @@ export interface CareSession {
 
 export interface CareNotification {
   id: string;
-  type: "SESSION_RESULT" | "SESSION_CHECKIN" | "DOCTOR_COMMENT" | "REMINDER" | "CHAT_MESSAGE";
+  type: "SESSION_RESULT" | "SESSION_CHECKIN" | "DOCTOR_COMMENT" | "REMINDER" | "CHAT_MESSAGE" | "PATIENT_HELP";
   title: string;
   body: string;
   link: string | null;
@@ -127,6 +127,17 @@ export interface ChatMessage {
   createdAt: string;
   updatedAt: string;
   sender: SessionAuthor;
+}
+
+export interface HelpRequest {
+  id: string;
+  patientUserId: string;
+  doctorUserId: string;
+  assignmentId: string | null;
+  message: string;
+  resolvedAt: string | null;
+  createdAt: string;
+  assignment?: { exercise: { name: string } } | null;
 }
 
 export interface ExerciseAssignment {
@@ -548,5 +559,20 @@ export const api = {
 
   stopExerciseActivity(assignmentId: string) {
     return request<{ success: boolean }>(`/presence/assignments/${assignmentId}/stop`, { method: "POST" });
+  },
+
+  requestHelp(message: string, assignmentId?: string) {
+    return request<{ success: boolean; request: HelpRequest }>("/care/help-requests", {
+      method: "POST",
+      body: JSON.stringify({ message, assignmentId }),
+    });
+  },
+
+  getPatientHelpRequests(patientUserId: string) {
+    return request<{ success: boolean; requests: HelpRequest[] }>(`/care/patients/${patientUserId}/help-requests`);
+  },
+
+  resolveHelpRequest(requestId: string) {
+    return request<{ success: boolean; request: HelpRequest }>(`/care/help-requests/${requestId}/resolve`, { method: "PATCH" });
   },
 };
