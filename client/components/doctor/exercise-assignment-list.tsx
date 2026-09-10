@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { type ExerciseAssignment } from "@/lib/api";
 import { formatScore } from "@/lib/score";
+import { AdherenceSummary } from "@/components/care/adherence-summary";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -17,7 +18,7 @@ export function ExerciseAssignmentList({
 }: {
   assignments: ExerciseAssignment[];
   onRemove: (assignment: ExerciseAssignment) => void;
-  onUpdatePlan: (assignmentId: string, data: { targetSessionsPerWeek: number; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => Promise<void> | void;
+  onUpdatePlan: (assignmentId: string, data: { targetSessionsPerWeek: number; targetSessionsPerDay?: number | null; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => Promise<void> | void;
   isBusy?: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -41,14 +42,16 @@ export function ExerciseAssignmentList({
                   <div style={{ color: "var(--color-text-secondary)", fontSize: "14px", marginTop: "6px", maxWidth: "56ch" }}>{assignment.exercise.description}</div>
                 )}
                 <div style={{ color: "var(--color-text-secondary)", fontSize: "13px", marginTop: "8px" }}>
-                  Target {assignment.targetSessionsPerWeek ?? 3}/week · {assignment.sessions?.filter((session) => Date.now() - new Date(session.performedAt).getTime() <= 7 * 86_400_000).length ?? 0} completed this week
+                  Target {assignment.targetSessionsPerDay ? `${assignment.targetSessionsPerDay}/day` : `${assignment.targetSessionsPerWeek ?? 3}/week`}
                 </div>
+                <AdherenceSummary adherence={assignment.adherence} showHistory />
                 {assignment.doctorInstructions && <div style={{ marginTop: "6px", fontSize: "13px" }}><strong>Instructions:</strong> {assignment.doctorInstructions}</div>}
                 {editingId === assignment.id && <form onSubmit={async (event) => {
                   event.preventDefault();
                   const form = new FormData(event.currentTarget);
                   await onUpdatePlan(assignment.id, {
                     targetSessionsPerWeek: Number(form.get("targetSessionsPerWeek")),
+                    targetSessionsPerDay: String(form.get("targetSessionsPerDay") || "") ? Number(form.get("targetSessionsPerDay")) : null,
                     dueDate: String(form.get("dueDate") || "") || null,
                     reviewDate: String(form.get("reviewDate") || "") || null,
                     doctorInstructions: String(form.get("doctorInstructions") || "") || null,
@@ -56,6 +59,7 @@ export function ExerciseAssignmentList({
                   setEditingId(null);
                 }} style={{ marginTop: "12px", display: "grid", gap: "8px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per week<input className="input" name="targetSessionsPerWeek" type="number" min="1" max="14" defaultValue={assignment.targetSessionsPerWeek ?? 3} /></label>
+                  <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per day <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(optional; enables daily tracking)</span><input className="input" name="targetSessionsPerDay" type="number" min="1" max="5" defaultValue={assignment.targetSessionsPerDay ?? ""} placeholder="Use weekly target" /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Due date<input className="input" name="dueDate" type="date" defaultValue={assignment.dueDate?.slice(0, 10) ?? ""} /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Review date<input className="input" name="reviewDate" type="date" defaultValue={assignment.reviewDate?.slice(0, 10) ?? ""} /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Instructions<textarea className="input" name="doctorInstructions" maxLength={2000} defaultValue={assignment.doctorInstructions ?? ""} style={{ minHeight: "70px", paddingTop: "8px" }} /></label>

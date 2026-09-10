@@ -4,13 +4,16 @@ import type { CareSession, ExerciseAssignment } from "@/lib/api";
 import { formatScore } from "@/lib/score";
 
 export function ProgressReport({ sessions, assignments, subjectName }: { sessions: CareSession[]; assignments: ExerciseAssignment[]; subjectName: string }) {
-  const recent = sessions.filter((session) => Date.now() - new Date(session.performedAt).getTime() <= 30 * 86_400_000);
+  const reportStart = assignments.flatMap((assignment) => assignment.adherence?.last30Days.periodStart ? [assignment.adherence.last30Days.periodStart] : []).sort()[0];
+  const recent = reportStart ? sessions.filter((session) => new Date(session.performedAt).getTime() >= new Date(`${reportStart}T00:00:00Z`).getTime()) : [];
   const scores = recent.flatMap((session) => typeof session.score === "number" ? [session.score] : []);
   const pain = recent.flatMap((session) => typeof session.painLevel === "number" ? [session.painLevel] : []);
   const average = scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : 0;
   const averagePain = pain.length ? pain.reduce((sum, value) => sum + value, 0) / pain.length : 0;
-  const weeklyTarget = assignments.reduce((sum, assignment) => sum + (assignment.targetSessionsPerWeek ?? 3), 0);
-  const adherence = weeklyTarget ? Math.min(100, (recent.length / (weeklyTarget * 4)) * 100) : 0;
+  const adherenceCompleted = assignments.reduce((sum, assignment) => sum + (assignment.adherence?.last30Days.completed ?? 0), 0);
+  const adherenceTarget = assignments.reduce((sum, assignment) => sum + (assignment.adherence?.last30Days.target ?? 0), 0);
+  const adherence = adherenceTarget ? Math.min(100, (adherenceCompleted / adherenceTarget) * 100) : 0;
+  const metThisWeek = assignments.filter((assignment) => assignment.adherence?.currentWeek.status === "MET").length;
 
   const downloadCsv = () => {
     const rows = [["Patient", "Exercise", "Performed", "Score", "Pain", "Difficulty", "Confidence", "Note"], ...recent.map((session) => [subjectName, session.assignment.exercise.name, session.performedAt, formatScore(session.score), session.painLevel ?? "", session.difficultyLevel ?? "", session.confidenceLevel ?? "", session.patientNote ?? ""] )];
@@ -25,7 +28,8 @@ export function ProgressReport({ sessions, assignments, subjectName }: { session
       <div><small>Sessions</small><div style={{ fontSize: "22px", fontWeight: 700 }}>{recent.length}</div></div>
       <div><small>Average score</small><div style={{ fontSize: "22px", fontWeight: 700 }}>{formatScore(average)}</div></div>
       <div><small>Average pain</small><div style={{ fontSize: "22px", fontWeight: 700 }}>{averagePain.toFixed(1)}/10</div></div>
-      <div><small>Adherence</small><div style={{ fontSize: "22px", fontWeight: 700 }}>{adherence.toFixed(0)}%</div></div>
+      <div><small>30-day adherence</small><div style={{ fontSize: "22px", fontWeight: 700 }}>{adherence.toFixed(0)}%</div><small>{adherenceCompleted}/{adherenceTarget} required sessions</small></div>
+      <div><small>Weekly goals met</small><div style={{ fontSize: "22px", fontWeight: 700 }}>{metThisWeek}/{assignments.length}</div></div>
     </div>
   </section>;
 }

@@ -393,6 +393,67 @@ body {
   overflow: hidden;
 }
 
+.adherence-summary {
+  min-width: min(100%, 260px);
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-page-bg);
+}
+
+.adherence-heading,
+.adherence-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adherence-remaining,
+.adherence-week-line {
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.adherence-progress {
+  height: 7px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.adherence-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.adherence-history {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.adherence-history summary {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.adherence-history > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.adherence-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
 .portal-content {
   min-width: 0;
   overflow: hidden;

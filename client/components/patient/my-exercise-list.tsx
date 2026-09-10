@@ -3,6 +3,7 @@
 import { type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
 import { formatScore } from "@/lib/score";
+import { AdherenceSummary } from "@/components/care/adherence-summary";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -60,9 +61,10 @@ export function MyExerciseList({
             {assignment.exercise?.description || "Follow the rehabilitation plan provided by your doctor."}
           </p>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <span className="badge badge-blue">Target {assignment.targetSessionsPerWeek ?? 3}/week</span>
+            <span className="badge badge-blue">Target {assignment.targetSessionsPerDay ? `${assignment.targetSessionsPerDay}/day` : `${assignment.targetSessionsPerWeek ?? 3}/week`}</span>
             {assignment.dueDate && <span className="badge badge-blue">Due {formatDate(assignment.dueDate)}</span>}
           </div>
+          <AdherenceSummary adherence={assignment.adherence} showHistory={!compact} />
           {assignment.doctorInstructions && <div style={{ padding: "10px 12px", backgroundColor: "var(--color-primary-light)", borderRadius: "var(--radius-md)", fontSize: "13px" }}><strong>Doctor instructions:</strong> {assignment.doctorInstructions}</div>}
 
           {assignment.exercise?.images?.length ? (

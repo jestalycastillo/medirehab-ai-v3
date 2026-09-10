@@ -89,7 +89,7 @@ export default function PatientExercisesPage() {
     });
   };
 
-  const handleUpdatePlan = async (assignmentId: string, data: { targetSessionsPerWeek: number; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => {
+  const handleUpdatePlan = async (assignmentId: string, data: { targetSessionsPerWeek: number; targetSessionsPerDay?: number | null; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => {
     setBusy(true);
     try {
       await api.updateAssignmentPlan(patientUserId, assignmentId, data);
