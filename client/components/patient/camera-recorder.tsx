@@ -6,6 +6,18 @@ import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
 import { supportsSideArmsRaiseGuidance } from "@/lib/pose/side-arms-raise-guidance";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { formatScore } from "@/lib/score";
+import { Button } from "@/components/ui/button";
+import {
+    Camera,
+    CheckCircle2,
+    CircleStop,
+    Clock3,
+    LoaderCircle,
+    RotateCcw,
+    Sparkles,
+    Video,
+    X,
+} from "lucide-react";
 
 interface CameraRecorderProps {
     exerciseName?: string;
@@ -27,6 +39,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [isCameraStarting, setIsCameraStarting] = useState(false);
+    const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useState(0);
     const [countdown, setCountdown] = useState<number | null>(null);
     const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -50,6 +64,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const chunksRef = useRef<Blob[]>([]);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const blobRef = useRef<Blob | null>(null);
     const recordingStartedAtRef = useRef(0);
     const recordingDurationSecondsRef = useRef(0);
@@ -72,6 +87,32 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     useEffect(() => {
         isRecordingRef.current = isRecording;
     }, [isRecording]);
+
+    useEffect(() => {
+        if (!isRecording) return;
+
+        recordingTimerRef.current = setInterval(() => {
+            setRecordingElapsedSeconds(
+                Math.min(
+                    recordingLimitSeconds,
+                    Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)),
+                ),
+            );
+        }, 250);
+
+        return () => {
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+                recordingTimerRef.current = null;
+            }
+        };
+    }, [isRecording, recordingLimitSeconds]);
+
+    useEffect(() => {
+        return () => {
+            if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+        };
+    }, [recordedUrl]);
 
     useEffect(() => {
         if (
@@ -156,12 +197,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (recordingTimeoutRef.current) {
                 clearTimeout(recordingTimeoutRef.current);
             }
+            if (recordingTimerRef.current) {
+                clearInterval(recordingTimerRef.current);
+            }
         };
     }, [stream]);
 
     const startCamera = async () => {
         setError(null);
         setRecordedUrl(null);
+        setIsCameraStarting(true);
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -181,6 +226,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             setError(
                 "Could not access your front camera. Please check your camera permissions and ensure no other application is using it."
             );
+        } finally {
+            setIsCameraStarting(false);
         }
     };
 
@@ -221,6 +268,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
         setCountdown(null);
         setIsRecording(false);
+        setIsCameraStarting(false);
+        setRecordingElapsedSeconds(0);
         setIsOpen(false);
         setError(null);
         setRecordedUrl(null);
@@ -265,6 +314,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const startRecording = () => {
         if (!stream) return;
         chunksRef.current = [];
+        setRecordingElapsedSeconds(0);
         liveGuidanceFeedbackRef.current = [];
         setLiveCoachingMessage(null);
         liveCoachingRequestIdRef.current += 1;
@@ -296,6 +346,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 }
                 const mimeType = recorder.mimeType || "video/webm";
                 recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
+                setRecordingElapsedSeconds(recordingDurationSecondsRef.current);
                 const blob = new Blob(chunksRef.current, { type: mimeType });
                 blobRef.current = blob;
                 const url = URL.createObjectURL(blob);
@@ -432,11 +483,39 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }));
     };
 
+    const recorderPhase = error
+        ? "Camera unavailable"
+        : isEvaluating
+          ? "Analyzing movement"
+          : recordedUrl
+            ? "Ready to review"
+            : countdown !== null
+              ? `Starting in ${countdown}`
+              : isRecording
+                ? "Recording in progress"
+                : isCameraStarting
+                  ? "Starting camera"
+                  : stream
+                    ? "Camera ready"
+                    : "Waiting for camera";
+    const recorderPhaseTone = error
+        ? "error"
+        : isRecording
+          ? "recording"
+          : recordedUrl
+            ? "review"
+            : "ready";
+    const recordingProgress = Math.min(
+        100,
+        (recordingElapsedSeconds / recordingLimitSeconds) * 100,
+    );
+
     return (
         <>
-            <button className="btn btn-primary" onClick={handleOpen} style={{ height: "38px", padding: "0 14px" }}>
+            <Button onClick={handleOpen} size="lg" className="camera-launch-button">
+                <Video data-icon="inline-start" />
                 Start Exercise
-            </button>
+            </Button>
 
             {isOpen && (
                 <div
@@ -446,79 +525,90 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundColor: "rgba(15, 23, 42, 0.75)",
-                        backdropFilter: "blur(4px)",
+                        backgroundColor: "rgba(3, 15, 14, 0.78)",
+                        backdropFilter: "blur(10px)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         zIndex: 9999,
-                        padding: "20px",
+                        padding: "clamp(10px, 2vw, 24px)",
                     }}
                     onClick={handleClose}
                 >
                     <div
                         className="card animate-slide-up"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="exercise-recorder-title"
                         style={{
                             width: "100%",
-                            maxWidth: "960px",
-                            height: "min(720px, calc(100dvh - 40px))",
-                            maxHeight: "calc(100dvh - 40px)",
+                            maxWidth: "1080px",
+                            height: "min(780px, calc(100dvh - 32px))",
+                            maxHeight: "calc(100dvh - 20px)",
                             backgroundColor: "var(--color-surface)",
                             overflow: "hidden",
                             position: "relative",
                             display: "flex",
                             flexDirection: "column",
                             minHeight: 0,
-                            boxShadow: "var(--shadow-elevated)",
+                            borderRadius: "20px",
+                            border: "1px solid rgba(255, 255, 255, 0.28)",
+                            boxShadow: "0 28px 90px rgba(3, 15, 14, 0.36)",
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
                         <div
                             style={{
-                                padding: "16px 20px",
+                                padding: "18px 20px",
                                 borderBottom: "1px solid var(--color-border)",
                                 display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "center",
+                                gap: "16px",
                             }}
                         >
-                            <div>
-                                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
-                                    Record: {exerciseName}
-                                </h3>
-                                <p style={{ fontSize: "12px", color: "var(--color-text-muted)", margin: "2px 0 0 0" }}>
-                                    Align yourself in the frame before starting
-                                </p>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                                <span className="recorder-header-icon" aria-hidden="true">
+                                    <Video size={20} />
+                                </span>
+                                <div style={{ minWidth: 0 }}>
+                                    <div className="recorder-eyebrow">Exercise recording</div>
+                                    <h3 id="exercise-recorder-title" style={{ fontSize: "18px", fontWeight: 750, margin: 0, color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {exerciseName}
+                                    </h3>
+                                </div>
                             </div>
-                            <button
-                                onClick={handleClose}
-                                style={{
-                                    border: "none",
-                                    background: "transparent",
-                                    cursor: "pointer",
-                                    color: "var(--color-text-muted)",
-                                    padding: "4px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    borderRadius: "50%",
-                                }}
-                                className="btn-secondary"
-                                aria-label="Close dialog"
-                            >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+                                <div className={`recorder-phase recorder-phase-${recorderPhaseTone}`} aria-live="polite">
+                                    <span className="recorder-phase-dot" />
+                                    {recorderPhase}
+                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={handleClose}
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Close recorder"
+                                    disabled={isEvaluating}
+                                >
+                                    <X />
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="recorder-prep-bar">
+                            <span><Camera size={16} /> Keep your full body visible</span>
+                            <span><Clock3 size={16} /> Up to {formatRecordingTime(recordingLimitSeconds)}</span>
+                            <span><Sparkles size={16} /> Review before submitting</span>
                         </div>
 
                         {/* Video Feed Workspace */}
                         <div
+                            className="recorder-video-stage"
                             style={{
                                 position: "relative",
-                                backgroundColor: "#000",
+                                backgroundColor: "#061311",
                                 width: "100%",
                                 flex: "1 1 0",
                                 minHeight: 0,
@@ -528,13 +618,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             }}
                         >
                             {error ? (
-                                <div style={{ color: "#EF4444", padding: "24px", textAlign: "center", fontSize: "14px" }}>
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ margin: "0 auto 12px auto", display: "block" }}>
-                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                    </svg>
-                                    {error}
+                                <div className="recorder-empty-state" role="alert">
+                                    <span className="recorder-empty-icon recorder-empty-icon-error">
+                                        <Camera size={28} />
+                                    </span>
+                                    <h4>We could not start your camera</h4>
+                                    <p>{error}</p>
                                 </div>
                             ) : evaluationScore !== null ? (
                                 /* Evaluation Success Screen */
@@ -565,29 +654,23 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 </div>
                             ) : recordedUrl ? (
                                 /* Post-Recording Preview */
-                                <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                                <div className="recorder-preview">
                                     <video
                                         src={recordedUrl}
                                         controls
-                                        style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
+                                        className="recorder-video"
                                     />
+                                    <div className="recorder-preview-label">
+                                        <CheckCircle2 size={15} />
+                                        Captured · {formatRecordingTime(recordingElapsedSeconds)}
+                                    </div>
                                     {isEvaluating && (
-                                        <div style={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            backgroundColor: "rgba(15, 23, 42, 0.8)",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: "16px",
-                                            zIndex: 30
-                                        }}>
-                                            <div className="spinner spinner-white" style={{ width: "40px", height: "40px" }} />
-                                            <div style={{ color: "#FFF", fontSize: "16px", fontWeight: 600 }}>Analyzing exercise performance...</div>
+                                        <div className="recorder-analyzing-overlay">
+                                            <LoaderCircle className="recorder-spin" size={38} />
+                                            <div>
+                                                <strong>Analyzing your movement</strong>
+                                                <span>This can take a moment. Keep this window open.</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -599,13 +682,18 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         autoPlay
                                         playsInline
                                         muted
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "contain",
-                                            transform: "scaleX(-1)", // Mirror the front camera output
-                                        }}
+                                        className="recorder-video"
                                     />
+
+                                    {isCameraStarting && (
+                                        <div className="recorder-analyzing-overlay">
+                                            <LoaderCircle className="recorder-spin" size={34} />
+                                            <div>
+                                                <strong>Starting your camera</strong>
+                                                <span>Approve camera access if your browser asks.</span>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {liveGuidanceEnabled && (
                                         <>
@@ -707,64 +795,17 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
                                     {/* Recording Status Overlay */}
                                     {isRecording && (
-                                        <div
-                                            style={{
-                                                position: "absolute",
-                                                top: "16px",
-                                                left: "16px",
-                                                backgroundColor: "rgba(0, 0, 0, 0.6)",
-                                                padding: "6px 12px",
-                                                borderRadius: "9999px",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "8px",
-                                                fontSize: "12px",
-                                                fontWeight: 600,
-                                                color: "#FFF",
-                                                zIndex: 10,
-                                            }}
-                                        >
-                                            <span
-                                                className="animate-pulse-subtle"
-                                                style={{
-                                                    width: "8px",
-                                                    height: "8px",
-                                                    borderRadius: "50%",
-                                                    backgroundColor: "#EF4444",
-                                                    display: "inline-block",
-                                                }}
-                                            />
-                                            REC · {MAX_RECORDING_SECONDS}s max
+                                        <div className="recorder-live-badge">
+                                            <span className="recorder-live-dot" />
+                                            REC&nbsp;&nbsp;{formatRecordingTime(recordingElapsedSeconds)} / {formatRecordingTime(recordingLimitSeconds)}
                                         </div>
                                     )}
 
                                     {/* Countdown Timer Overlay */}
                                     {countdown !== null && (
-                                        <div
-                                            style={{
-                                                position: "absolute",
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                bottom: 0,
-                                                backgroundColor: "rgba(0, 0, 0, 0.4)",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                zIndex: 20,
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    fontSize: "84px",
-                                                    fontWeight: 800,
-                                                    color: "#FFF",
-                                                    animation: "fadeIn 0.2s ease-out",
-                                                    textShadow: "0 4px 12px rgba(0,0,0,0.5)",
-                                                }}
-                                            >
-                                                {countdown}
-                                            </div>
+                                        <div className="recorder-countdown">
+                                            <div key={countdown}>{countdown}</div>
+                                            <span>Get ready</span>
                                         </div>
                                     )}
                                 </>
@@ -772,102 +813,93 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         </div>
 
                         {/* Action Footer */}
-                        <div
-                            style={{
-                                padding: "16px 20px",
-                                borderTop: "1px solid var(--color-border)",
-                                display: "flex",
-                                justifyContent: "center",
-                                gap: "12px",
-                                backgroundColor: "var(--color-surface)",
-                            }}
-                        >
+                        <div className="recorder-progress" aria-hidden={!isRecording}>
+                            <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
+                        </div>
+
+                        <div className="recorder-actions">
+                            <div className="recorder-action-copy">
+                                <strong>
+                                    {error
+                                        ? "Camera access is needed"
+                                        : recordedUrl
+                                          ? "Review before sending"
+                                          : isRecording
+                                            ? "Your session is recording"
+                                            : countdown !== null
+                                              ? "Move into position"
+                                              : "Ready when you are"}
+                                </strong>
+                                <span>
+                                    {error
+                                        ? "Check browser permission, then try again."
+                                        : recordedUrl
+                                          ? "Replay the video or record another attempt."
+                                          : isRecording
+                                            ? "Move naturally and follow the live guidance."
+                                            : countdown !== null
+                                              ? "Recording begins automatically after the countdown."
+                                              : "A five-second countdown will begin first."}
+                                </span>
+                            </div>
+                            <div className="recorder-action-buttons">
                             {error ? (
-                                <button className="btn btn-secondary" onClick={startCamera}>
+                                <Button variant="outline" onClick={startCamera} disabled={isCameraStarting}>
+                                    {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
                                     Try Again
-                                </button>
+                                </Button>
                             ) : evaluationScore !== null ? (
-                                <button
-                                    className="btn btn-primary"
+                                <Button
                                     onClick={() => {
                                         handleClose();
                                         window.location.reload();
                                     }}
-                                    style={{ minWidth: "140px" }}
                                 >
                                     Done
-                                </button>
+                                </Button>
                             ) : recordedUrl ? (
                                 <>
-                                    <button
-                                        className="btn btn-secondary"
+                                    <Button
+                                        variant="outline"
                                         onClick={() => {
                                             setRecordedUrl(null);
                                             startCamera();
                                         }}
                                         disabled={isEvaluating}
                                     >
+                                        <RotateCcw />
                                         Record Again
-                                    </button>
-                                    <button
-                                        className="btn btn-primary"
+                                    </Button>
+                                    <Button
                                         onClick={handleEvaluate}
                                         disabled={isEvaluating}
-                                        style={{ minWidth: "140px" }}
                                     >
-                                        {isEvaluating ? "Evaluating..." : "Evaluate"}
-                                    </button>
+                                        {isEvaluating ? <LoaderCircle className="recorder-spin" /> : <Sparkles />}
+                                        {isEvaluating ? "Evaluating..." : "Evaluate Session"}
+                                    </Button>
                                 </>
                             ) : countdown !== null ? (
-                                <button className="btn btn-primary" disabled style={{ minWidth: "140px" }}>
+                                <Button disabled>
                                     Starting in {countdown}s...
-                                </button>
+                                </Button>
                             ) : isRecording ? (
-                                <button
-                                    className="btn btn-danger"
+                                <Button
                                     onClick={stopRecording}
-                                    style={{
-                                        minWidth: "140px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                    }}
+                                    className="recorder-stop-button"
                                 >
-                                    <span
-                                        style={{
-                                            width: "10px",
-                                            height: "10px",
-                                            backgroundColor: "#FFF",
-                                            borderRadius: "2px",
-                                            display: "inline-block",
-                                        }}
-                                    />
+                                    <CircleStop />
                                     Stop Recording
-                                </button>
+                                </Button>
                             ) : (
-                                <button
-                                    className="btn btn-primary"
+                                <Button
                                     onClick={initiateCountdown}
-                                    disabled={!stream}
-                                    style={{
-                                        minWidth: "140px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                    }}
+                                    disabled={!stream || isCameraStarting}
                                 >
-                                    <span
-                                        style={{
-                                            width: "12px",
-                                            height: "12px",
-                                            backgroundColor: "#FFF",
-                                            borderRadius: "50%",
-                                            display: "inline-block",
-                                        }}
-                                    />
+                                    <Video />
                                     Start Recording
-                                </button>
+                                </Button>
                             )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1017,6 +1049,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
 function getErrorMessage(error: unknown, fallback: string): string {
     return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function formatRecordingTime(totalSeconds: number): string {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.max(0, Math.floor(totalSeconds % 60));
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 function speakLiveCoaching(message: string): void {
