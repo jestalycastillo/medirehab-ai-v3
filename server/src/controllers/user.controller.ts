@@ -9,6 +9,7 @@ import {
     createPatientUser,
     getDoctorByUserId,
     getMyProfile,
+    getUserConsent,
     listPatientsForAdmin,
     getPatientForDoctor,
     listDoctors,
@@ -19,6 +20,7 @@ import {
     updateDoctorAccountStatus,
     updateDoctorProfile,
     updateOwnPatientProfile,
+    updateUserConsent,
     updatePatientAccountStatusForDoctor,
     updatePatientProfileForDoctor,
     updatePatientAccountStatus,
@@ -262,6 +264,26 @@ export const updateMyPassword = async (req: Request, res: Response): Promise<voi
     } catch (error) {
         handleUserError(error, res, "Unable to update password.");
     }
+};
+
+export const getMyConsent = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const authUser = getAuthenticatedUser(req);
+        const consent = await getUserConsent(authUser.userId);
+        res.status(200).json({ success: true, consent });
+    } catch (error) { handleUserError(error, res, "Unable to load consent settings."); }
+};
+
+export const updateMyConsent = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const authUser = getAuthenticatedUser(req);
+        if (authUser.role !== Role.PATIENT) throw new HttpError(403, "Only patients can update recording consent.");
+        if (typeof req.body?.privacyConsent !== "boolean" || typeof req.body?.recordingConsent !== "boolean") {
+            throw new HttpError(400, "Consent choices are required.");
+        }
+        const consent = await updateUserConsent(authUser.userId, req.body.privacyConsent, req.body.recordingConsent);
+        res.status(200).json({ success: true, message: "Consent settings updated.", consent });
+    } catch (error) { handleUserError(error, res, "Unable to update consent settings."); }
 };
 
 export const resetDoctorAccountPassword = async (

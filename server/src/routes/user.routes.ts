@@ -14,12 +14,14 @@ import {
     getPatient,
     getPatients,
     meProfile,
+    getMyConsent,
     resetDoctorAccountPassword,
     resetPatientAccountPassword,
     updateDoctor,
     updateDoctorStatus,
     updateMeProfile,
     updateMyPassword,
+    updateMyConsent,
     updatePatient,
     updatePatientStatus
 } from "../controllers/user.controller";
@@ -32,6 +34,8 @@ const router = Router();
 router.get("/me/profile", authMiddleware, meProfile);
 router.patch("/me/profile", authMiddleware, requirePasswordChanged, updateMeProfile);
 router.patch("/me/password", authMiddleware, updateMyPassword);
+router.get("/me/consent", authMiddleware, requirePasswordChanged, getMyConsent);
+router.patch("/me/consent", authMiddleware, requirePasswordChanged, updateMyConsent);
 
 router.get(
     "/doctors",

@@ -187,9 +187,20 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
     };
 
-    const handleOpen = () => {
-        setIsOpen(true);
-        startCamera();
+    const handleOpen = async () => {
+        try {
+            const { consent } = await api.getMyConsent();
+            if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
+                setIsOpen(true);
+                setError("Camera consent is required. Enable it in your Profile before recording.");
+                return;
+            }
+            setIsOpen(true);
+            await startCamera();
+        } catch {
+            setIsOpen(true);
+            setError("Unable to verify camera consent. Please try again.");
+        }
     };
 
     const handleClose = () => {

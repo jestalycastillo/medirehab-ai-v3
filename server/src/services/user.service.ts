@@ -353,6 +353,26 @@ export const getMyProfile = async (userId: string) => {
     };
 };
 
+export const getUserConsent = async (userId: string) => prisma.user.findUnique({
+    where: { id: userId },
+    select: { privacyConsentAt: true, recordingConsentAt: true }
+});
+
+export const updateUserConsent = async (userId: string, privacyConsent: boolean, recordingConsent: boolean) => {
+    if (recordingConsent && !privacyConsent) {
+        throw new HttpError(400, "Privacy consent is required before recording consent.");
+    }
+    const now = new Date();
+    return prisma.user.update({
+        where: { id: userId },
+        data: {
+            privacyConsentAt: privacyConsent ? now : null,
+            recordingConsentAt: privacyConsent && recordingConsent ? now : null
+        },
+        select: { privacyConsentAt: true, recordingConsentAt: true }
+    });
+};
+
 export const listDoctors = async () => {
     return prisma.user.findMany({
         where: { role: Role.DOCTOR },

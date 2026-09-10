@@ -140,6 +140,20 @@ export interface HelpRequest {
   assignment?: { exercise: { name: string } } | null;
 }
 
+export interface ConsentSettings {
+  privacyConsentAt: string | null;
+  recordingConsentAt: string | null;
+}
+
+export interface AuditLog {
+  id: string;
+  method: string;
+  path: string;
+  statusCode: number;
+  createdAt: string;
+  actor: { id: string; email: string; role: string } | null;
+}
+
 export interface ExerciseAssignment {
   id: string;
   assignedAt: string;
@@ -574,5 +588,20 @@ export const api = {
 
   resolveHelpRequest(requestId: string) {
     return request<{ success: boolean; request: HelpRequest }>(`/care/help-requests/${requestId}/resolve`, { method: "PATCH" });
+  },
+
+  getMyConsent() {
+    return request<{ success: boolean; consent: ConsentSettings }>("/users/me/consent");
+  },
+
+  updateMyConsent(privacyConsent: boolean, recordingConsent: boolean) {
+    return request<{ success: boolean; consent: ConsentSettings }>("/users/me/consent", {
+      method: "PATCH",
+      body: JSON.stringify({ privacyConsent, recordingConsent }),
+    });
+  },
+
+  getAuditLogs() {
+    return request<{ success: boolean; logs: AuditLog[] }>("/audit");
   },
 };
