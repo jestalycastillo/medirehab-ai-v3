@@ -18,6 +18,9 @@ finish before testing coaching. The AI service reaches Ollama at
 `127.0.0.1`. For a no-camera verification request and host-only instructions,
 see [the live-coaching setup guide](ai-service/ollama/README.md).
 
+Deployment, retention, consent, and backup guidance is documented in
+[Operations and Privacy](docs/operations-and-privacy.md).
+
 ## DEVELOPMENT SETUP
 ### 1. Clone this repository.
 ```bash
