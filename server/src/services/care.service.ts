@@ -6,6 +6,7 @@ import {
     ValidatedCommentInput,
     ValidatedSessionUpdateInput
 } from "../utils/careValidation";
+import { roundScore } from "../utils/score";
 
 const exerciseSelect = {
     id: true,
@@ -72,6 +73,10 @@ const sessionSelect = {
     confidenceLevel: true,
     patientNote: true,
     performedAt: true,
+    durationSeconds: true,
+    adherenceQualified: true,
+    qualificationReason: true,
+    clientSessionId: true,
     createdAt: true,
     updatedAt: true,
     assignment: {
@@ -88,6 +93,8 @@ const sessionSelect = {
                     score: true
                 }
             },
+            minimumScore: true,
+            minimumDurationSeconds: true,
             assignedByDoctor: {
                 select: {
                     id: true,
@@ -217,6 +224,8 @@ const ensureAssignmentForPatient = async (
             id: true,
             patientProfileId: true,
             assignedByDoctorId: true,
+            minimumScore: true,
+            minimumDurationSeconds: true,
             exercise: {
                 select: exerciseSelect
             },
@@ -302,6 +311,8 @@ const createNotification = async (input: {
     link?: string | null;
     meta?: Prisma.InputJsonValue;
 }) => {
+    const recipient = await prisma.user.findUnique({ where: { id: input.userId }, select: { careNotificationsEnabled: true } });
+    if (!recipient?.careNotificationsEnabled) return;
     await prisma.notification.create({
         data: {
             userId: input.userId,
@@ -319,8 +330,19 @@ export const recordExerciseSession = async (
     assignmentId: string,
     exerciseId: string,
     score: number,
-    aiFeedback: string[] = []
+    aiFeedback: string[] = [],
+    options: { durationSeconds?: number; clientSessionId?: string } = {}
 ) => {
+    const roundedScore = roundScore(score);
+    if (options.clientSessionId) {
+        const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId: options.clientSessionId }, select: sessionSelect });
+        if (existing) {
+            if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId) {
+                throw new HttpError(409, "Session identifier is already in use.");
+            }
+            return { ...mapSession(existing), duplicate: true };
+        }
+    }
     const { patientProfile, assignment } = await ensureAssignmentForPatient(
         patientUserId,
         assignmentId
@@ -330,24 +352,43 @@ export const recordExerciseSession = async (
         throw new HttpError(404, "Exercise assignment not found.");
     }
 
-    const session = await prisma.exerciseSession.create({
-        data: {
-            assignmentId: assignment.id,
-            patientUserId,
-            score,
-            aiFeedback
-        },
-        select: sessionSelect
-    });
+    const qualificationReasons = [
+        assignment.minimumScore !== null && roundedScore < assignment.minimumScore ? `Score is below the ${assignment.minimumScore.toFixed(2)} minimum.` : null,
+        assignment.minimumDurationSeconds !== null && (options.durationSeconds ?? 0) < assignment.minimumDurationSeconds ? `Recording is shorter than the ${assignment.minimumDurationSeconds}-second minimum.` : null
+    ].filter((reason): reason is string => reason !== null);
+    const adherenceQualified = qualificationReasons.length === 0;
+
+    let session;
+    try {
+        session = await prisma.exerciseSession.create({
+            data: {
+                assignmentId: assignment.id,
+                patientUserId,
+                score: roundedScore,
+                aiFeedback,
+                ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
+                ...(options.clientSessionId !== undefined ? { clientSessionId: options.clientSessionId } : {}),
+                adherenceQualified,
+                qualificationReason: qualificationReasons.join(" ") || null
+            },
+            select: sessionSelect
+        });
+    } catch (error) {
+        if (options.clientSessionId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId: options.clientSessionId }, select: sessionSelect });
+            if (existing) return { ...mapSession(existing), duplicate: true };
+        }
+        throw error;
+    }
 
     await prisma.exerciseResult.upsert({
         where: { assignmentId: assignment.id },
         create: {
             assignmentId: assignment.id,
-            score
+            score: roundedScore
         },
         update: {
-            score
+            score: roundedScore
         }
     });
 
@@ -361,16 +402,25 @@ export const recordExerciseSession = async (
                 firstName: patientProfile.firstName,
                 lastName: patientProfile.lastName
             }
-        })} completed ${assignment.exercise.name} with a score of ${score.toFixed(0)}.`,
+        })} completed ${assignment.exercise.name} with a score of ${roundedScore.toFixed(2)}.${adherenceQualified ? " The session counted toward adherence." : ` The session did not count: ${qualificationReasons.join(" ")}`}`,
         link: `/doctor/patients/${patientUserId}`,
         meta: {
             assignmentId: assignment.id,
             sessionId: session.id,
-            score
+            score: roundedScore
         }
     });
 
-    return mapSession(session);
+    return { ...mapSession(session), duplicate: false };
+};
+
+export const findRecordedExerciseSession = async (patientUserId: string, assignmentId: string, exerciseId: string, clientSessionId: string) => {
+    const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId }, select: sessionSelect });
+    if (!existing) return null;
+    if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId) {
+        throw new HttpError(409, "Session identifier is already in use.");
+    }
+    return mapSession(existing);
 };
 
 export const updateSessionAiFeedback = async (

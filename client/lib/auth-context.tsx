@@ -87,14 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
-    try {
-      await api.logout();
-    } catch {
-      // Ignore logout errors — cookie may already be cleared
-    }
+    await api.logout();
     setUser(null);
-    router.replace("/");
-  }, [router]);
+    window.location.replace("/");
+  }, []);
 
   const refreshUser = useCallback(async () => {
     try {

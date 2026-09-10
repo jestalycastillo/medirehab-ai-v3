@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { api, ApiError, type PatientProfile } from "@/lib/api";
+import { api, ApiError, type ConsentSettings, type PatientProfile } from "@/lib/api";
 import { PatientProfileForm } from "@/components/patient/patient-profile-form";
+import { NotificationPreferences } from "@/components/care/notification-preferences";
 
 export default function PatientProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -17,13 +18,14 @@ export default function PatientProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [consent, setConsent] = useState<ConsentSettings | null>(null);
+  const [savingConsent, setSavingConsent] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    api
-      .getProfile()
-      .then((res) => {
-        if (mounted) setProfile((res.user.profile as PatientProfile) ?? {});
+    Promise.all([api.getProfile(), api.getMyConsent()])
+      .then(([res, consentRes]) => {
+        if (mounted) { setProfile((res.user.profile as PatientProfile) ?? {}); setConsent(consentRes.consent); }
       })
       .catch((err) => {
         if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load profile.");
@@ -124,6 +126,16 @@ export default function PatientProfilePage() {
         )}
         <PatientProfileForm initialData={profile} onSave={handleSaveProfile} isLoading={savingProfile} />
       </section>
+
+      <section className="card" style={{ padding: "24px" }}>
+        <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 10px" }}>Privacy & Recording Consent</h2>
+        <p style={{ color: "var(--color-text-secondary)", fontSize: "14px" }}>Exercise video is processed for evaluation and is not stored by the Node server. You can revoke future processing consent here.</p>
+        <label style={{ display: "flex", gap: "10px", margin: "12px 0" }}><input type="checkbox" checked={Boolean(consent?.privacyConsentAt)} onChange={(event) => setConsent((current) => ({ privacyConsentAt: event.target.checked ? new Date().toISOString() : null, recordingConsentAt: event.target.checked ? current?.recordingConsentAt ?? null : null }))} /> I consent to processing my rehabilitation data.</label>
+        <label style={{ display: "flex", gap: "10px", margin: "12px 0" }}><input type="checkbox" checked={Boolean(consent?.recordingConsentAt)} disabled={!consent?.privacyConsentAt} onChange={(event) => setConsent((current) => ({ privacyConsentAt: current?.privacyConsentAt ?? null, recordingConsentAt: event.target.checked ? new Date().toISOString() : null }))} /> I consent to camera recording for exercise evaluation.</label>
+        <button className="btn btn-primary" disabled={savingConsent || !consent} onClick={async () => { if (!consent) return; setSavingConsent(true); try { const result = await api.updateMyConsent(Boolean(consent.privacyConsentAt), Boolean(consent.recordingConsentAt)); setConsent(result.consent); setProfileMessage("Consent settings updated."); } catch (err) { setError(err instanceof ApiError ? err.message : "Unable to update consent."); } finally { setSavingConsent(false); } }}>{savingConsent ? "Saving…" : "Save consent"}</button>
+      </section>
+
+      <NotificationPreferences />
 
       <section className="card" style={{ padding: "24px" }}>
         <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 18px 0" }}>Change Password</h2>

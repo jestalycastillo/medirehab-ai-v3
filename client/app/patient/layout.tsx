@@ -1,9 +1,11 @@
 "use client";
 
 import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
+import { api } from "@/lib/api";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { QuickChat } from "@/components/care/quick-chat";
 
 function LayoutDashboardIcon() {
   return (
@@ -74,6 +76,19 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      window.alert("Unable to sign out. Please check your connection and try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -92,6 +107,15 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (loading || user?.role !== "PATIENT" || user.mustChangePassword) return;
+
+    const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 60_000);
+    return () => window.clearInterval(interval);
+  }, [loading, user]);
+
   if (loading || !user || user.role !== "PATIENT" || user.mustChangePassword) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
@@ -101,7 +125,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
@@ -144,14 +168,14 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         </nav>
 
         <div style={{ padding: "24px 12px", borderTop: "1px solid var(--color-border)" }}>
-          <button onClick={logout} className="admin-nav-item" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", width: "100%", borderRadius: "var(--radius-md)", color: "var(--color-text-secondary)", backgroundColor: "transparent", border: "none", fontWeight: 500, cursor: "pointer", textAlign: "left" }}>
+          <button type="button" onClick={handleLogout} disabled={isLoggingOut} className="admin-nav-item" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", width: "100%", borderRadius: "var(--radius-md)", color: "var(--color-text-secondary)", backgroundColor: "transparent", border: "none", fontWeight: 500, cursor: "pointer", textAlign: "left" }}>
             <div style={{ color: "var(--color-text-muted)" }}><LogOutIcon /></div>
-            Sign out
+            {isLoggingOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </aside>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="portal-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <header className="admin-mobile-header" style={{ display: "none", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
@@ -174,9 +198,9 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
                   </Link>
                 );
               })}
-              <button onClick={logout} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", width: "100%", borderRadius: "var(--radius-md)", color: "var(--color-text-secondary)", backgroundColor: "transparent", border: "none", fontWeight: 500, cursor: "pointer", textAlign: "left", marginTop: "8px", borderTop: "1px solid var(--color-border)" }}>
+              <button type="button" onClick={handleLogout} disabled={isLoggingOut} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", width: "100%", borderRadius: "var(--radius-md)", color: "var(--color-text-secondary)", backgroundColor: "transparent", border: "none", fontWeight: 500, cursor: "pointer", textAlign: "left", marginTop: "8px", borderTop: "1px solid var(--color-border)" }}>
                 <div style={{ color: "var(--color-text-muted)" }}><LogOutIcon /></div>
-                Sign out
+                {isLoggingOut ? "Signing out…" : "Sign out"}
               </button>
             </nav>
           </div>
@@ -186,6 +210,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
           {children}
         </main>
       </div>
+      <QuickChat role="patient" />
     </div>
   );
 }

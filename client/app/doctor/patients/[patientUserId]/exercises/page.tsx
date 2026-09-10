@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError, type ApiExercise, type ApiPatient, type ExerciseAssignment } from "@/lib/api";
+import { api, ApiError, type ApiExercise, type ApiPatient, type AssignmentPlanUpdate, type ExerciseAssignment } from "@/lib/api";
 import { ExerciseAssignmentList } from "@/components/doctor/exercise-assignment-list";
 import { ExercisePicker } from "@/components/doctor/exercise-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -89,6 +89,18 @@ export default function PatientExercisesPage() {
     });
   };
 
+  const handleUpdatePlan = async (assignmentId: string, data: AssignmentPlanUpdate) => {
+    setBusy(true);
+    try {
+      await api.updateAssignmentPlan(patientUserId, assignmentId, data);
+      await loadData();
+    } catch (err) {
+      alert(err instanceof ApiError ? err.message : "Failed to update care plan.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
 
   if (error) {
@@ -115,7 +127,7 @@ export default function PatientExercisesPage() {
 
       <section className="doctor-two-column">
         <ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} />
-        <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} isBusy={busy} />
+        <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} onUpdatePlan={handleUpdatePlan} isBusy={busy} />
       </section>
 
       <ConfirmDialog

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError, type DoctorProfile } from "@/lib/api";
+import { NotificationPreferences } from "@/components/care/notification-preferences";
 
 export default function DoctorProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -98,6 +99,8 @@ export default function DoctorProfilePage() {
       {error && (
         <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>{error}</div>
       )}
+
+      <NotificationPreferences />
 
       <section className="card" style={{ padding: "24px" }}>
         <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 18px 0" }}>Account Information</h2>

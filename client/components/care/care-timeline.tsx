@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { type CareSession } from "@/lib/api";
+import { formatScore } from "@/lib/score";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -67,7 +68,7 @@ export function CareTimeline({
                   Performed {formatDate(session.performedAt)}
                 </p>
               </div>
-              <span className="badge badge-blue">Score {session.score ?? session.assignment.result?.score ?? 0}</span>
+              <span className="badge badge-blue">Score {formatScore(session.score ?? session.assignment.result?.score)}</span>
             </div>
 
             <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "14px" }}>
@@ -75,10 +76,13 @@ export function CareTimeline({
             </p>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <span className={`badge ${session.adherenceQualified === false ? "badge-amber" : "badge-green"}`}>{session.adherenceQualified === false ? "Not counted" : "Counted"}</span>
+              {session.durationSeconds && <StatChip label="Duration" value={session.durationSeconds} />}
               <StatChip label="Pain" value={session.painLevel} />
               <StatChip label="Difficulty" value={session.difficultyLevel} />
               <StatChip label="Confidence" value={session.confidenceLevel} />
             </div>
+            {session.qualificationReason && <div style={{ padding: "10px 12px", borderRadius: "var(--radius-md)", background: "#FEF3C7", color: "#92400E", fontSize: "13px" }}>{session.qualificationReason}</div>}
 
             {session.patientNote && (
               <div style={{ padding: "12px 14px", backgroundColor: "var(--color-primary-light)", borderRadius: "var(--radius-md)", color: "var(--color-text-primary)" }}>

@@ -1,8 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
+import { roundScore } from "../utils/score";
+import { calculateAssignmentAdherence } from "../utils/adherence";
 import {
     ValidatedAssignExerciseInput,
+    ValidatedAssignmentPlanInput,
     ValidatedCreateExerciseInput,
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
@@ -28,6 +31,21 @@ const assignmentSelect = {
     id: true,
     assignedAt: true,
     archivedAt: true,
+    viewedAt: true,
+    startedAt: true,
+    activeAt: true,
+    completedAt: true,
+    targetSessionsPerWeek: true,
+    targetSessionsPerDay: true,
+    scheduledDays: true,
+    targetSets: true,
+    targetRepsPerSet: true,
+    targetDurationSeconds: true,
+    minimumScore: true,
+    minimumDurationSeconds: true,
+    dueDate: true,
+    reviewDate: true,
+    doctorInstructions: true,
     exercise: {
         select: exerciseSelect
     },
@@ -36,8 +54,24 @@ const assignmentSelect = {
             id: true,
             score: true
         }
+    },
+    sessions: {
+        select: { performedAt: true, score: true, adherenceQualified: true },
+        orderBy: { performedAt: "desc" as const },
+        take: 500
     }
 } satisfies Prisma.ExerciseAssignmentSelect;
+
+const withAdherence = <T extends {
+    assignedAt: Date;
+    targetSessionsPerWeek: number;
+    targetSessionsPerDay: number | null;
+    scheduledDays: number[];
+    sessions: { performedAt: Date; adherenceQualified: boolean }[];
+}>(assignment: T) => ({
+    ...assignment,
+    adherence: calculateAssignmentAdherence(assignment)
+});
 
 const getDoctorProfileIdForUser = async (doctorUserId: string): Promise<string> => {
     const doctorProfile = await prisma.doctorProfile.findUnique({
@@ -258,7 +292,7 @@ export const listAssignedExercisesForDoctorPatient = async (
         doctorUserId
     );
 
-    return prisma.exerciseAssignment.findMany({
+    const assignments = await prisma.exerciseAssignment.findMany({
         where: {
             patientProfileId,
             archivedAt: null
@@ -266,12 +300,13 @@ export const listAssignedExercisesForDoctorPatient = async (
         select: assignmentSelect,
         orderBy: { assignedAt: "desc" }
     });
+    return assignments.map(withAdherence);
 };
 
 export const listAssignedExercisesForPatient = async (patientUserId: string) => {
     const patientProfileId = await getPatientProfileIdForUser(patientUserId);
 
-    return prisma.exerciseAssignment.findMany({
+    const assignments = await prisma.exerciseAssignment.findMany({
         where: {
             patientProfileId,
             archivedAt: null
@@ -279,6 +314,7 @@ export const listAssignedExercisesForPatient = async (patientUserId: string) => 
         select: assignmentSelect,
         orderBy: { assignedAt: "desc" }
     });
+    return assignments.map(withAdherence);
 };
 
 export const assignExerciseToPatient = async (
@@ -311,7 +347,7 @@ export const assignExerciseToPatient = async (
     }
 
     if (existingAssignment) {
-        return prisma.exerciseAssignment.update({
+        const restored = await prisma.exerciseAssignment.update({
             where: { id: existingAssignment.id },
             data: {
                 archivedAt: null,
@@ -326,9 +362,10 @@ export const assignExerciseToPatient = async (
             },
             select: assignmentSelect
         });
+        return withAdherence(restored);
     }
 
-    return prisma.exerciseAssignment.create({
+    const created = await prisma.exerciseAssignment.create({
         data: {
             exerciseId: input.exerciseId,
             patientProfileId,
@@ -339,6 +376,7 @@ export const assignExerciseToPatient = async (
         },
         select: assignmentSelect
     });
+    return withAdherence(created);
 };
 
 export const archivePatientExerciseAssignment = async (
@@ -364,11 +402,46 @@ export const archivePatientExerciseAssignment = async (
         throw new HttpError(404, "Assigned exercise not found.");
     }
 
-    return prisma.exerciseAssignment.update({
+    const archived = await prisma.exerciseAssignment.update({
         where: { id: assignment.id },
         data: { archivedAt: new Date() },
         select: assignmentSelect
     });
+    return withAdherence(archived);
+};
+
+export const updatePatientExercisePlan = async (
+    patientUserId: string,
+    doctorUserId: string,
+    assignmentId: string,
+    input: ValidatedAssignmentPlanInput
+) => {
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const assignment = await prisma.exerciseAssignment.findFirst({
+        where: { id: assignmentId, patientProfileId, archivedAt: null },
+        select: { id: true }
+    });
+    if (!assignment) throw new HttpError(404, "Assigned exercise not found.");
+
+    const updated = await prisma.exerciseAssignment.update({
+        where: { id: assignment.id },
+        data: input,
+        select: assignmentSelect
+    });
+    const patient = await prisma.user.findUnique({ where: { id: patientUserId }, select: { careNotificationsEnabled: true } });
+    if (patient?.careNotificationsEnabled) {
+        await prisma.notification.create({
+            data: {
+                userId: patientUserId,
+                type: "REMINDER",
+                title: "Care plan updated",
+                body: `Your plan for ${updated.exercise.name} was updated.`,
+                link: "/patient/exercises",
+                meta: { assignmentId: updated.id }
+            }
+        });
+    }
+    return withAdherence(updated);
 };
 
 type AiServiceResponse = {
@@ -538,14 +611,15 @@ export const evaluateExercise = async (
         throw new HttpError(502, "Exercise evaluation service returned an invalid score.");
     }
 
+    const roundedScore = roundScore(evaluationResult.score);
     const result = await prisma.exerciseResult.upsert({
         where: { assignmentId: assignment.id },
         create: {
             assignmentId: assignment.id,
-            score: evaluationResult.score
+            score: roundedScore
         },
         update: {
-            score: evaluationResult.score
+            score: roundedScore
         },
         select: { score: true }
     });

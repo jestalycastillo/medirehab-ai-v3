@@ -2,6 +2,8 @@
 
 import { type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
+import { formatScore } from "@/lib/score";
+import { AdherenceSummary } from "@/components/care/adherence-summary";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -11,6 +13,8 @@ function formatDate(value?: string) {
     year: "numeric",
   }).format(new Date(value));
 }
+
+const WEEKDAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
 
 export function MyExerciseList({
   assignments,
@@ -52,12 +56,21 @@ export function MyExerciseList({
                 Assigned {formatDate(assignment.assignedAt)}
               </p>
             </div>
-            <span className="badge badge-blue">Score {assignment.result?.score ?? 0}</span>
+            <span className="badge badge-blue">Score {formatScore(assignment.result?.score)}</span>
           </div>
 
           <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: 0 }}>
             {assignment.exercise?.description || "Follow the rehabilitation plan provided by your doctor."}
           </p>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <span className="badge badge-blue">Target {assignment.targetSessionsPerDay ? `${assignment.targetSessionsPerDay}/day` : `${assignment.targetSessionsPerWeek ?? 3}/week`}</span>
+            {assignment.dueDate && <span className="badge badge-blue">Due {formatDate(assignment.dueDate)}</span>}
+          </div>
+          {assignment.scheduledDays?.length ? <div style={{ fontSize: "13px", color: "var(--color-text-secondary)" }}><strong>Schedule:</strong> {assignment.scheduledDays.map((day) => WEEKDAY_LABELS[day]).join(", ")}</div> : null}
+          {(assignment.targetSets || assignment.targetRepsPerSet || assignment.targetDurationSeconds) && <div style={{ padding: "10px 12px", background: "var(--color-page-bg)", borderRadius: "var(--radius-md)", fontSize: "13px" }}><strong>Your prescription:</strong> {[assignment.targetSets ? `${assignment.targetSets} sets` : "", assignment.targetRepsPerSet ? `${assignment.targetRepsPerSet} reps per set` : "", assignment.targetDurationSeconds ? `${assignment.targetDurationSeconds} seconds` : ""].filter(Boolean).join(" · ")}</div>}
+          {(assignment.minimumScore != null || assignment.minimumDurationSeconds) && <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>To count toward adherence: {[assignment.minimumScore != null ? `score at least ${assignment.minimumScore}` : "", assignment.minimumDurationSeconds ? `record at least ${assignment.minimumDurationSeconds} seconds` : ""].filter(Boolean).join(" and ")}.</div>}
+          <AdherenceSummary adherence={assignment.adherence} showHistory={!compact} />
+          {assignment.doctorInstructions && <div style={{ padding: "10px 12px", backgroundColor: "var(--color-primary-light)", borderRadius: "var(--radius-md)", fontSize: "13px" }}><strong>Doctor instructions:</strong> {assignment.doctorInstructions}</div>}
 
           {assignment.exercise?.images?.length ? (
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -74,6 +87,8 @@ export function MyExerciseList({
               exerciseName={assignment.exercise?.name}
               exerciseId={assignment.exercise?.id}
               assignmentId={assignment.id}
+              targetDurationSeconds={assignment.targetDurationSeconds}
+              minimumDurationSeconds={assignment.minimumDurationSeconds}
             />
           </div>
         </article>

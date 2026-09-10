@@ -13,7 +13,9 @@ router = APIRouter(
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_OLLAMA_MODEL = "coach-qwen:latest"
-DEFAULT_OLLAMA_TIMEOUT_MS = 5_000
+# A local model can need several seconds on its first request. Keep this below
+# the Node service timeout while allowing a real Ollama response to arrive.
+DEFAULT_OLLAMA_TIMEOUT_MS = 30_000
 DEFAULT_OLLAMA_KEEP_ALIVE = "10m"
 MAX_COACHING_WORDS = 10
 DISALLOWED_COACHING_WORDS = re.compile(

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, ApiError, type CareNotification, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
+import { api, ApiError, type CareNotification, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
+import { formatScore } from "@/lib/score";
 import { StatCard } from "@/components/ui/stat-card";
 import { MyExerciseList } from "@/components/patient/my-exercise-list";
 import { NotificationsPanel } from "@/components/care/notifications-panel";
@@ -28,6 +29,7 @@ export default function PatientDashboardPage() {
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
   const [notifications, setNotifications] = useState<CareNotification[]>([]);
+  const [sessions, setSessions] = useState<CareSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -36,16 +38,18 @@ export default function PatientDashboardPage() {
 
     async function loadDashboard() {
       try {
-        const [profileRes, assignedRes, notificationsRes] = await Promise.all([
+        const [profileRes, assignedRes, notificationsRes, sessionsRes] = await Promise.all([
           api.getProfile(),
           api.getMyAssignedExercises(),
           api.getMyNotifications().catch(() => ({ notifications: [] })),
+          api.getMySessions().catch(() => ({ sessions: [] })),
         ]);
 
         if (mounted) {
           setProfile((profileRes.user.profile as PatientProfile) ?? null);
           setAssignments(assignedRes.assignments);
           setNotifications(notificationsRes.notifications);
+          setSessions(sessionsRes.sessions);
         }
       } catch (err) {
         if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load dashboard.");
@@ -74,7 +78,7 @@ export default function PatientDashboardPage() {
   }
 
   const patientName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ");
-  const latestScore = assignments[0]?.result?.score ?? 0;
+  const latestScore = formatScore(sessions[0]?.score);
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>

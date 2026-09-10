@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api, type ApiDoctor, type ApiExercise, type ApiPatient, type CareSession, ApiError } from "@/lib/api";
+import { api, type ApiDoctor, type ApiExercise, type ApiPatient, type AuditLog, type CareSession, ApiError } from "@/lib/api";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import Link from "next/link";
@@ -193,6 +193,7 @@ export default function AdminDashboard() {
   const [patients, setPatients] = useState<ApiPatient[]>([]);
   const [exercises, setExercises] = useState<ApiExercise[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -201,17 +202,19 @@ export default function AdminDashboard() {
 
     async function loadData() {
       try {
-        const [docsRes, patientsRes, exRes, sessionsRes] = await Promise.all([
+        const [docsRes, patientsRes, exRes, sessionsRes, auditRes] = await Promise.all([
           api.getDoctors(),
           api.getAdminPatients(),
           api.getExercises(),
           api.getAdminCareSessions(),
+          api.getAuditLogs(),
         ]);
         if (mounted) {
           setDoctors(docsRes.doctors);
           setPatients(patientsRes.patients);
           setExercises(exRes.exercises);
           setSessions(sessionsRes.sessions);
+          setAuditLogs(auditRes.logs);
         }
       } catch (err) {
         if (mounted) {
@@ -360,6 +363,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      <section className="card" style={{ padding: "24px" }}><h2 style={{ fontSize: "16px", fontWeight: 600, margin: "0 0 14px" }}>Recent Audit Activity</h2>{auditLogs.length === 0 ? <p style={{ color: "var(--color-text-muted)" }}>No recorded changes yet.</p> : <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}><thead><tr><th style={{ textAlign: "left", padding: "8px" }}>User</th><th style={{ textAlign: "left", padding: "8px" }}>Action</th><th style={{ textAlign: "left", padding: "8px" }}>Status</th><th style={{ textAlign: "left", padding: "8px" }}>Time</th></tr></thead><tbody>{auditLogs.slice(0, 20).map((log) => <tr key={log.id} style={{ borderTop: "1px solid var(--color-border)" }}><td style={{ padding: "8px" }}>{log.actor?.email ?? "Deleted user"}</td><td style={{ padding: "8px" }}>{log.method} {log.path}</td><td style={{ padding: "8px" }}>{log.statusCode}</td><td style={{ padding: "8px" }}>{new Date(log.createdAt).toLocaleString()}</td></tr>)}</tbody></table></div>}</section>
     </div>
   );
 }

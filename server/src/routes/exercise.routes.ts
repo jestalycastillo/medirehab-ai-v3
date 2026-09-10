@@ -10,6 +10,7 @@ import {
     getExercises,
     getMyAssignedExercises,
     removeAssignedExercise,
+    updateAssignedExercisePlan,
     restoreExerciseCatalogItem,
     updateExerciseCatalogItem,
     evaluateExerciseAssignment,
@@ -74,6 +75,14 @@ router.delete(
     requirePasswordChanged,
     requireRole(Role.ADMIN),
     archiveExerciseCatalogItem
+);
+
+router.patch(
+    "/patients/:patientUserId/assignments/:assignmentId/plan",
+    authMiddleware,
+    requirePasswordChanged,
+    requireRole(Role.DOCTOR),
+    updateAssignedExercisePlan
 );
 router.patch(
     "/:exerciseId/restore",

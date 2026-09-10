@@ -14,6 +14,8 @@ export interface ApiUser {
   archivedAt: string | null;
   mustChangePassword: boolean;
   passwordChangedAt: string | null;
+  lastLoginAt?: string | null;
+  lastSeenAt?: string | null;
 }
 
 export interface DoctorProfile {
@@ -92,6 +94,9 @@ export interface CareSession {
   confidenceLevel: number | null;
   patientNote: string | null;
   performedAt: string;
+  durationSeconds?: number | null;
+  adherenceQualified?: boolean;
+  qualificationReason?: string | null;
   createdAt: string;
   updatedAt: string;
   assignment: {
@@ -106,7 +111,7 @@ export interface CareSession {
 
 export interface CareNotification {
   id: string;
-  type: "SESSION_RESULT" | "SESSION_CHECKIN" | "DOCTOR_COMMENT" | "REMINDER";
+  type: "SESSION_RESULT" | "SESSION_CHECKIN" | "DOCTOR_COMMENT" | "REMINDER" | "CHAT_MESSAGE" | "PATIENT_HELP";
   title: string;
   body: string;
   link: string | null;
@@ -116,12 +121,106 @@ export interface CareNotification {
   updatedAt: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderUserId: string;
+  recipientUserId: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sender: SessionAuthor;
+}
+
+export interface HelpRequest {
+  id: string;
+  patientUserId: string;
+  doctorUserId: string;
+  assignmentId: string | null;
+  message: string;
+  resolvedAt: string | null;
+  createdAt: string;
+  assignment?: { exercise: { name: string } } | null;
+}
+
+export interface ConsentSettings {
+  privacyConsentAt: string | null;
+  recordingConsentAt: string | null;
+}
+
+export interface AuditLog {
+  id: string;
+  method: string;
+  path: string;
+  statusCode: number;
+  createdAt: string;
+  actor: { id: string; email: string; role: string } | null;
+}
+
+export interface NotificationPreferences {
+  chatNotificationsEnabled: boolean;
+  careNotificationsEnabled: boolean;
+}
+
 export interface ExerciseAssignment {
   id: string;
   assignedAt: string;
   archivedAt: string | null;
+  viewedAt?: string | null;
+  startedAt?: string | null;
+  activeAt?: string | null;
+  completedAt?: string | null;
+  targetSessionsPerWeek?: number;
+  targetSessionsPerDay?: number | null;
+  scheduledDays?: number[];
+  targetSets?: number | null;
+  targetRepsPerSet?: number | null;
+  targetDurationSeconds?: number | null;
+  minimumScore?: number | null;
+  minimumDurationSeconds?: number | null;
+  dueDate?: string | null;
+  reviewDate?: string | null;
+  doctorInstructions?: string | null;
+  sessions?: { performedAt: string; score?: number | null; adherenceQualified?: boolean }[];
+  adherence?: AssignmentAdherence;
   exercise: ApiExercise;
   result?: ExerciseResult;
+}
+
+export type AssignmentPlanUpdate = {
+  targetSessionsPerWeek: number;
+  targetSessionsPerDay?: number | null;
+  scheduledDays?: number[];
+  targetSets?: number | null;
+  targetRepsPerSet?: number | null;
+  targetDurationSeconds?: number | null;
+  minimumScore?: number | null;
+  minimumDurationSeconds?: number | null;
+  dueDate?: string | null;
+  reviewDate?: string | null;
+  doctorInstructions?: string | null;
+};
+
+export type AdherenceStatus = "MET" | "IN_PROGRESS" | "MISSED";
+
+export interface AdherencePeriod {
+  periodStart: string;
+  periodEnd: string;
+  completed: number;
+  rawCompleted: number;
+  target: number;
+  remaining: number;
+  daysWithActivity: number;
+  status: AdherenceStatus;
+}
+
+export interface AssignmentAdherence {
+  cadence: "DAILY" | "WEEKLY";
+  timeZone: string;
+  today: AdherencePeriod | null;
+  currentWeek: AdherencePeriod;
+  weeklyHistory: AdherencePeriod[];
+  last30Days: AdherencePeriod & { percentage: number };
 }
 
 export interface LoginResponse {
@@ -417,11 +516,13 @@ export const api = {
     return request<{ success: boolean; assignments: ExerciseAssignment[], patientUserId: string }>("/exercises/me/assigned");
   },
 
-  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob) {
-    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
+  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string) {
+    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
+        "X-Recording-Duration-Seconds": String(durationSeconds),
+        "X-Client-Session-Id": clientSessionId,
       },
       body: videoBlob,
     });
@@ -449,6 +550,13 @@ export const api = {
 
   getPatientSessions(patientUserId: string) {
     return request<{ success: boolean; sessions: CareSession[] }>(`/care/patients/${patientUserId}/sessions`);
+  },
+
+  updateAssignmentPlan(patientId: string, assignmentId: string, data: AssignmentPlanUpdate) {
+    return request<{ success: boolean; assignment: ExerciseAssignment }>(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   },
 
   updateSessionFeedback(sessionId: string, aiFeedback: string[]) {
@@ -479,6 +587,86 @@ export const api = {
   markNotificationRead(notificationId: string) {
     return request<{ success: boolean; notification: CareNotification }>(`/care/notifications/${notificationId}/read`, {
       method: "PATCH",
+    });
+  },
+
+  // --- Live text chat ---
+  getChatMessages(patientUserId?: string) {
+    const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
+    return request<{ success: boolean; messages: ChatMessage[]; counterpartLastSeenAt: string | null }>(`/chat/messages${query}`);
+  },
+
+  sendChatMessage(body: string, patientUserId?: string) {
+    const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
+    return request<{ success: boolean; message: ChatMessage }>(`/chat/messages${query}`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+  },
+
+  markChatMessagesRead(patientUserId?: string) {
+    const query = patientUserId ? `?patientUserId=${encodeURIComponent(patientUserId)}` : "";
+    return request<{ success: boolean }>(`/chat/messages/read${query}`, { method: "PATCH" });
+  },
+
+  // --- Patient presence & exercise activity ---
+  sendPresenceHeartbeat() {
+    return request<{ success: boolean }>("/presence/heartbeat", { method: "POST" });
+  },
+
+  markExercisesViewed(assignmentIds: string[]) {
+    return request<{ success: boolean }>("/presence/assignments/viewed", {
+      method: "POST",
+      body: JSON.stringify({ assignmentIds }),
+    });
+  },
+
+  startExerciseActivity(assignmentId: string) {
+    return request<{ success: boolean }>(`/presence/assignments/${assignmentId}/start`, { method: "POST" });
+  },
+
+  stopExerciseActivity(assignmentId: string) {
+    return request<{ success: boolean }>(`/presence/assignments/${assignmentId}/stop`, { method: "POST" });
+  },
+
+  requestHelp(message: string, assignmentId?: string) {
+    return request<{ success: boolean; request: HelpRequest }>("/care/help-requests", {
+      method: "POST",
+      body: JSON.stringify({ message, assignmentId }),
+    });
+  },
+
+  getPatientHelpRequests(patientUserId: string) {
+    return request<{ success: boolean; requests: HelpRequest[] }>(`/care/patients/${patientUserId}/help-requests`);
+  },
+
+  resolveHelpRequest(requestId: string) {
+    return request<{ success: boolean; request: HelpRequest }>(`/care/help-requests/${requestId}/resolve`, { method: "PATCH" });
+  },
+
+  getMyConsent() {
+    return request<{ success: boolean; consent: ConsentSettings }>("/users/me/consent");
+  },
+
+  updateMyConsent(privacyConsent: boolean, recordingConsent: boolean) {
+    return request<{ success: boolean; consent: ConsentSettings }>("/users/me/consent", {
+      method: "PATCH",
+      body: JSON.stringify({ privacyConsent, recordingConsent }),
+    });
+  },
+
+  getAuditLogs() {
+    return request<{ success: boolean; logs: AuditLog[] }>("/audit");
+  },
+
+  getNotificationPreferences() {
+    return request<{ success: boolean; preferences: NotificationPreferences }>("/users/me/notification-preferences");
+  },
+
+  updateNotificationPreferences(chatEnabled: boolean, careEnabled: boolean) {
+    return request<{ success: boolean; preferences: NotificationPreferences }>("/users/me/notification-preferences", {
+      method: "PATCH",
+      body: JSON.stringify({ chatEnabled, careEnabled }),
     });
   },
 };

@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
+import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type HelpRequest, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { PatientForm } from "@/components/doctor/patient-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { CareTimeline } from "@/components/care/care-timeline";
+import { ScoreSummary } from "@/components/care/score-summary";
+import { formatScore } from "@/lib/score";
+import { DoctorAlerts } from "@/components/care/doctor-alerts";
+import { ProgressReport } from "@/components/care/progress-report";
 
 function ActivityIcon() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
@@ -33,6 +37,11 @@ function DetailField({ label, value }: { label: string; value?: string | null })
   );
 }
 
+function formatTimestamp(value?: string | null) {
+  if (!value) return "Never";
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+}
+
 export default function PatientDetailPage() {
   const params = useParams<{ patientUserId: string }>();
   const router = useRouter();
@@ -40,6 +49,8 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<ApiPatient | null>(null);
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
+  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
+  const [lastLoadedAt, setLastLoadedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -61,14 +72,17 @@ export default function PatientDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [patientRes, assignmentsRes, sessionsRes] = await Promise.all([
+      const [patientRes, assignmentsRes, sessionsRes, helpRes] = await Promise.all([
         api.getPatient(patientUserId),
         api.getAssignedExercises(patientUserId),
         api.getPatientSessions(patientUserId),
+        api.getPatientHelpRequests(patientUserId),
       ]);
       setPatient(patientRes.patient);
       setAssignments(assignmentsRes.assignments);
       setSessions(sessionsRes.sessions);
+      setHelpRequests(helpRes.requests);
+      setLastLoadedAt(Date.now());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load patient.");
     } finally {
@@ -79,6 +93,8 @@ export default function PatientDetailPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPatient();
+    const interval = window.setInterval(() => void loadPatient(), 30_000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientUserId]);
 
@@ -105,6 +121,11 @@ export default function PatientDetailPage() {
     } finally {
       setCommentLoading(false);
     }
+  };
+
+  const handleResolveHelp = async (requestId: string) => {
+    try { await api.resolveHelpRequest(requestId); await loadPatient(); }
+    catch (err) { alert(err instanceof ApiError ? err.message : "Unable to resolve help request."); }
   };
 
   const resetPassword = () => {
@@ -190,6 +211,8 @@ export default function PatientDetailPage() {
     );
   }
 
+  const activeAssignment = assignments.find((assignment) => assignment.activeAt && lastLoadedAt - new Date(assignment.activeAt).getTime() < 2 * 60_000);
+
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
@@ -212,7 +235,7 @@ export default function PatientDetailPage() {
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
         <StatCard title="Assigned Exercises" value={assignments.length} icon={<ActivityIcon />} />
-        <StatCard title="Latest Score" value={assignments[0]?.result?.score ?? 0} icon={<ActivityIcon />} />
+        <StatCard title="Latest Score" value={formatScore(sessions[0]?.score)} icon={<ActivityIcon />} />
       </section>
 
       <section className="doctor-two-column">
@@ -241,7 +264,7 @@ export default function PatientDetailPage() {
               {assignments.slice(0, 5).map((assignment) => (
                 <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
                   <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
-                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {assignment.result?.score ?? 0}</div>
+                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {formatScore(assignment.result?.score)}</div>
                 </div>
               ))}
               <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
@@ -251,12 +274,37 @@ export default function PatientDetailPage() {
       </section>
 
       <section className="card" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "18px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Patient Activity</h2>
+          {activeAssignment ? <span className="badge badge-blue" style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Taking {activeAssignment.exercise.name}</span> : <span className="badge badge-blue">Not currently exercising</span>}
+        </div>
+        <div className="doctor-form-grid">
+          <DetailField label="Last online" value={formatTimestamp(patient.lastSeenAt)} />
+          <DetailField label="Last login" value={formatTimestamp(patient.lastLoginAt)} />
+        </div>
+        {assignments.length > 0 && <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          {assignments.map((assignment) => <div key={assignment.id} className="patient-activity-row" style={{ borderTop: "1px solid var(--color-border)", paddingTop: "10px", display: "grid", gap: "12px", fontSize: "13px", alignItems: "center" }}>
+            <strong>{assignment.exercise.name}</strong>
+            <span style={{ color: "var(--color-text-secondary)" }}>Viewed: {formatTimestamp(assignment.viewedAt)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Started: {formatTimestamp(assignment.startedAt)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Finished: {formatTimestamp(assignment.completedAt)}</span>
+          </div>)}
+        </div>}
+      </section>
+
+      <section className="card" style={{ padding: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
           <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
           <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
         </div>
         <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
       </section>
+
+      <ScoreSummary sessions={sessions} />
+
+      <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} onResolve={handleResolveHelp} />
+
+      <ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} />
 
       <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} />
       <ConfirmDialog

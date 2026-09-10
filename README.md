@@ -4,6 +4,23 @@
 ##### Server: https://medirehab-ai-server.onrender.com
 ##### AI Service: https://medirehab-ai-service.onrender.com
 
+## Containerized Live Coaching
+
+For the full local stack, including Ollama and the `coach-qwen:latest` model:
+
+```powershell
+docker compose up --build
+```
+
+The first start downloads the Ollama base model, so wait for `ollama-init` to
+finish before testing coaching. The AI service reaches Ollama at
+`http://ollama:11434` inside Docker; do not override it with `localhost` or
+`127.0.0.1`. For a no-camera verification request and host-only instructions,
+see [the live-coaching setup guide](ai-service/ollama/README.md).
+
+Deployment, retention, consent, and backup guidance is documented in
+[Operations and Privacy](docs/operations-and-privacy.md).
+
 ## DEVELOPMENT SETUP
 ### 1. Clone this repository.
 ```bash

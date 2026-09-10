@@ -386,6 +386,107 @@ body {
 }
 
 /* ── Admin Layout ── */
+.portal-shell {
+  height: 100vh;
+  height: 100dvh;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+.adherence-summary {
+  min-width: min(100%, 260px);
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-page-bg);
+}
+
+.adherence-heading,
+.adherence-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adherence-overview-table {
+  display: grid;
+}
+
+.adherence-overview-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(320px, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--color-page-bg);
+}
+
+.adherence-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(60px, 1fr));
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.adherence-overview-metrics strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 15px;
+}
+
+.adherence-remaining,
+.adherence-week-line {
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.adherence-progress {
+  height: 7px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.adherence-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.adherence-history {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.adherence-history summary {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.adherence-history > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.adherence-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.portal-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .admin-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -393,6 +494,154 @@ body {
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  position: sticky;
+  top: 0;
+}
+
+.quick-chat {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.quick-chat-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary-dark);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 14px 32px rgba(15, 76, 69, 0.28);
+}
+
+.quick-chat-trigger:hover {
+  background: var(--color-primary);
+}
+
+.quick-chat-drawer {
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 104px);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: 0 22px 60px rgba(15, 45, 41, 0.22);
+}
+
+.quick-chat-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 8px 12px 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.quick-chat-toolbar-button,
+.quick-chat-close {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quick-chat-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.quick-chat-close:hover,
+.quick-chat-toolbar-button:hover {
+  color: var(--color-text-primary);
+  background: var(--color-page-bg);
+}
+
+.quick-chat-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.quick-chat-patient-list {
+  padding: 12px;
+}
+
+.quick-chat-help {
+  margin: 4px 4px 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.quick-chat-patient {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.quick-chat-patient:hover {
+  background: var(--color-page-bg);
+}
+
+.quick-chat-patient small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+}
+
+.quick-chat-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-weight: 800;
+}
+
+.quick-chat-empty,
+.quick-chat-error {
+  padding: 28px 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.quick-chat-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .admin-nav-item:hover:not([style*="background-color: var(--color-primary-light)"]) {
@@ -413,6 +662,39 @@ body {
   .admin-main-content {
     padding: 20px !important;
   }
+  .quick-chat {
+    right: 16px;
+    bottom: 16px;
+  }
+  .quick-chat-drawer {
+    max-height: calc(100dvh - 92px);
+  }
+}
+
+.admin-main-content {
+  min-width: 0;
+  overflow-x: hidden !important;
+  scrollbar-color: #b8c9c4 transparent;
+  scrollbar-width: thin;
+}
+
+.admin-main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-main-content::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #b8c9c4;
+  background-clip: padding-box;
+}
+
+.patient-activity-row {
+  grid-template-columns: minmax(140px, 1fr) repeat(3, minmax(100px, auto));
 }
 
 .responsive-actions {
@@ -489,6 +771,15 @@ body {
   .doctor-two-column {
     grid-template-columns: 1fr;
   }
+  .patient-activity-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .adherence-overview-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .adherence-overview-metrics {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -506,6 +797,10 @@ body {
   }
 
   .doctor-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-activity-row {
     grid-template-columns: 1fr;
   }
 

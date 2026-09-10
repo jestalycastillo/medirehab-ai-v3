@@ -14,12 +14,16 @@ import {
     getPatient,
     getPatients,
     meProfile,
+    getMyConsent,
+    getMyNotificationPreferences,
     resetDoctorAccountPassword,
     resetPatientAccountPassword,
     updateDoctor,
     updateDoctorStatus,
     updateMeProfile,
     updateMyPassword,
+    updateMyConsent,
+    updateMyNotificationPreferences,
     updatePatient,
     updatePatientStatus
 } from "../controllers/user.controller";
@@ -32,6 +36,10 @@ const router = Router();
 router.get("/me/profile", authMiddleware, meProfile);
 router.patch("/me/profile", authMiddleware, requirePasswordChanged, updateMeProfile);
 router.patch("/me/password", authMiddleware, updateMyPassword);
+router.get("/me/consent", authMiddleware, requirePasswordChanged, getMyConsent);
+router.patch("/me/consent", authMiddleware, requirePasswordChanged, updateMyConsent);
+router.get("/me/notification-preferences", authMiddleware, requirePasswordChanged, getMyNotificationPreferences);
+router.patch("/me/notification-preferences", authMiddleware, requirePasswordChanged, updateMyNotificationPreferences);
 
 router.get(
     "/doctors",
