@@ -410,6 +410,34 @@ body {
   gap: 10px;
 }
 
+.adherence-overview-table {
+  display: grid;
+}
+
+.adherence-overview-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(320px, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--color-page-bg);
+}
+
+.adherence-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(60px, 1fr));
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.adherence-overview-metrics strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 15px;
+}
+
 .adherence-remaining,
 .adherence-week-line {
   margin-top: 3px;
@@ -745,6 +773,12 @@ body {
   }
   .patient-activity-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .adherence-overview-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .adherence-overview-metrics {
+    grid-column: 1 / -1;
   }
 }
 
