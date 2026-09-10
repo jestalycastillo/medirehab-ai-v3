@@ -26,6 +26,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             httpOnly: true,
             sameSite: "lax",
             secure: process.env.NODE_ENV === "production",
+            path: "/",
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
@@ -63,7 +64,8 @@ export const logout = async (_req: Request, res: Response): Promise<void> => {
     res.clearCookie(AUTH_COOKIE_NAME, {
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production"
+        secure: process.env.NODE_ENV === "production",
+        path: "/"
     });
 
     res.status(200).json({

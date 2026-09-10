@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { QuickChat } from "@/components/care/quick-chat";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -88,6 +89,19 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      window.alert("Unable to sign out. Please check your connection and try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -123,7 +137,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       {/* ── Desktop Sidebar ── */}
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -173,7 +187,9 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
         <div style={{ padding: "24px 12px", borderTop: "1px solid var(--color-border)" }}>
           <button
-            onClick={logout}
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
             className="admin-nav-item"
             style={{
               display: "flex",
@@ -194,7 +210,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <div style={{ color: "var(--color-text-muted)" }}>
               <LogOutIcon />
             </div>
-            Sign out
+            {isLoggingOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </aside>
@@ -257,7 +273,9 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                 );
               })}
               <button
-                onClick={logout}
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -276,7 +294,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                 }}
               >
                 <div style={{ color: "var(--color-text-muted)" }}><LogOutIcon /></div>
-                Sign out
+                {isLoggingOut ? "Signing out…" : "Sign out"}
               </button>
             </nav>
           </div>
@@ -286,6 +304,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           {children}
         </main>
       </div>
+      <QuickChat role="doctor" />
     </div>
   );
 }

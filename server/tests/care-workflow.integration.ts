@@ -45,6 +45,8 @@ async function main() {
 
     let adminCookie = "";
     try {
+        const anonymousLogout = await request("/auth/logout", { method: "POST" });
+        assert.equal(anonymousLogout.cookie, "authToken=", "Logout should clear stale cookies without requiring a valid session");
         adminCookie = await login(process.env.SEED_ADMIN_EMAIL ?? "admin@test.test", process.env.SEED_ADMIN_PASSWORD ?? "Admin123!");
         const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         const createDoctor = async (label: string) => {
@@ -112,7 +114,7 @@ async function main() {
         const audit = await request("/audit", { cookie: adminCookie });
         assert(audit.payload.logs.some((item: Json) => item.path.includes("/chat/messages")));
 
-        console.log("Integration workflow passed: consent, presence, plan, chat, score, check-in, comment, help, notifications, audit, and authorization.");
+        console.log("Integration workflow passed: logout, consent, presence, plan, chat, score, check-in, comment, help, notifications, audit, and authorization.");
     } finally {
         for (const id of createdUserIds.reverse()) {
             try {

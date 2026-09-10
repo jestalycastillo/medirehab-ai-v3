@@ -5,7 +5,6 @@ import { api, ApiError, type CareNotification, type CareSession, type ExerciseAs
 import { MyExerciseList } from "@/components/patient/my-exercise-list";
 import { CareTimeline } from "@/components/care/care-timeline";
 import { NotificationsPanel } from "@/components/care/notifications-panel";
-import { ChatPanel } from "@/components/care/chat-panel";
 import { ScoreSummary } from "@/components/care/score-summary";
 import { HelpRequestPanel } from "@/components/care/help-request-panel";
 import { ProgressReport } from "@/components/care/progress-report";
@@ -113,7 +112,6 @@ export default function PatientExercisesPage() {
       <ScoreSummary sessions={sessions} />
       <ProgressReport sessions={sessions} assignments={assignments} subjectName="My rehabilitation progress" />
 
-      <ChatPanel role="patient" counterpartName="your doctor" />
       <HelpRequestPanel assignments={assignments} />
     </div>
   );

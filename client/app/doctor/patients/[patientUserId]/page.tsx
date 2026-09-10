@@ -10,7 +10,6 @@ import { PatientForm } from "@/components/doctor/patient-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { CareTimeline } from "@/components/care/care-timeline";
-import { ChatPanel } from "@/components/care/chat-panel";
 import { ScoreSummary } from "@/components/care/score-summary";
 import { formatScore } from "@/lib/score";
 import { DoctorAlerts } from "@/components/care/doctor-alerts";
@@ -304,8 +303,6 @@ export default function PatientDetailPage() {
       <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} onResolve={handleResolveHelp} />
 
       <ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} />
-
-      <ChatPanel role="doctor" patientUserId={patient.id} counterpartName={patientName(patient)} />
 
       <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} />
       <ConfirmDialog
