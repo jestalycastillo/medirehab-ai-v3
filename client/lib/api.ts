@@ -168,12 +168,36 @@ export interface ExerciseAssignment {
   activeAt?: string | null;
   completedAt?: string | null;
   targetSessionsPerWeek?: number;
+  targetSessionsPerDay?: number | null;
   dueDate?: string | null;
   reviewDate?: string | null;
   doctorInstructions?: string | null;
   sessions?: { performedAt: string }[];
+  adherence?: AssignmentAdherence;
   exercise: ApiExercise;
   result?: ExerciseResult;
+}
+
+export type AdherenceStatus = "MET" | "IN_PROGRESS" | "MISSED";
+
+export interface AdherencePeriod {
+  periodStart: string;
+  periodEnd: string;
+  completed: number;
+  rawCompleted: number;
+  target: number;
+  remaining: number;
+  daysWithActivity: number;
+  status: AdherenceStatus;
+}
+
+export interface AssignmentAdherence {
+  cadence: "DAILY" | "WEEKLY";
+  timeZone: string;
+  today: AdherencePeriod | null;
+  currentWeek: AdherencePeriod;
+  weeklyHistory: AdherencePeriod[];
+  last30Days: AdherencePeriod & { percentage: number };
 }
 
 export interface LoginResponse {
@@ -503,7 +527,7 @@ export const api = {
     return request<{ success: boolean; sessions: CareSession[] }>(`/care/patients/${patientUserId}/sessions`);
   },
 
-  updateAssignmentPlan(patientId: string, assignmentId: string, data: { targetSessionsPerWeek: number; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) {
+  updateAssignmentPlan(patientId: string, assignmentId: string, data: { targetSessionsPerWeek: number; targetSessionsPerDay?: number | null; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) {
     return request<{ success: boolean; assignment: ExerciseAssignment }>(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, {
       method: "PATCH",
       body: JSON.stringify(data),

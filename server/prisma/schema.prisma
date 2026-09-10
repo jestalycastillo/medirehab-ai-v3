@@ -137,6 +137,7 @@ model ExerciseAssignment {
   activeAt           DateTime?
   completedAt        DateTime?
   targetSessionsPerWeek Int      @default(3)
+  targetSessionsPerDay  Int?
   dueDate             DateTime?
   reviewDate          DateTime?
   doctorInstructions  String?

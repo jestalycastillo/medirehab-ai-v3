@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
 import { roundScore } from "../utils/score";
+import { calculateAssignmentAdherence } from "../utils/adherence";
 import {
     ValidatedAssignExerciseInput,
     ValidatedAssignmentPlanInput,
@@ -35,6 +36,7 @@ const assignmentSelect = {
     activeAt: true,
     completedAt: true,
     targetSessionsPerWeek: true,
+    targetSessionsPerDay: true,
     dueDate: true,
     reviewDate: true,
     doctorInstructions: true,
@@ -50,9 +52,19 @@ const assignmentSelect = {
     sessions: {
         select: { performedAt: true },
         orderBy: { performedAt: "desc" as const },
-        take: 50
+        take: 500
     }
 } satisfies Prisma.ExerciseAssignmentSelect;
+
+const withAdherence = <T extends {
+    assignedAt: Date;
+    targetSessionsPerWeek: number;
+    targetSessionsPerDay: number | null;
+    sessions: { performedAt: Date }[];
+}>(assignment: T) => ({
+    ...assignment,
+    adherence: calculateAssignmentAdherence(assignment)
+});
 
 const getDoctorProfileIdForUser = async (doctorUserId: string): Promise<string> => {
     const doctorProfile = await prisma.doctorProfile.findUnique({
@@ -273,7 +285,7 @@ export const listAssignedExercisesForDoctorPatient = async (
         doctorUserId
     );
 
-    return prisma.exerciseAssignment.findMany({
+    const assignments = await prisma.exerciseAssignment.findMany({
         where: {
             patientProfileId,
             archivedAt: null
@@ -281,12 +293,13 @@ export const listAssignedExercisesForDoctorPatient = async (
         select: assignmentSelect,
         orderBy: { assignedAt: "desc" }
     });
+    return assignments.map(withAdherence);
 };
 
 export const listAssignedExercisesForPatient = async (patientUserId: string) => {
     const patientProfileId = await getPatientProfileIdForUser(patientUserId);
 
-    return prisma.exerciseAssignment.findMany({
+    const assignments = await prisma.exerciseAssignment.findMany({
         where: {
             patientProfileId,
             archivedAt: null
@@ -294,6 +307,7 @@ export const listAssignedExercisesForPatient = async (patientUserId: string) => 
         select: assignmentSelect,
         orderBy: { assignedAt: "desc" }
     });
+    return assignments.map(withAdherence);
 };
 
 export const assignExerciseToPatient = async (
@@ -326,7 +340,7 @@ export const assignExerciseToPatient = async (
     }
 
     if (existingAssignment) {
-        return prisma.exerciseAssignment.update({
+        const restored = await prisma.exerciseAssignment.update({
             where: { id: existingAssignment.id },
             data: {
                 archivedAt: null,
@@ -341,9 +355,10 @@ export const assignExerciseToPatient = async (
             },
             select: assignmentSelect
         });
+        return withAdherence(restored);
     }
 
-    return prisma.exerciseAssignment.create({
+    const created = await prisma.exerciseAssignment.create({
         data: {
             exerciseId: input.exerciseId,
             patientProfileId,
@@ -354,6 +369,7 @@ export const assignExerciseToPatient = async (
         },
         select: assignmentSelect
     });
+    return withAdherence(created);
 };
 
 export const archivePatientExerciseAssignment = async (
@@ -379,11 +395,12 @@ export const archivePatientExerciseAssignment = async (
         throw new HttpError(404, "Assigned exercise not found.");
     }
 
-    return prisma.exerciseAssignment.update({
+    const archived = await prisma.exerciseAssignment.update({
         where: { id: assignment.id },
         data: { archivedAt: new Date() },
         select: assignmentSelect
     });
+    return withAdherence(archived);
 };
 
 export const updatePatientExercisePlan = async (
@@ -417,7 +434,7 @@ export const updatePatientExercisePlan = async (
             }
         });
     }
-    return updated;
+    return withAdherence(updated);
 };
 
 type AiServiceResponse = {

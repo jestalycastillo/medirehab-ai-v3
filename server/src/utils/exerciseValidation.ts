@@ -28,6 +28,7 @@ export type ValidatedAssignExerciseInput = {
 
 export type ValidatedAssignmentPlanInput = {
     targetSessionsPerWeek?: number;
+    targetSessionsPerDay?: number | null;
     dueDate?: Date | null;
     reviewDate?: Date | null;
     doctorInstructions?: string | null;
@@ -99,6 +100,14 @@ export const validateAssignmentPlanInput = (body: Record<string, unknown>): Vali
             throw new HttpError(400, "Weekly target must be an integer between 1 and 14.");
         }
         input.targetSessionsPerWeek = body.targetSessionsPerWeek as number;
+    }
+    if (body.targetSessionsPerDay === null || body.targetSessionsPerDay === "") {
+        input.targetSessionsPerDay = null;
+    } else if (body.targetSessionsPerDay !== undefined) {
+        if (!Number.isInteger(body.targetSessionsPerDay) || (body.targetSessionsPerDay as number) < 1 || (body.targetSessionsPerDay as number) > 5) {
+            throw new HttpError(400, "Daily target must be an integer between 1 and 5.");
+        }
+        input.targetSessionsPerDay = body.targetSessionsPerDay as number;
     }
     for (const field of ["dueDate", "reviewDate"] as const) {
         const value = body[field];
