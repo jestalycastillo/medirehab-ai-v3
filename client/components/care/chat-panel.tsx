@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type ChatMessage } from "@/lib/api";
 
-const POLL_INTERVAL_MS = 10_000;
+const POLL_INTERVAL_MS = 2_000;
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
@@ -27,16 +27,25 @@ export function ChatPanel({
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [counterpartLastSeenAt, setCounterpartLastSeenAt] = useState<string | null>(null);
+  const [lastPolledAt, setLastPolledAt] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const messageCountRef = useRef(0);
 
   const loadMessages = async (initial = false) => {
     try {
       const result = await api.getChatMessages(patientUserId);
       setMessages(result.messages);
       setCounterpartLastSeenAt(result.counterpartLastSeenAt);
-      await api.markChatMessagesRead(patientUserId);
+      setLastPolledAt(Date.now());
+      const incomingRole = role === "patient" ? "DOCTOR" : "PATIENT";
+      if (result.messages.some((message) => message.sender.role === incomingRole && !message.readAt)) {
+        await api.markChatMessagesRead(patientUserId);
+      }
       setError("");
-      if (initial) requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ block: "end" }));
+      if (initial || result.messages.length > messageCountRef.current) {
+        requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: initial ? "auto" : "smooth", block: "end" }));
+      }
+      messageCountRef.current = result.messages.length;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load messages.");
     } finally {
@@ -45,12 +54,15 @@ export function ChatPanel({
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadMessages(true);
-    const interval = window.setInterval(() => void loadMessages(), POLL_INTERVAL_MS);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadMessages();
+    }, POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
     // patientUserId identifies the doctor-visible thread; patients use their assigned doctor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patientUserId]);
+  }, [patientUserId, role]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -73,7 +85,7 @@ export function ChatPanel({
   const visibleMessages = query.trim()
     ? messages.filter((message) => message.body.toLowerCase().includes(query.trim().toLowerCase()))
     : messages;
-  const isOnline = counterpartLastSeenAt !== null && Date.now() - new Date(counterpartLastSeenAt).getTime() < 2 * 60_000;
+  const isOnline = counterpartLastSeenAt !== null && lastPolledAt !== null && lastPolledAt - new Date(counterpartLastSeenAt).getTime() < 2 * 60_000;
 
   return (
     <section className={`card${compact ? " quick-chat-panel" : ""}`} style={{ padding: compact ? "16px" : "24px" }}>

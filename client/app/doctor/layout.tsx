@@ -216,7 +216,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
       </aside>
 
       {/* ── Main Content Area ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="portal-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         {/* Mobile Header */}
         <header className="admin-mobile-header" style={{
           display: "none",

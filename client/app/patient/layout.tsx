@@ -175,7 +175,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         </div>
       </aside>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="portal-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <header className="admin-mobile-header" style={{ display: "none", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>

@@ -50,6 +50,7 @@ export default function PatientDetailPage() {
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
+  const [lastLoadedAt, setLastLoadedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -81,6 +82,7 @@ export default function PatientDetailPage() {
       setAssignments(assignmentsRes.assignments);
       setSessions(sessionsRes.sessions);
       setHelpRequests(helpRes.requests);
+      setLastLoadedAt(Date.now());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load patient.");
     } finally {
@@ -209,7 +211,7 @@ export default function PatientDetailPage() {
     );
   }
 
-  const activeAssignment = assignments.find((assignment) => assignment.activeAt && Date.now() - new Date(assignment.activeAt).getTime() < 2 * 60_000);
+  const activeAssignment = assignments.find((assignment) => assignment.activeAt && lastLoadedAt - new Date(assignment.activeAt).getTime() < 2 * 60_000);
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -281,7 +283,7 @@ export default function PatientDetailPage() {
           <DetailField label="Last login" value={formatTimestamp(patient.lastLoginAt)} />
         </div>
         {assignments.length > 0 && <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          {assignments.map((assignment) => <div key={assignment.id} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "10px", display: "grid", gridTemplateColumns: "minmax(140px, 1fr) repeat(3, minmax(100px, auto))", gap: "12px", fontSize: "13px", alignItems: "center" }}>
+          {assignments.map((assignment) => <div key={assignment.id} className="patient-activity-row" style={{ borderTop: "1px solid var(--color-border)", paddingTop: "10px", display: "grid", gap: "12px", fontSize: "13px", alignItems: "center" }}>
             <strong>{assignment.exercise.name}</strong>
             <span style={{ color: "var(--color-text-secondary)" }}>Viewed: {formatTimestamp(assignment.viewedAt)}</span>
             <span style={{ color: "var(--color-text-secondary)" }}>Started: {formatTimestamp(assignment.startedAt)}</span>
