@@ -13,6 +13,8 @@ services:
       DATABASE_URL: "postgresql://postgres:password@db:5432/medirehab_ai"
       AI_SERVICE_URL: "http://ai-service:8000"
       AI_SERVICE_TIMEOUT_MS: "120000"
+      ADHERENCE_TIME_ZONE: "Asia/Manila"
+      ADHERENCE_ALERT_INTERVAL_MS: "900000"
     ports:
       - "5000:5000"
     depends_on:

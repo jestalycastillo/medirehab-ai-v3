@@ -11,7 +11,21 @@ npx prisma migrate deploy
 
 The repository's Docker Compose backend command already runs this step. The
 live-chat branch adds migrations for chat, presence, care plans, help requests,
-consent/audit records, and notification preferences.
+consent/audit records, notification preferences, and daily adherence targets.
+
+## Adherence Scheduling
+
+Adherence uses calendar days and Monday-through-Sunday weeks in the configured
+care timezone. Set `ADHERENCE_TIME_ZONE` to an IANA timezone name; local and
+container examples default to `Asia/Manila`. `ADHERENCE_ALERT_INTERVAL_MS`
+controls the background scan interval and must be at least 60000 milliseconds.
+The default is 900000 (15 minutes).
+
+After 6 PM in the care timezone, the API creates one deduplicated reminder per
+assignment and period when a daily goal is unfinished or weekly progress is
+behind its proportional target. Alerts honor both the patient's and doctor's
+care-notification preferences. Daily adherence caps credited sessions at the
+daily target, so extra sessions on one day do not replace a missed daily goal.
 
 ## Data Boundaries
 

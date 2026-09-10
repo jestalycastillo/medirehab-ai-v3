@@ -5,6 +5,7 @@ import app from "../src/app";
 import { prisma } from "../src/lib/prisma";
 import { recordExerciseSession } from "../src/services/care.service";
 import { completeExerciseActivity } from "../src/services/presence.service";
+import { runAdherenceAlertScan } from "../src/services/adherence-alert.service";
 
 type Json = Record<string, any>;
 
@@ -76,7 +77,7 @@ async function main() {
         const assigned = await request(`/exercises/patients/${patientId}/assignments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { exerciseId: exercise.id } });
         const assignmentId = assigned.payload.assignment.id as string;
 
-        await request(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, { method: "PATCH", cookie: doctor.cookie, body: { targetSessionsPerWeek: 4, doctorInstructions: "Move comfortably and stop if symptoms increase." } });
+        await request(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, { method: "PATCH", cookie: doctor.cookie, body: { targetSessionsPerWeek: 4, targetSessionsPerDay: 2, doctorInstructions: "Move comfortably and stop if symptoms increase." } });
         await request("/users/me/consent", { method: "PATCH", cookie: patientCookie, body: { privacyConsent: true, recordingConsent: true } });
         await request("/presence/heartbeat", { method: "POST", cookie: patientCookie });
         await request("/presence/assignments/viewed", { method: "POST", cookie: patientCookie, body: { assignmentIds: [assignmentId] } });
@@ -101,6 +102,17 @@ async function main() {
         assert.equal(patientSessions.payload.sessions[0].comments.length, 1);
         await request(`/care/patients/${patientId}/sessions`, { cookie: otherDoctor.cookie, expected: 404 });
 
+        const assignedWithAdherence = await request("/exercises/me/assigned", { cookie: patientCookie });
+        assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.completed, 1);
+        assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.remaining, 1);
+        assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.status, "IN_PROGRESS");
+        const localParts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+        const localPart = (type: Intl.DateTimeFormatPartTypes) => localParts.find((part) => part.type === type)?.value;
+        const alertNow = new Date(`${localPart("year")}-${localPart("month")}-${localPart("day")}T18:30:00+08:00`);
+        const alertsCreated = await runAdherenceAlertScan(alertNow, patientId);
+        assert.equal(alertsCreated, 2);
+        assert.equal(await runAdherenceAlertScan(alertNow, patientId), 0, "Adherence alerts must be deduplicated per period");
+
         const help = await request("/care/help-requests", { method: "POST", cookie: patientCookie, expected: 201, body: { assignmentId, message: "Please review my pain score." } });
         const helpList = await request(`/care/patients/${patientId}/help-requests`, { cookie: doctor.cookie });
         assert.equal(helpList.payload.requests[0].resolvedAt, null);
@@ -110,11 +122,14 @@ async function main() {
         const notifications = await request("/care/notifications", { cookie: doctor.cookie });
         assert(notifications.payload.notifications.some((item: Json) => item.type === "SESSION_RESULT"));
         assert(notifications.payload.notifications.some((item: Json) => item.type === "PATIENT_HELP"));
+        assert(notifications.payload.notifications.some((item: Json) => item.title.includes("behind their exercise goal")));
+        const patientNotifications = await request("/care/notifications", { cookie: patientCookie });
+        assert(patientNotifications.payload.notifications.some((item: Json) => item.title.includes("exercise goal needs attention")));
         await new Promise((resolve) => setTimeout(resolve, 100));
         const audit = await request("/audit", { cookie: adminCookie });
         assert(audit.payload.logs.some((item: Json) => item.path.includes("/chat/messages")));
 
-        console.log("Integration workflow passed: logout, consent, presence, plan, chat, score, check-in, comment, help, notifications, audit, and authorization.");
+        console.log("Integration workflow passed: logout, consent, presence, adherence, alerts, chat, score, check-in, comment, help, notifications, audit, and authorization.");
     } finally {
         for (const id of createdUserIds.reverse()) {
             try {
