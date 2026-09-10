@@ -20,6 +20,8 @@ model User {
   lastSeenAt        DateTime?
   privacyConsentAt  DateTime?
   recordingConsentAt DateTime?
+  chatNotificationsEnabled Boolean @default(true)
+  careNotificationsEnabled Boolean @default(true)
 
   patientProfile PatientProfile?
   doctorProfile  DoctorProfile?

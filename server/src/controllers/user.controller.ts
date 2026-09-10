@@ -10,6 +10,7 @@ import {
     getDoctorByUserId,
     getMyProfile,
     getUserConsent,
+    getNotificationPreferences,
     listPatientsForAdmin,
     getPatientForDoctor,
     listDoctors,
@@ -21,6 +22,7 @@ import {
     updateDoctorProfile,
     updateOwnPatientProfile,
     updateUserConsent,
+    updateNotificationPreferences,
     updatePatientAccountStatusForDoctor,
     updatePatientProfileForDoctor,
     updatePatientAccountStatus,
@@ -284,6 +286,19 @@ export const updateMyConsent = async (req: Request, res: Response): Promise<void
         const consent = await updateUserConsent(authUser.userId, req.body.privacyConsent, req.body.recordingConsent);
         res.status(200).json({ success: true, message: "Consent settings updated.", consent });
     } catch (error) { handleUserError(error, res, "Unable to update consent settings."); }
+};
+
+export const getMyNotificationPreferences = async (req: Request, res: Response): Promise<void> => {
+    try { res.status(200).json({ success: true, preferences: await getNotificationPreferences(getAuthenticatedUser(req).userId) }); }
+    catch (error) { handleUserError(error, res, "Unable to load notification preferences."); }
+};
+
+export const updateMyNotificationPreferences = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (typeof req.body?.chatEnabled !== "boolean" || typeof req.body?.careEnabled !== "boolean") throw new HttpError(400, "Notification preferences are required.");
+        const preferences = await updateNotificationPreferences(getAuthenticatedUser(req).userId, req.body.chatEnabled, req.body.careEnabled);
+        res.status(200).json({ success: true, preferences });
+    } catch (error) { handleUserError(error, res, "Unable to update notification preferences."); }
 };
 
 export const resetDoctorAccountPassword = async (

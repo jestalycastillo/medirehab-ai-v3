@@ -128,7 +128,8 @@ export const sendChatMessage = async (
         select: chatMessageSelect
     });
 
-    await prisma.notification.create({
+    const recipient = await prisma.user.findUnique({ where: { id: recipientUserId }, select: { chatNotificationsEnabled: true } });
+    if (recipient?.chatNotificationsEnabled) await prisma.notification.create({
         data: {
             userId: recipientUserId,
             type: "CHAT_MESSAGE",

@@ -373,6 +373,17 @@ export const updateUserConsent = async (userId: string, privacyConsent: boolean,
     });
 };
 
+export const getNotificationPreferences = async (userId: string) => prisma.user.findUnique({
+    where: { id: userId },
+    select: { chatNotificationsEnabled: true, careNotificationsEnabled: true }
+});
+
+export const updateNotificationPreferences = async (userId: string, chatEnabled: boolean, careEnabled: boolean) => prisma.user.update({
+    where: { id: userId },
+    data: { chatNotificationsEnabled: chatEnabled, careNotificationsEnabled: careEnabled },
+    select: { chatNotificationsEnabled: true, careNotificationsEnabled: true }
+});
+
 export const listDoctors = async () => {
     return prisma.user.findMany({
         where: { role: Role.DOCTOR },

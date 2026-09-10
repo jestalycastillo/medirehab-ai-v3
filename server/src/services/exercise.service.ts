@@ -399,11 +399,25 @@ export const updatePatientExercisePlan = async (
     });
     if (!assignment) throw new HttpError(404, "Assigned exercise not found.");
 
-    return prisma.exerciseAssignment.update({
+    const updated = await prisma.exerciseAssignment.update({
         where: { id: assignment.id },
         data: input,
         select: assignmentSelect
     });
+    const patient = await prisma.user.findUnique({ where: { id: patientUserId }, select: { careNotificationsEnabled: true } });
+    if (patient?.careNotificationsEnabled) {
+        await prisma.notification.create({
+            data: {
+                userId: patientUserId,
+                type: "REMINDER",
+                title: "Care plan updated",
+                body: `Your plan for ${updated.exercise.name} was updated.`,
+                link: "/patient/exercises",
+                meta: { assignmentId: updated.id }
+            }
+        });
+    }
+    return updated;
 };
 
 type AiServiceResponse = {

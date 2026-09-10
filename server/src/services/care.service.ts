@@ -303,6 +303,8 @@ const createNotification = async (input: {
     link?: string | null;
     meta?: Prisma.InputJsonValue;
 }) => {
+    const recipient = await prisma.user.findUnique({ where: { id: input.userId }, select: { careNotificationsEnabled: true } });
+    if (!recipient?.careNotificationsEnabled) return;
     await prisma.notification.create({
         data: {
             userId: input.userId,

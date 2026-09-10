@@ -154,6 +154,11 @@ export interface AuditLog {
   actor: { id: string; email: string; role: string } | null;
 }
 
+export interface NotificationPreferences {
+  chatNotificationsEnabled: boolean;
+  careNotificationsEnabled: boolean;
+}
+
 export interface ExerciseAssignment {
   id: string;
   assignedAt: string;
@@ -603,5 +608,16 @@ export const api = {
 
   getAuditLogs() {
     return request<{ success: boolean; logs: AuditLog[] }>("/audit");
+  },
+
+  getNotificationPreferences() {
+    return request<{ success: boolean; preferences: NotificationPreferences }>("/users/me/notification-preferences");
+  },
+
+  updateNotificationPreferences(chatEnabled: boolean, careEnabled: boolean) {
+    return request<{ success: boolean; preferences: NotificationPreferences }>("/users/me/notification-preferences", {
+      method: "PATCH",
+      body: JSON.stringify({ chatEnabled, careEnabled }),
+    });
   },
 };

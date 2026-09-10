@@ -32,7 +32,8 @@ export const createHelpRequest = async (patientUserId: string, message: string, 
         select: helpSelect
     });
     const name = [patient.firstName, patient.lastName].filter(Boolean).join(" ") || "A patient";
-    await prisma.notification.create({
+    const recipient = await prisma.user.findUnique({ where: { id: patient.assignedDoctor.userId }, select: { careNotificationsEnabled: true } });
+    if (recipient?.careNotificationsEnabled) await prisma.notification.create({
         data: {
             userId: patient.assignedDoctor.userId,
             type: "PATIENT_HELP",
