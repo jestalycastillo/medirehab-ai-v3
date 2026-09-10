@@ -27,6 +27,12 @@ behind its proportional target. Alerts honor both the patient's and doctor's
 care-notification preferences. Daily adherence caps credited sessions at the
 daily target, so extra sessions on one day do not replace a missed daily goal.
 
+Exercise plans can also specify weekdays, sets, reps, target duration, minimum
+recording duration, and minimum score. Sessions that miss a minimum remain in
+the clinical timeline but do not count toward adherence. Evaluation requests
+carry a client-generated session identifier, enforced by a unique database
+index, so retrying the same recording cannot create duplicate sessions.
+
 ## Data Boundaries
 
 - Exercise recordings are streamed to the AI service for evaluation. The Node

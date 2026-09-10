@@ -15,7 +15,7 @@ import {
     updatePatientExercisePlan,
     evaluateExercise
 } from "../services/exercise.service";
-import { recordExerciseSession } from "../services/care.service";
+import { findRecordedExerciseSession, recordExerciseSession } from "../services/care.service";
 import { completeExerciseActivity } from "../services/presence.service";
 import { createLiveCoachingMessage } from "../services/live-coaching.service";
 import { HttpError } from "../utils/httpError";
@@ -325,6 +325,28 @@ export const evaluateExerciseAssignment = async (
         const authenticatedUserId = getAuthenticatedUserId(req);
         const exerciseId = validateExerciseIdParam(req.params.exerciseId);
         const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const durationSeconds = Number(req.headers["x-recording-duration-seconds"]);
+        const clientSessionId = String(req.headers["x-client-session-id"] ?? "").trim();
+        if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 3_600) {
+            throw new HttpError(400, "Recording duration must be between 1 and 3600 seconds.");
+        }
+        if (!/^[A-Za-z0-9-]{8,100}$/.test(clientSessionId)) {
+            throw new HttpError(400, "A valid client session identifier is required.");
+        }
+        const existingSession = await findRecordedExerciseSession(authenticatedUserId, assignmentId, exerciseId, clientSessionId);
+        if (existingSession) {
+            res.status(200).json({
+                success: true,
+                message: "Exercise session was already recorded.",
+                score: existingSession.score,
+                feedback: existingSession.aiFeedback,
+                sessionId: existingSession.id,
+                adherenceQualified: existingSession.adherenceQualified,
+                qualificationReason: existingSession.qualificationReason,
+                duplicate: true
+            });
+            return;
+        }
         const contentType = (req.headers["content-type"] ?? "")
             .split(";", 1)[0]
             ?.trim()
@@ -361,7 +383,8 @@ export const evaluateExerciseAssignment = async (
             assignmentId,
             exerciseId,
             result.score,
-            result.feedback
+            result.feedback,
+            { durationSeconds, clientSessionId }
         );
         await completeExerciseActivity(authenticatedUserId, assignmentId);
 
@@ -369,7 +392,10 @@ export const evaluateExerciseAssignment = async (
             success: true,
             message: "Exercise evaluated successfully.",
             ...result,
-            sessionId: session.id
+            sessionId: session.id,
+            adherenceQualified: session.adherenceQualified,
+            qualificationReason: session.qualificationReason,
+            duplicate: session.duplicate
         });
     } catch (error) {
         handleExerciseError(error, res, "Unable to process exercise evaluation.");

@@ -29,6 +29,12 @@ export type ValidatedAssignExerciseInput = {
 export type ValidatedAssignmentPlanInput = {
     targetSessionsPerWeek?: number;
     targetSessionsPerDay?: number | null;
+    scheduledDays?: number[];
+    targetSets?: number | null;
+    targetRepsPerSet?: number | null;
+    targetDurationSeconds?: number | null;
+    minimumScore?: number | null;
+    minimumDurationSeconds?: number | null;
     dueDate?: Date | null;
     reviewDate?: Date | null;
     doctorInstructions?: string | null;
@@ -108,6 +114,30 @@ export const validateAssignmentPlanInput = (body: Record<string, unknown>): Vali
             throw new HttpError(400, "Daily target must be an integer between 1 and 5.");
         }
         input.targetSessionsPerDay = body.targetSessionsPerDay as number;
+    }
+    if (body.scheduledDays !== undefined) {
+        if (!Array.isArray(body.scheduledDays) || body.scheduledDays.some((day) => !Number.isInteger(day) || (day as number) < 1 || (day as number) > 7)) {
+            throw new HttpError(400, "Scheduled days must contain weekday numbers from 1 (Monday) to 7 (Sunday).");
+        }
+        input.scheduledDays = [...new Set(body.scheduledDays as number[])].sort((a, b) => a - b);
+    }
+    for (const [field, label, maximum] of [
+        ["targetSets", "Target sets", 20],
+        ["targetRepsPerSet", "Target reps per set", 100],
+        ["targetDurationSeconds", "Target duration", 300],
+        ["minimumDurationSeconds", "Minimum duration", 300]
+    ] as const) {
+        const value = body[field];
+        if (value === null || value === "") input[field] = null;
+        else if (value !== undefined) {
+            if (!Number.isInteger(value) || (value as number) < 1 || (value as number) > maximum) throw new HttpError(400, `${label} must be an integer between 1 and ${maximum}.`);
+            input[field] = value as number;
+        }
+    }
+    if (body.minimumScore === null || body.minimumScore === "") input.minimumScore = null;
+    else if (body.minimumScore !== undefined) {
+        if (typeof body.minimumScore !== "number" || !Number.isFinite(body.minimumScore) || body.minimumScore < 0 || body.minimumScore > 100) throw new HttpError(400, "Minimum score must be between 0 and 100.");
+        input.minimumScore = body.minimumScore;
     }
     for (const field of ["dueDate", "reviewDate"] as const) {
         const value = body[field];

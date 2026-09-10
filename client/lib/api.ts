@@ -94,6 +94,9 @@ export interface CareSession {
   confidenceLevel: number | null;
   patientNote: string | null;
   performedAt: string;
+  durationSeconds?: number | null;
+  adherenceQualified?: boolean;
+  qualificationReason?: string | null;
   createdAt: string;
   updatedAt: string;
   assignment: {
@@ -169,14 +172,34 @@ export interface ExerciseAssignment {
   completedAt?: string | null;
   targetSessionsPerWeek?: number;
   targetSessionsPerDay?: number | null;
+  scheduledDays?: number[];
+  targetSets?: number | null;
+  targetRepsPerSet?: number | null;
+  targetDurationSeconds?: number | null;
+  minimumScore?: number | null;
+  minimumDurationSeconds?: number | null;
   dueDate?: string | null;
   reviewDate?: string | null;
   doctorInstructions?: string | null;
-  sessions?: { performedAt: string }[];
+  sessions?: { performedAt: string; score?: number | null; adherenceQualified?: boolean }[];
   adherence?: AssignmentAdherence;
   exercise: ApiExercise;
   result?: ExerciseResult;
 }
+
+export type AssignmentPlanUpdate = {
+  targetSessionsPerWeek: number;
+  targetSessionsPerDay?: number | null;
+  scheduledDays?: number[];
+  targetSets?: number | null;
+  targetRepsPerSet?: number | null;
+  targetDurationSeconds?: number | null;
+  minimumScore?: number | null;
+  minimumDurationSeconds?: number | null;
+  dueDate?: string | null;
+  reviewDate?: string | null;
+  doctorInstructions?: string | null;
+};
 
 export type AdherenceStatus = "MET" | "IN_PROGRESS" | "MISSED";
 
@@ -493,11 +516,13 @@ export const api = {
     return request<{ success: boolean; assignments: ExerciseAssignment[], patientUserId: string }>("/exercises/me/assigned");
   },
 
-  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob) {
-    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
+  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string) {
+    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
+        "X-Recording-Duration-Seconds": String(durationSeconds),
+        "X-Client-Session-Id": clientSessionId,
       },
       body: videoBlob,
     });
@@ -527,7 +552,7 @@ export const api = {
     return request<{ success: boolean; sessions: CareSession[] }>(`/care/patients/${patientUserId}/sessions`);
   },
 
-  updateAssignmentPlan(patientId: string, assignmentId: string, data: { targetSessionsPerWeek: number; targetSessionsPerDay?: number | null; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) {
+  updateAssignmentPlan(patientId: string, assignmentId: string, data: AssignmentPlanUpdate) {
     return request<{ success: boolean; assignment: ExerciseAssignment }>(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, {
       method: "PATCH",
       body: JSON.stringify(data),

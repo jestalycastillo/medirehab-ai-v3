@@ -138,6 +138,12 @@ model ExerciseAssignment {
   completedAt        DateTime?
   targetSessionsPerWeek Int      @default(3)
   targetSessionsPerDay  Int?
+  scheduledDays         Int[]     @default([])
+  targetSets            Int?
+  targetRepsPerSet      Int?
+  targetDurationSeconds Int?
+  minimumScore          Float?
+  minimumDurationSeconds Int?
   dueDate             DateTime?
   reviewDate          DateTime?
   doctorInstructions  String?
@@ -182,6 +188,10 @@ model ExerciseSession {
   confidenceLevel  Int?
   patientNote      String?
   performedAt      DateTime @default(now())
+  durationSeconds  Int?
+  adherenceQualified Boolean @default(true)
+  qualificationReason String?
+  clientSessionId  String? @unique
 
   assignment ExerciseAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   patient    User               @relation(fields: [patientUserId], references: [id], onDelete: Cascade)

@@ -24,7 +24,8 @@ type AdherenceInput = {
     assignedAt: Date;
     targetSessionsPerWeek: number;
     targetSessionsPerDay: number | null;
-    sessions: { performedAt: Date }[];
+    scheduledDays?: number[];
+    sessions: { performedAt: Date; adherenceQualified?: boolean }[];
 };
 
 const DAY_MS = 86_400_000;
@@ -65,26 +66,29 @@ const mondayOf = (key: string): string => {
 
 const daysBetweenInclusive = (start: string, end: string): number => Math.max(0, Math.round((fromKey(end).getTime() - fromKey(start).getTime()) / DAY_MS) + 1);
 
-const countByDate = (sessions: { performedAt: Date }[], timeZone: string): Map<string, number> => {
+const countByDate = (sessions: { performedAt: Date; adherenceQualified?: boolean }[], timeZone: string): Map<string, number> => {
     const counts = new Map<string, number>();
     for (const session of sessions) {
+        if (session.adherenceQualified === false) continue;
         const key = dateKey(session.performedAt, timeZone);
         counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;
 };
 
-const buildPeriod = ({ start, end, today, assigned, weeklyTarget, dailyTarget, counts }: {
+const buildPeriod = ({ start, end, today, assigned, weeklyTarget, dailyTarget, scheduledDays, counts }: {
     start: string;
     end: string;
     today: string;
     assigned: string;
     weeklyTarget: number;
     dailyTarget: number | null;
+    scheduledDays: number[];
     counts: Map<string, number>;
 }): AdherencePeriod => {
     const activeStart = start < assigned ? assigned : start;
-    const activeDays = daysBetweenInclusive(activeStart, end);
+    const isScheduled = (key: string) => scheduledDays.length === 0 || scheduledDays.includes(fromKey(key).getUTCDay() || 7);
+    let activeDays = 0;
     let rawCompleted = 0;
     let completed = 0;
     let daysWithActivity = 0;
@@ -92,7 +96,8 @@ const buildPeriod = ({ start, end, today, assigned, weeklyTarget, dailyTarget, c
     for (let key = activeStart; key <= end; key = addDays(key, 1)) {
         const dailyCompleted = counts.get(key) ?? 0;
         rawCompleted += dailyCompleted;
-        completed += dailyTarget ? Math.min(dailyCompleted, dailyTarget) : dailyCompleted;
+        if (!dailyTarget || isScheduled(key)) completed += dailyTarget ? Math.min(dailyCompleted, dailyTarget) : dailyCompleted;
+        if (!dailyTarget || isScheduled(key)) activeDays += 1;
         if (dailyCompleted > 0) daysWithActivity += 1;
     }
 
@@ -108,20 +113,21 @@ export const calculateAssignmentAdherence = (input: AdherenceInput, now = new Da
     const currentWeekStart = mondayOf(todayKey);
     const counts = countByDate(input.sessions, timeZone);
     const dailyTarget = input.targetSessionsPerDay;
+    const scheduledDays = input.scheduledDays ?? [];
 
-    const currentWeek = buildPeriod({ start: currentWeekStart, end: addDays(currentWeekStart, 6), today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, counts });
+    const currentWeek = buildPeriod({ start: currentWeekStart, end: addDays(currentWeekStart, 6), today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, scheduledDays, counts });
     const weeklyHistory: AdherencePeriod[] = [];
     for (let offset = 0; offset < 8; offset += 1) {
         const start = addDays(currentWeekStart, -7 * offset);
         const end = addDays(start, 6);
         if (end < assignedKey) break;
-        weeklyHistory.push(buildPeriod({ start, end, today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, counts }));
+        weeklyHistory.push(buildPeriod({ start, end, today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, scheduledDays, counts }));
     }
 
     const thirtyDaysAgo = addDays(todayKey, -29);
     const last30Start = thirtyDaysAgo < assignedKey ? assignedKey : thirtyDaysAgo;
     const last30Base = dailyTarget
-        ? buildPeriod({ start: last30Start, end: todayKey, today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, counts })
+        ? buildPeriod({ start: last30Start, end: todayKey, today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, scheduledDays, counts })
         : (() => {
             let completed = 0;
             let daysWithActivity = 0;
@@ -135,7 +141,8 @@ export const calculateAssignmentAdherence = (input: AdherenceInput, now = new Da
             return { periodStart: last30Start, periodEnd: todayKey, completed, rawCompleted: completed, target, remaining: Math.max(0, target - completed), daysWithActivity, status: (completed >= target ? "MET" : "IN_PROGRESS") as AdherenceStatus };
         })();
 
-    const today = dailyTarget ? buildPeriod({ start: todayKey, end: todayKey, today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, counts }) : null;
+    const todayIsScheduled = scheduledDays.length === 0 || scheduledDays.includes(fromKey(todayKey).getUTCDay() || 7);
+    const today = dailyTarget && todayIsScheduled ? buildPeriod({ start: todayKey, end: todayKey, today: todayKey, assigned: assignedKey, weeklyTarget: input.targetSessionsPerWeek, dailyTarget, scheduledDays, counts }) : null;
     return {
         cadence: dailyTarget ? "DAILY" : "WEEKLY",
         timeZone,

@@ -46,4 +46,19 @@ assert.equal(daily.currentWeek.completed, 2, "Extra same-day sessions must not r
 assert.equal(daily.currentWeek.rawCompleted, 3);
 assert.equal(daily.currentWeek.target, 7);
 
+const scheduled = calculateAssignmentAdherence({
+    assignedAt,
+    targetSessionsPerWeek: 3,
+    targetSessionsPerDay: 1,
+    scheduledDays: [1, 4],
+    sessions: [
+        { performedAt: atManila("2026-09-07T09:00:00"), adherenceQualified: true },
+        { performedAt: atManila("2026-09-08T09:00:00"), adherenceQualified: false },
+        { performedAt: atManila("2026-09-10T09:00:00"), adherenceQualified: true }
+    ]
+}, now, "Asia/Manila");
+assert.equal(scheduled.currentWeek.target, 2);
+assert.equal(scheduled.currentWeek.completed, 2);
+assert.equal(scheduled.today?.status, "MET");
+
 console.log("Adherence calculations passed: calendar weeks, daily caps, remaining counts, and historical missed status.");

@@ -77,7 +77,9 @@ async function main() {
         const assigned = await request(`/exercises/patients/${patientId}/assignments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { exerciseId: exercise.id } });
         const assignmentId = assigned.payload.assignment.id as string;
 
-        await request(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, { method: "PATCH", cookie: doctor.cookie, body: { targetSessionsPerWeek: 4, targetSessionsPerDay: 2, doctorInstructions: "Move comfortably and stop if symptoms increase." } });
+        const weekdayName = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", weekday: "short" }).format(new Date());
+        const scheduledDay = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(weekdayName) + 1;
+        await request(`/exercises/patients/${patientId}/assignments/${assignmentId}/plan`, { method: "PATCH", cookie: doctor.cookie, body: { targetSessionsPerWeek: 4, targetSessionsPerDay: 2, scheduledDays: [scheduledDay], targetSets: 3, targetRepsPerSet: 10, targetDurationSeconds: 20, minimumScore: 80, minimumDurationSeconds: 10, doctorInstructions: "Move comfortably and stop if symptoms increase." } });
         await request("/users/me/consent", { method: "PATCH", cookie: patientCookie, body: { privacyConsent: true, recordingConsent: true } });
         await request("/presence/heartbeat", { method: "POST", cookie: patientCookie });
         await request("/presence/assignments/viewed", { method: "POST", cookie: patientCookie, body: { assignmentIds: [assignmentId] } });
@@ -89,9 +91,16 @@ async function main() {
         assert.equal(doctorChat.payload.messages.length, 1);
         await request(`/chat/messages?patientUserId=${patientId}`, { cookie: otherDoctor.cookie, expected: 404 });
 
-        const session = await recordExerciseSession(patientId, assignmentId, exercise.id, 88.126, ["Controlled movement"]);
+        const unqualified = await recordExerciseSession(patientId, assignmentId, exercise.id, 70, ["Needs improvement"], { durationSeconds: 5, clientSessionId: `short-${suffix}` });
+        assert.equal(unqualified.adherenceQualified, false);
+        assert(unqualified.qualificationReason?.includes("below"));
+        const duplicate = await recordExerciseSession(patientId, assignmentId, exercise.id, 70, ["Needs improvement"], { durationSeconds: 5, clientSessionId: `short-${suffix}` });
+        assert.equal(duplicate.id, unqualified.id);
+        assert.equal(duplicate.duplicate, true);
+        const session = await recordExerciseSession(patientId, assignmentId, exercise.id, 88.126, ["Controlled movement"], { durationSeconds: 12, clientSessionId: `valid-${suffix}` });
         await completeExerciseActivity(patientId, assignmentId);
         assert.equal(session.score, 88.13);
+        assert.equal(session.adherenceQualified, true);
         await request(`/care/sessions/${session.id}/check-in`, { method: "POST", cookie: patientCookie, body: { painLevel: 7, difficultyLevel: 5, confidenceLevel: 3, note: "Needed one pause." } });
         await request(`/care/sessions/${session.id}/comments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { body: "Thank you. Keep the next session comfortable." } });
 
@@ -106,6 +115,10 @@ async function main() {
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.completed, 1);
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.remaining, 1);
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.status, "IN_PROGRESS");
+        assert.deepEqual(assignedWithAdherence.payload.assignments[0].scheduledDays, [scheduledDay]);
+        assert.equal(assignedWithAdherence.payload.assignments[0].targetSets, 3);
+        const sessionCount = await prisma.exerciseSession.count({ where: { patientUserId: patientId } });
+        assert.equal(sessionCount, 2, "A duplicate client session id must not create another session");
         const localParts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
         const localPart = (type: Intl.DateTimeFormatPartTypes) => localParts.find((part) => part.type === type)?.value;
         const alertNow = new Date(`${localPart("year")}-${localPart("month")}-${localPart("day")}T18:30:00+08:00`);
@@ -129,7 +142,7 @@ async function main() {
         const audit = await request("/audit", { cookie: adminCookie });
         assert(audit.payload.logs.some((item: Json) => item.path.includes("/chat/messages")));
 
-        console.log("Integration workflow passed: logout, consent, presence, adherence, alerts, chat, score, check-in, comment, help, notifications, audit, and authorization.");
+        console.log("Integration workflow passed: schedule, prescription, qualification, deduplication, adherence, alerts, chat, score, check-in, comments, and authorization.");
     } finally {
         for (const id of createdUserIds.reverse()) {
             try {

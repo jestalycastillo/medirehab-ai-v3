@@ -11,6 +11,8 @@ interface CameraRecorderProps {
     exerciseName?: string;
     exerciseId: string;
     assignmentId?: string;
+    targetDurationSeconds?: number | null;
+    minimumDurationSeconds?: number | null;
     onSave?: (blob: Blob) => void;
 }
 
@@ -21,7 +23,7 @@ const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance…",
 ]);
 
-export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, onSave}: CameraRecorderProps) {
+export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave}: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -31,6 +33,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [evaluationScore, setEvaluationScore] = useState<number | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [qualificationReason, setQualificationReason] = useState<string | null>(null);
     const [isCheckInOpen, setIsCheckInOpen] = useState(false);
     const [checkIn, setCheckIn] = useState({
         painLevel: 0,
@@ -48,6 +51,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const blobRef = useRef<Blob | null>(null);
+    const recordingStartedAtRef = useRef(0);
+    const recordingDurationSecondsRef = useRef(0);
+    const clientSessionIdRef = useRef("");
     const liveGuidanceFeedbackRef = useRef<string[]>([]);
     const isRecordingRef = useRef(false);
     const lastLiveCoachingAtRef = useRef(0);
@@ -61,6 +67,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         liveGuidanceEnabled,
         videoRef,
     );
+    const recordingLimitSeconds = Math.min(300, Math.max(MAX_RECORDING_SECONDS, targetDurationSeconds ?? 0, minimumDurationSeconds ?? 0));
 
     useEffect(() => {
         isRecordingRef.current = isRecording;
@@ -220,6 +227,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsEvaluating(false);
         setEvaluationScore(null);
         setSessionId(null);
+        setQualificationReason(null);
         setIsCheckInOpen(false);
         setCheckIn({
             painLevel: 0,
@@ -287,6 +295,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                     recordingTimeoutRef.current = null;
                 }
                 const mimeType = recorder.mimeType || "video/webm";
+                recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
                 const blob = new Blob(chunksRef.current, { type: mimeType });
                 blobRef.current = blob;
                 const url = URL.createObjectURL(blob);
@@ -298,6 +307,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             };
 
             mediaRecorderRef.current = recorder;
+            recordingStartedAtRef.current = Date.now();
+            clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
             recorder.start(); // Start recording without timeslice for maximum stability
             setIsRecording(true);
             if (assignmentId) {
@@ -309,7 +320,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                     recorder.stop();
                     setIsRecording(false);
                 }
-            }, MAX_RECORDING_SECONDS * 1000);
+            }, recordingLimitSeconds * 1000);
         } catch (err) {
             console.error("Failed to start recording:", err);
             setError("Failed to initialize video recording.");
@@ -338,10 +349,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsEvaluating(true);
         setError(null);
         try {
-            const res = await api.evaluateExercise(exerciseId, assignmentId, blobRef.current);
+            const res = await api.evaluateExercise(exerciseId, assignmentId, blobRef.current, recordingDurationSecondsRef.current, clientSessionIdRef.current);
             if (res.success) {
                 setEvaluationScore(res.score);
                 setSessionId(res.sessionId);
+                setQualificationReason(res.adherenceQualified ? null : res.qualificationReason || "This session did not meet the prescribed qualification rules.");
                 const sessionFeedback = [
                     ...(res.feedback ?? []),
                     ...liveGuidanceFeedbackRef.current,
@@ -399,6 +411,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsCheckInOpen(false);
         setEvaluationScore(null);
         setSessionId(null);
+        setQualificationReason(null);
         setCheckInMessage(null);
         setCheckIn({
             painLevel: 0,
@@ -900,6 +913,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     <p style={{ margin: "8px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
                                         Share a quick self-report for your doctor after scoring {formatScore(evaluationScore)}/100.
                                     </p>
+                                    {qualificationReason && <div style={{ marginTop: "10px", padding: "10px 12px", borderRadius: "10px", background: "#FEF3C7", color: "#92400E", fontSize: "13px" }}>Recorded for your doctor, but not counted toward adherence: {qualificationReason}</div>}
                                 </div>
                                 <button
                                     type="button"

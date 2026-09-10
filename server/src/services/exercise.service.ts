@@ -37,6 +37,12 @@ const assignmentSelect = {
     completedAt: true,
     targetSessionsPerWeek: true,
     targetSessionsPerDay: true,
+    scheduledDays: true,
+    targetSets: true,
+    targetRepsPerSet: true,
+    targetDurationSeconds: true,
+    minimumScore: true,
+    minimumDurationSeconds: true,
     dueDate: true,
     reviewDate: true,
     doctorInstructions: true,
@@ -50,7 +56,7 @@ const assignmentSelect = {
         }
     },
     sessions: {
-        select: { performedAt: true },
+        select: { performedAt: true, score: true, adherenceQualified: true },
         orderBy: { performedAt: "desc" as const },
         take: 500
     }
@@ -60,7 +66,8 @@ const withAdherence = <T extends {
     assignedAt: Date;
     targetSessionsPerWeek: number;
     targetSessionsPerDay: number | null;
-    sessions: { performedAt: Date }[];
+    scheduledDays: number[];
+    sessions: { performedAt: Date; adherenceQualified: boolean }[];
 }>(assignment: T) => ({
     ...assignment,
     adherence: calculateAssignmentAdherence(assignment)

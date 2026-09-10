@@ -42,8 +42,9 @@ export const runAdherenceAlertScan = async (now = new Date(), patientUserId?: st
                 assignedAt: true,
                 targetSessionsPerWeek: true,
                 targetSessionsPerDay: true,
+                scheduledDays: true,
                 exercise: { select: { name: true } },
-                sessions: { select: { performedAt: true }, orderBy: { performedAt: "desc" }, take: 500 },
+                sessions: { select: { performedAt: true, adherenceQualified: true }, orderBy: { performedAt: "desc" }, take: 500 },
                 patientProfile: {
                     select: {
                         user: {
@@ -65,6 +66,7 @@ export const runAdherenceAlertScan = async (now = new Date(), patientUserId?: st
         let created = 0;
         for (const assignment of assignments) {
             const adherence = calculateAssignmentAdherence(assignment, now, timeZone);
+            if (adherence.cadence === "DAILY" && !adherence.today) continue;
             const period = adherence.today ?? adherence.currentWeek;
             const isBehind = adherence.today
                 ? period.remaining > 0

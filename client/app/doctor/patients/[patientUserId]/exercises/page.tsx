@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError, type ApiExercise, type ApiPatient, type ExerciseAssignment } from "@/lib/api";
+import { api, ApiError, type ApiExercise, type ApiPatient, type AssignmentPlanUpdate, type ExerciseAssignment } from "@/lib/api";
 import { ExerciseAssignmentList } from "@/components/doctor/exercise-assignment-list";
 import { ExercisePicker } from "@/components/doctor/exercise-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -89,7 +89,7 @@ export default function PatientExercisesPage() {
     });
   };
 
-  const handleUpdatePlan = async (assignmentId: string, data: { targetSessionsPerWeek: number; targetSessionsPerDay?: number | null; dueDate?: string | null; reviewDate?: string | null; doctorInstructions?: string | null }) => {
+  const handleUpdatePlan = async (assignmentId: string, data: AssignmentPlanUpdate) => {
     setBusy(true);
     try {
       await api.updateAssignmentPlan(patientUserId, assignmentId, data);
