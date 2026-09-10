@@ -39,7 +39,7 @@ export const loginUser = async (
     password: string
 ): Promise<{ token: string; user: SafeUser }> => {
     const user = await prisma.user.findUnique({
-        where: { email }
+        where: { email: email.trim().toLowerCase() }
     });
 
     if (!user) {
