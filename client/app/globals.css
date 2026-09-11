@@ -2463,6 +2463,407 @@ a.admin-metric:hover {
   font-size: 11px;
 }
 
+/* Patient pages keep the action first and secondary information collapsible. */
+.patient-page {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.patient-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.patient-page-eyebrow {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.patient-page-header h1 {
+  margin: 3px 0 3px;
+  font-size: clamp(27px, 3vw, 36px);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+.patient-page-header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.patient-page-loading {
+  display: flex;
+  min-height: 300px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+}
+
+.patient-page-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.patient-page-alert svg {
+  width: 18px;
+  flex: 0 0 18px;
+}
+
+.patient-search {
+  display: flex;
+  width: min(100%, 280px);
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.patient-search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+}
+
+.patient-search svg {
+  width: 17px;
+  color: var(--color-text-muted);
+}
+
+.patient-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+
+.patient-exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.patient-exercise-grid-compact {
+  grid-template-columns: 1fr;
+}
+
+.patient-exercise-card {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.patient-exercise-card-image {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(145deg, #f7fffd, #dff5f1);
+}
+
+.patient-exercise-card-image img {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.patient-exercise-card-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  color: var(--color-primary-dark);
+  text-align: center;
+}
+
+.patient-exercise-card-placeholder svg {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+}
+
+.patient-exercise-card-placeholder span {
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.patient-exercise-card-body {
+  display: flex;
+  padding: 22px;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.patient-exercise-card h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+.patient-exercise-card-body > div:first-child > p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.patient-exercise-prescription {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.patient-exercise-prescription span {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.patient-exercise-goal > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.patient-exercise-goal span {
+  color: var(--color-text-muted);
+}
+
+.patient-exercise-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dcebe8;
+}
+
+.patient-exercise-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.patient-exercise-doctor-note {
+  padding: 11px 13px;
+  border-left: 3px solid #2dd4bf;
+  border-radius: 0 9px 9px 0;
+  background: rgba(204, 251, 241, 0.42);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.patient-exercise-doctor-note strong {
+  color: var(--color-text-primary);
+}
+
+.patient-exercise-card-action {
+  margin-top: auto;
+}
+
+.patient-exercise-card-action .camera-launch-button {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 11px;
+  font-size: 14px;
+}
+
+.patient-exercise-details {
+  border-top: 1px solid var(--color-border);
+}
+
+.patient-exercise-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.patient-exercise-details summary::-webkit-details-marker,
+.patient-page-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.patient-exercise-details summary svg {
+  width: 16px;
+  transition: transform 150ms ease;
+}
+
+.patient-exercise-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.patient-exercise-details > div {
+  display: grid;
+  gap: 7px;
+  padding-top: 12px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.patient-exercise-details p {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+}
+
+.patient-exercise-details p svg {
+  width: 15px;
+}
+
+.patient-exercise-empty {
+  display: grid;
+  min-height: 280px;
+  place-content: center;
+  justify-items: center;
+  padding: 32px;
+  border: 1px dashed var(--color-border);
+  border-radius: 18px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.patient-exercise-empty > span {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 14px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.patient-exercise-empty p {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.patient-page-disclosure {
+  margin-top: 22px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.patient-page-disclosure > summary {
+  display: flex;
+  min-height: 74px;
+  padding: 14px 20px;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.patient-page-disclosure > summary > span {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.patient-page-disclosure > summary > span > svg {
+  width: 20px;
+  color: var(--color-primary);
+}
+
+.patient-page-disclosure > summary span span {
+  display: grid;
+}
+
+.patient-page-disclosure > summary strong {
+  font-size: 14px;
+}
+
+.patient-page-disclosure > summary small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.patient-page-disclosure > summary > svg {
+  width: 18px;
+  color: var(--color-text-muted);
+  transition: transform 150ms ease;
+}
+
+.patient-page-disclosure[open] > summary > svg {
+  transform: rotate(180deg);
+}
+
+.patient-page-disclosure-content {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-page-bg);
+}
+
+.patient-history-content {
+  padding-top: 24px;
+}
+
+.patient-history-content [data-slot="card-description"] {
+  margin: 5px 0 18px;
+}
+
+.patient-help-wrap {
+  margin-top: 22px;
+}
+
+.patient-help-wrap > section {
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: none;
+}
+
 .responsive-actions {
   display: flex;
   align-items: center;
@@ -2562,6 +2963,10 @@ a.admin-metric:hover {
   .admin-dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .patient-exercise-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2625,6 +3030,24 @@ a.admin-metric:hover {
 
   .admin-audit-row time {
     grid-column: 2;
+  }
+
+  .patient-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .patient-search {
+    width: 100%;
+  }
+
+  .patient-exercise-card-image {
+    height: 170px;
+  }
+
+  .patient-exercise-card-body {
+    padding: 19px;
   }
 
   .patient-dashboard-all-link {
