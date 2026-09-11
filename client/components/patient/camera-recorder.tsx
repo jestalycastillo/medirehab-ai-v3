@@ -684,6 +684,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         muted
                                         className="recorder-video"
                                     />
+                                    <div className="recorder-frame-guide" aria-hidden="true">
+                                        <span />
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </div>
 
                                     {isCameraStarting && (
                                         <div className="recorder-analyzing-overlay">
@@ -697,35 +703,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
                                     {liveGuidanceEnabled && (
                                         <>
-                                            <div
-                                                style={{
-                                                    position: "absolute",
-                                                    top: "16px",
-                                                    right: "16px",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: "7px",
-                                                    padding: "6px 10px",
-                                                    borderRadius: "9999px",
-                                                    backgroundColor: "rgba(15, 23, 42, 0.72)",
-                                                    color: "#FFF",
-                                                    fontSize: "12px",
-                                                    fontWeight: 700,
-                                                    zIndex: 10,
-                                                }}
-                                            >
+                                            <div className="live-guidance-pill">
                                                 <span
-                                                    style={{
-                                                        width: "8px",
-                                                        height: "8px",
-                                                        borderRadius: "50%",
-                                                        backgroundColor:
-                                                            liveGuidance.status === "ready"
-                                                                ? "#2DD4BF"
-                                                                : liveGuidance.status === "error"
-                                                                  ? "#F59E0B"
-                                                                  : "#94A3B8",
-                                                    }}
+                                                    className={`live-guidance-status live-guidance-status-${liveGuidance.status}`}
                                                 />
                                                 Live guidance
                                             </div>
@@ -733,59 +713,18 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                             {liveCoachingMessage && (
                                                 <div
                                                     aria-live="polite"
-                                                    style={{
-                                                        position: "absolute",
-                                                        left: "50%",
-                                                        bottom: "92px",
-                                                        transform: "translateX(-50%)",
-                                                        width: "min(90%, 540px)",
-                                                        padding: "9px 13px",
-                                                        borderRadius: "10px",
-                                                        backgroundColor: "rgba(13, 148, 136, 0.92)",
-                                                        color: "#FFF",
-                                                        textAlign: "center",
-                                                        fontSize: "13px",
-                                                        fontWeight: 600,
-                                                        lineHeight: 1.4,
-                                                        zIndex: 10,
-                                                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
-                                                    }}
+                                                    className="live-coaching-message"
                                                 >
                                                     {liveCoachingMessage}
                                                 </div>
                                             )}
                                             <div
                                                 aria-live="polite"
-                                                style={{
-                                                    position: "absolute",
-                                                    left: "50%",
-                                                    bottom: "18px",
-                                                    transform: "translateX(-50%)",
-                                                    width: "min(90%, 620px)",
-                                                    padding: "10px 14px",
-                                                    borderRadius: "12px",
-                                                    backgroundColor: liveGuidance.justCompletedRepetition
-                                                        ? "rgba(13, 148, 136, 0.9)"
-                                                        : "rgba(15, 23, 42, 0.78)",
-                                                    color: "#FFF",
-                                                    textAlign: "center",
-                                                    fontSize: "14px",
-                                                    fontWeight: 600,
-                                                    lineHeight: 1.4,
-                                                    zIndex: 10,
-                                                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
-                                                }}
+                                                className={`live-guidance-cue ${liveGuidance.justCompletedRepetition ? "live-guidance-cue-complete" : ""}`}
                                             >
                                                 <div>{liveGuidance.message}</div>
                                                 {liveGuidance.status === "ready" && (
-                                                    <div
-                                                        style={{
-                                                            marginTop: "3px",
-                                                            color: "rgba(255, 255, 255, 0.72)",
-                                                            fontSize: "11px",
-                                                            fontWeight: 500,
-                                                        }}
-                                                    >
+                                                    <div className="live-guidance-repetitions">
                                                         Detected repetitions: {liveGuidance.repetitions}
                                                     </div>
                                                 )}

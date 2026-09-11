@@ -694,6 +694,236 @@ body {
   animation: spin 900ms linear infinite;
 }
 
+.recorder-frame-guide {
+  position: absolute;
+  inset: 9%;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.recorder-frame-guide span {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-color: rgba(94, 234, 212, 0.72);
+  border-style: solid;
+}
+
+.recorder-frame-guide span:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+  border-radius: 8px 0 0;
+}
+
+.recorder-frame-guide span:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-width: 2px 2px 0 0;
+  border-radius: 0 8px 0 0;
+}
+
+.recorder-frame-guide span:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 2px 2px;
+  border-radius: 0 0 0 8px;
+}
+
+.recorder-frame-guide span:nth-child(4) {
+  right: 0;
+  bottom: 0;
+  border-width: 0 2px 2px 0;
+  border-radius: 0 0 8px;
+}
+
+.live-guidance-pill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 14;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 999px;
+  background: rgba(244, 252, 250, 0.94);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 750;
+  box-shadow: 0 8px 22px rgba(3, 15, 14, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.live-guidance-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #91a6a1;
+}
+
+.live-guidance-status-ready { background: #14b88b; }
+.live-guidance-status-error { background: #d97706; }
+
+.key-point-panel {
+  position: absolute;
+  top: 54px;
+  right: 14px;
+  z-index: 13;
+  width: 194px;
+  max-height: calc(100% - 70px);
+  padding: 13px;
+  overflow: auto;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 16px;
+  background: rgba(244, 252, 250, 0.95);
+  color: var(--color-text-primary);
+  box-shadow: 0 14px 34px rgba(3, 15, 14, 0.18);
+  backdrop-filter: blur(12px);
+  scrollbar-width: thin;
+}
+
+.key-point-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.key-point-panel-header > div:first-child {
+  display: grid;
+  gap: 1px;
+}
+
+.key-point-panel-header strong {
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.key-point-panel-header span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.key-point-count {
+  min-width: 35px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #feecec;
+  color: #b33a3a;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.key-point-count-ready {
+  background: #daf5ec;
+  color: #08775a;
+}
+
+.key-point-body {
+  display: block;
+  width: 100%;
+  height: 142px;
+  margin: 5px 0;
+}
+
+.key-point-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dceae7;
+}
+
+.key-point-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 180ms ease;
+}
+
+.key-point-list {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.key-point-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.key-point-item > span {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #e05252;
+  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.12);
+}
+
+.key-point-item-visible > span {
+  background: #0f9f79;
+  box-shadow: 0 0 0 2px rgba(15, 159, 121, 0.13);
+}
+
+.live-guidance-cue,
+.live-coaching-message {
+  position: absolute;
+  right: 226px;
+  left: 16px;
+  z-index: 12;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  background: rgba(244, 252, 250, 0.94);
+  color: var(--color-primary-dark);
+  box-shadow: 0 12px 30px rgba(3, 15, 14, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.live-guidance-cue {
+  bottom: 16px;
+  padding: 11px 14px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.live-guidance-cue-complete {
+  border-color: rgba(15, 159, 121, 0.28);
+  background: rgba(221, 248, 239, 0.96);
+}
+
+.live-guidance-repetitions {
+  margin-top: 3px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.live-coaching-message {
+  bottom: 83px;
+  padding: 9px 13px;
+  border-radius: 11px;
+  background: rgba(15, 118, 110, 0.94);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
 @keyframes recorder-pulse {
   50% { opacity: 0.42; }
 }
@@ -729,6 +959,30 @@ body {
   .recorder-action-buttons { flex-wrap: wrap; }
   .recorder-action-buttons button { flex: 1 1 150px; }
   .recorder-action-copy span { display: none; }
+  .key-point-panel {
+    top: 50px;
+    right: 10px;
+    width: 142px;
+    padding: 10px;
+  }
+  .key-point-panel-header span,
+  .key-point-list { display: none; }
+  .key-point-body { height: 105px; }
+  .live-guidance-pill {
+    top: 10px;
+    right: 10px;
+  }
+  .live-guidance-cue,
+  .live-coaching-message {
+    right: 10px;
+    left: 10px;
+  }
+  .live-guidance-cue {
+    bottom: 10px;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+  .live-coaching-message { bottom: 74px; }
 }
 
 .adherence-summary {
