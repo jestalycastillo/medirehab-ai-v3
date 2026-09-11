@@ -776,9 +776,25 @@ body {
   background: rgba(244, 252, 250, 0.94);
   color: var(--color-primary-dark);
   font-size: 12px;
+  font-family: inherit;
   font-weight: 750;
+  cursor: pointer;
+  appearance: none;
   box-shadow: 0 8px 22px rgba(3, 15, 14, 0.16);
   backdrop-filter: blur(10px);
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.live-guidance-pill:hover {
+  border-color: rgba(15, 118, 110, 0.34);
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.live-guidance-pill-muted {
+  border-color: rgba(100, 120, 117, 0.22);
+  background: rgba(241, 245, 244, 0.94);
+  color: var(--color-text-muted);
 }
 
 .live-guidance-status {

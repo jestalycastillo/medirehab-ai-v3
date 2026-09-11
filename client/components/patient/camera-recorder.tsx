@@ -17,6 +17,7 @@ import {
     Sparkles,
     Video,
     Volume2,
+    VolumeX,
     X,
 } from "lucide-react";
 
@@ -33,6 +34,7 @@ const MAX_RECORDING_SECONDS = 20;
 const LIVE_COACHING_COOLDOWN_MS = 7_000;
 const LIVE_GUIDANCE_SPEECH_COOLDOWN_MS = 2_500;
 const MAX_AI_COACHING_SPEECH_LATENCY_MS = 5_000;
+const LIVE_VOICE_STORAGE_KEY = "medirehab-live-voice-enabled";
 const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance...",
     "Preparing live guidance…",
@@ -61,6 +63,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
     const [checkInMessage, setCheckInMessage] = useState<string | null>(null);
     const [liveCoachingMessage, setLiveCoachingMessage] = useState<string | null>(null);
+    const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -79,6 +82,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const liveGuidanceSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastSpokenGuidanceRef = useRef("");
     const lastSpokenGuidanceAtRef = useRef(0);
+    const isVoiceEnabledRef = useRef(true);
     const liveGuidanceEnabled =
         isOpen &&
         Boolean(stream) &&
@@ -93,6 +97,22 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     useEffect(() => {
         isRecordingRef.current = isRecording;
     }, [isRecording]);
+
+    useEffect(() => {
+        const frameId = window.requestAnimationFrame(() => {
+            try {
+                const savedPreference = window.localStorage.getItem(LIVE_VOICE_STORAGE_KEY);
+                if (savedPreference === "false") {
+                    isVoiceEnabledRef.current = false;
+                    setIsVoiceEnabled(false);
+                }
+            } catch {
+                // Voice still works when browser storage is unavailable.
+            }
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, []);
 
     useEffect(() => {
         if (!isRecording) return;
@@ -141,6 +161,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     useEffect(() => {
         if (
             !isRecording
+            || !isVoiceEnabled
             || liveGuidance.status !== "ready"
             || !liveGuidance.message
             || GUIDANCE_MESSAGES_TO_SKIP.has(liveGuidance.message)
@@ -150,7 +171,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
 
         const speakGuidance = () => {
-            if (!isRecordingRef.current) return;
+            if (!isRecordingRef.current || !isVoiceEnabledRef.current) return;
 
             lastSpokenGuidanceRef.current = liveGuidance.message;
             lastSpokenGuidanceAtRef.current = Date.now();
@@ -174,7 +195,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 liveGuidanceSpeechTimeoutRef.current = null;
             }
         };
-    }, [isRecording, liveGuidance.message, liveGuidance.status]);
+    }, [isRecording, isVoiceEnabled, liveGuidance.message, liveGuidance.status]);
 
     useEffect(() => {
         if (!isRecording || !assignmentId || liveGuidance.status !== "ready") {
@@ -214,7 +235,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                     ];
                 }
                 if (
-                    Date.now() - requestedAt <= MAX_AI_COACHING_SPEECH_LATENCY_MS
+                    isVoiceEnabledRef.current
+                    && Date.now() - requestedAt <= MAX_AI_COACHING_SPEECH_LATENCY_MS
+                    && Date.now() - lastSpokenGuidanceAtRef.current >= LIVE_GUIDANCE_SPEECH_COOLDOWN_MS
                     && !isLiveCoachingPlaybackActive()
                 ) {
                     speakLiveCoaching(response.message);
@@ -357,7 +380,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const initiateCountdown = () => {
         if (!stream) return;
-        if (supportsSideArmsRaiseGuidance(exerciseName)) {
+        if (supportsSideArmsRaiseGuidance(exerciseName) && isVoiceEnabledRef.current) {
             primeLiveCoachingVoice();
         }
         setCountdown(5);
@@ -561,6 +584,29 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             ...current,
             [field]: value,
         }));
+    };
+
+    const handleVoiceToggle = () => {
+        const nextValue = !isVoiceEnabled;
+        isVoiceEnabledRef.current = nextValue;
+        setIsVoiceEnabled(nextValue);
+
+        try {
+            window.localStorage.setItem(LIVE_VOICE_STORAGE_KEY, String(nextValue));
+        } catch {
+            // Keep the in-memory preference when browser storage is unavailable.
+        }
+
+        if (liveGuidanceSpeechTimeoutRef.current) {
+            clearTimeout(liveGuidanceSpeechTimeoutRef.current);
+            liveGuidanceSpeechTimeoutRef.current = null;
+        }
+
+        if (nextValue) {
+            speakLiveCoaching("Voice coaching is on.");
+        } else {
+            stopLiveCoachingPlayback();
+        }
     };
 
     const recorderPhase = error
@@ -784,13 +830,19 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
                                     {liveGuidanceEnabled && (
                                         <>
-                                            <div className="live-guidance-pill">
+                                            <button
+                                                type="button"
+                                                className={`live-guidance-pill ${isVoiceEnabled ? "" : "live-guidance-pill-muted"}`}
+                                                onClick={handleVoiceToggle}
+                                                aria-pressed={isVoiceEnabled}
+                                                aria-label={isVoiceEnabled ? "Mute live voice coaching" : "Enable live voice coaching"}
+                                            >
                                                 <span
                                                     className={`live-guidance-status live-guidance-status-${liveGuidance.status}`}
                                                 />
-                                                <Volume2 size={14} aria-hidden="true" />
-                                                Live voice
-                                            </div>
+                                                {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
+                                                {isVoiceEnabled ? "Voice on" : "Voice muted"}
+                                            </button>
                                             {liveCoachingMessage && (
                                                 <div
                                                     aria-live="polite"
