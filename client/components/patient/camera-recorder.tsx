@@ -16,6 +16,7 @@ import {
     RotateCcw,
     Sparkles,
     Video,
+    Volume2,
     X,
 } from "lucide-react";
 
@@ -30,6 +31,8 @@ interface CameraRecorderProps {
 
 const MAX_RECORDING_SECONDS = 20;
 const LIVE_COACHING_COOLDOWN_MS = 7_000;
+const LIVE_GUIDANCE_SPEECH_COOLDOWN_MS = 2_500;
+const MAX_AI_COACHING_SPEECH_LATENCY_MS = 5_000;
 const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance...",
     "Preparing live guidance…",
@@ -73,6 +76,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const isRecordingRef = useRef(false);
     const lastLiveCoachingAtRef = useRef(0);
     const liveCoachingRequestIdRef = useRef(0);
+    const liveGuidanceSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastSpokenGuidanceRef = useRef("");
+    const lastSpokenGuidanceAtRef = useRef(0);
     const liveGuidanceEnabled =
         isOpen &&
         Boolean(stream) &&
@@ -133,6 +139,44 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     }, [isRecording, liveGuidance.message, liveGuidance.status]);
 
     useEffect(() => {
+        if (
+            !isRecording
+            || liveGuidance.status !== "ready"
+            || !liveGuidance.message
+            || GUIDANCE_MESSAGES_TO_SKIP.has(liveGuidance.message)
+            || lastSpokenGuidanceRef.current === liveGuidance.message
+        ) {
+            return;
+        }
+
+        const speakGuidance = () => {
+            if (!isRecordingRef.current) return;
+
+            lastSpokenGuidanceRef.current = liveGuidance.message;
+            lastSpokenGuidanceAtRef.current = Date.now();
+            speakLiveCoaching(liveGuidance.message);
+        };
+        const delay = Math.max(
+            0,
+            LIVE_GUIDANCE_SPEECH_COOLDOWN_MS
+                - (Date.now() - lastSpokenGuidanceAtRef.current),
+        );
+
+        if (delay === 0) {
+            speakGuidance();
+            return;
+        }
+
+        liveGuidanceSpeechTimeoutRef.current = setTimeout(speakGuidance, delay);
+        return () => {
+            if (liveGuidanceSpeechTimeoutRef.current) {
+                clearTimeout(liveGuidanceSpeechTimeoutRef.current);
+                liveGuidanceSpeechTimeoutRef.current = null;
+            }
+        };
+    }, [isRecording, liveGuidance.message, liveGuidance.status]);
+
+    useEffect(() => {
         if (!isRecording || !assignmentId || liveGuidance.status !== "ready") {
             return;
         }
@@ -151,6 +195,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         lastLiveCoachingAtRef.current = now;
         const requestId = liveCoachingRequestIdRef.current + 1;
         liveCoachingRequestIdRef.current = requestId;
+        const requestedAt = Date.now();
 
         api.requestLiveCoaching(exerciseId, assignmentId, event)
             .then((response) => {
@@ -168,7 +213,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         response.message,
                     ];
                 }
-                speakLiveCoaching(response.message);
+                if (
+                    Date.now() - requestedAt <= MAX_AI_COACHING_SPEECH_LATENCY_MS
+                    && !isLiveCoachingPlaybackActive()
+                ) {
+                    speakLiveCoaching(response.message);
+                }
             })
             .catch((coachingError: unknown) => {
                 console.warn(
@@ -200,6 +250,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (recordingTimerRef.current) {
                 clearInterval(recordingTimerRef.current);
             }
+            if (liveGuidanceSpeechTimeoutRef.current) {
+                clearTimeout(liveGuidanceSpeechTimeoutRef.current);
+            }
+            stopLiveCoachingPlayback();
         };
     }, [stream]);
 
@@ -258,6 +312,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     };
 
     const handleClose = () => {
+        isRecordingRef.current = false;
         stopCamera();
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
@@ -265,6 +320,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         if (recordingTimeoutRef.current) {
             clearTimeout(recordingTimeoutRef.current);
             recordingTimeoutRef.current = null;
+        }
+        if (liveGuidanceSpeechTimeoutRef.current) {
+            clearTimeout(liveGuidanceSpeechTimeoutRef.current);
+            liveGuidanceSpeechTimeoutRef.current = null;
         }
         setCountdown(null);
         setIsRecording(false);
@@ -289,6 +348,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setLiveCoachingMessage(null);
         liveCoachingRequestIdRef.current += 1;
         lastLiveCoachingAtRef.current = 0;
+        lastSpokenGuidanceRef.current = "";
+        lastSpokenGuidanceAtRef.current = 0;
         stopLiveCoachingPlayback();
         liveGuidanceFeedbackRef.current = [];
         blobRef.current = null;
@@ -296,6 +357,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const initiateCountdown = () => {
         if (!stream) return;
+        if (supportsSideArmsRaiseGuidance(exerciseName)) {
+            primeLiveCoachingVoice();
+        }
         setCountdown(5);
 
         countdownIntervalRef.current = setInterval(() => {
@@ -319,6 +383,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setLiveCoachingMessage(null);
         liveCoachingRequestIdRef.current += 1;
         lastLiveCoachingAtRef.current = 0;
+        lastSpokenGuidanceRef.current = "";
+        lastSpokenGuidanceAtRef.current = 0;
 
         try {
             const options = { mimeType: "video/webm;codecs=vp9" };
@@ -337,6 +403,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             };
 
             recorder.onstop = () => {
+                isRecordingRef.current = false;
+                liveCoachingRequestIdRef.current += 1;
+                if (liveGuidanceSpeechTimeoutRef.current) {
+                    clearTimeout(liveGuidanceSpeechTimeoutRef.current);
+                    liveGuidanceSpeechTimeoutRef.current = null;
+                }
+                stopLiveCoachingPlayback();
                 if (assignmentId) {
                     void api.stopExerciseActivity(assignmentId).catch(() => undefined);
                 }
@@ -367,7 +440,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             }
             recordingTimeoutRef.current = setTimeout(() => {
                 if (recorder.state === "recording") {
+                    isRecordingRef.current = false;
                     liveCoachingRequestIdRef.current += 1;
+                    stopLiveCoachingPlayback();
                     recorder.stop();
                     setIsRecording(false);
                 }
@@ -384,7 +459,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             recordingTimeoutRef.current = null;
         }
         if (mediaRecorderRef.current && isRecording) {
+            isRecordingRef.current = false;
             liveCoachingRequestIdRef.current += 1;
+            if (liveGuidanceSpeechTimeoutRef.current) {
+                clearTimeout(liveGuidanceSpeechTimeoutRef.current);
+                liveGuidanceSpeechTimeoutRef.current = null;
+            }
             stopLiveCoachingPlayback();
             mediaRecorderRef.current.stop();
             setIsRecording(false);
@@ -708,7 +788,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                 <span
                                                     className={`live-guidance-status live-guidance-status-${liveGuidance.status}`}
                                                 />
-                                                Live guidance
+                                                <Volume2 size={14} aria-hidden="true" />
+                                                Live voice
                                             </div>
                                             {liveCoachingMessage && (
                                                 <div
@@ -1006,8 +1087,34 @@ function formatRecordingTime(totalSeconds: number): string {
 function speakLiveCoaching(message: string): void {
     if (!("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+    const speech = window.speechSynthesis;
+    const utterance = createCoachingUtterance(message);
+    speech.cancel();
+    speech.resume();
+    speech.speak(utterance);
+}
+
+function primeLiveCoachingVoice(): void {
+    if (!("speechSynthesis" in window)) return;
+
+    const speech = window.speechSynthesis;
+    speech.cancel();
+    speech.resume();
+    speech.speak(createCoachingUtterance("Voice coaching is ready."));
+}
+
+function createCoachingUtterance(message: string): SpeechSynthesisUtterance {
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = "en-US";
+    utterance.rate = 1.02;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    return utterance;
+}
+
+function isLiveCoachingPlaybackActive(): boolean {
+    return "speechSynthesis" in window
+        && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
 }
 
 function stopLiveCoachingPlayback(): void {
