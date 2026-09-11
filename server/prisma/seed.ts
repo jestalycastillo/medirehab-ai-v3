@@ -51,6 +51,17 @@ const seedAdmin = async (): Promise<void> => {
 };
 
 const seedExerciseCatalog = async (): Promise<void> => {
+    const legacyExercise = await prisma.exercise.findFirst({
+        where: { name: "Arms Raise" }
+    });
+
+    if (legacyExercise) {
+        await prisma.exercise.update({
+            where: { id: legacyExercise.id },
+            data: { name: SIDE_ARMS_RAISE.name }
+        });
+    }
+
     const exercise = await prisma.exercise.upsert({
         where: { name: SIDE_ARMS_RAISE.name },
         update: {
