@@ -589,7 +589,7 @@ body {
   margin: 0 auto;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 18px;
+  border-radius: 9999px;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -720,7 +720,8 @@ body {
   left: 50%;
   z-index: 18;
   display: flex;
-  min-width: 220px;
+  width: 250px;
+  max-width: calc(100% - 32px);
   padding: 24px 28px;
   flex-direction: column;
   align-items: center;
@@ -733,19 +734,41 @@ body {
 }
 
 .recorder-start-orb {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  width: 88px;
-  height: 88px;
+  width: 92px;
+  min-width: 92px;
+  height: 92px;
+  min-height: 92px;
+  flex: 0 0 92px;
+  aspect-ratio: 1 / 1;
   place-items: center;
   border: 1px solid rgba(153, 246, 228, 0.54);
-  border-radius: 50%;
+  border-radius: 9999px;
   background: linear-gradient(145deg, #16998f, #0f766e);
   color: #fff;
-  box-shadow:
-    0 0 0 15px rgba(20, 184, 166, 0.16),
-    0 0 0 31px rgba(20, 184, 166, 0.08),
-    0 18px 38px rgba(0, 0, 0, 0.3);
-  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.recorder-start-orb::before,
+.recorder-start-orb::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  pointer-events: none;
+  border-radius: 9999px;
+}
+
+.recorder-start-orb::before {
+  inset: -17px;
+  background: rgba(20, 184, 166, 0.16);
+}
+
+.recorder-start-orb::after {
+  inset: -34px;
+  background: rgba(20, 184, 166, 0.08);
 }
 
 .recorder-start-label {
@@ -764,11 +787,16 @@ body {
 
 .recorder-center-start:hover .recorder-start-orb {
   background: linear-gradient(145deg, #1eaaa0, #0b625c);
-  box-shadow:
-    0 0 0 17px rgba(45, 212, 191, 0.2),
-    0 0 0 35px rgba(45, 212, 191, 0.1),
-    0 20px 44px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.34);
   transform: scale(1.04);
+}
+
+.recorder-center-start:hover .recorder-start-orb::before {
+  background: rgba(45, 212, 191, 0.2);
+}
+
+.recorder-center-start:hover .recorder-start-orb::after {
+  background: rgba(45, 212, 191, 0.1);
 }
 
 .recorder-center-start:active .recorder-start-orb {
@@ -776,9 +804,12 @@ body {
 }
 
 .recorder-center-start:focus-visible {
-  outline-color: #5eead4;
+  outline: none;
+}
+
+.recorder-center-start:focus-visible .recorder-start-orb {
+  outline: 3px solid #5eead4;
   outline-offset: 8px;
-  border-radius: 24px;
 }
 
 .recorder-spin {
