@@ -818,6 +818,17 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         <span />
                                     </div>
 
+                                    {!isRecording && countdown === null && stream && !isCameraStarting && (
+                                        <Button
+                                            type="button"
+                                            className="recorder-center-start"
+                                            onClick={initiateCountdown}
+                                        >
+                                            <Video />
+                                            Start Recording
+                                        </Button>
+                                    )}
+
                                     {isCameraStarting && (
                                         <div className="recorder-analyzing-overlay">
                                             <LoaderCircle className="recorder-spin" size={34} />
@@ -969,15 +980,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     <CircleStop />
                                     Stop Recording
                                 </Button>
-                            ) : (
-                                <Button
-                                    onClick={initiateCountdown}
-                                    disabled={!stream || isCameraStarting}
-                                >
-                                    <Video />
-                                    Start Recording
-                                </Button>
-                            )}
+                            ) : null}
                             </div>
                         </div>
                     </div>
