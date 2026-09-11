@@ -280,7 +280,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         };
     }, [stream]);
 
-    const startCamera = async () => {
+    const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
         setRecordedUrl(null);
         setIsCameraStarting(true);
@@ -298,11 +298,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
             }
+            return mediaStream;
         } catch (err: unknown) {
             console.error("Error accessing camera:", err);
             setError(
                 "Could not access your front camera. Please check your camera permissions and ensure no other application is using it."
             );
+            return null;
         } finally {
             setIsCameraStarting(false);
         }
@@ -318,20 +320,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
     };
 
-    const handleOpen = async () => {
-        try {
-            const { consent } = await api.getMyConsent();
-            if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
-                setIsOpen(true);
-                setError("Camera consent is required. Enable it in your Profile before recording.");
-                return;
-            }
-            setIsOpen(true);
-            await startCamera();
-        } catch {
-            setIsOpen(true);
-            setError("Unable to verify camera consent. Please try again.");
-        }
+    const handleOpen = () => {
+        setError(null);
+        setIsOpen(true);
     };
 
     const handleClose = () => {
@@ -378,8 +369,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         blobRef.current = null;
     };
 
-    const initiateCountdown = () => {
-        if (!stream) return;
+    const initiateCountdown = (cameraStream: MediaStream | null = stream) => {
+        if (!cameraStream) return;
         if (supportsSideArmsRaiseGuidance(exerciseName) && isVoiceEnabledRef.current) {
             primeLiveCoachingVoice();
         }
@@ -390,7 +381,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 if (prev === null) return null;
                 if (prev <= 1) {
                     clearInterval(countdownIntervalRef.current!);
-                    startRecording();
+                    startRecording(cameraStream);
                     return null;
                 }
                 return prev - 1;
@@ -398,8 +389,33 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }, 1000);
     };
 
-    const startRecording = () => {
-        if (!stream) return;
+    const handleStartRecording = async () => {
+        if (stream) {
+            initiateCountdown(stream);
+            return;
+        }
+
+        setIsCameraStarting(true);
+        setError(null);
+
+        try {
+            const { consent } = await api.getMyConsent();
+            if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
+                setError("Camera consent is required. Enable it in your Profile before recording.");
+                setIsCameraStarting(false);
+                return;
+            }
+
+            const mediaStream = await startCamera();
+            if (mediaStream) initiateCountdown(mediaStream);
+        } catch {
+            setIsCameraStarting(false);
+            setError("Unable to verify camera consent. Please try again.");
+        }
+    };
+
+    const startRecording = (cameraStream: MediaStream | null = stream) => {
+        if (!cameraStream) return;
         chunksRef.current = [];
         setRecordingElapsedSeconds(0);
         liveGuidanceFeedbackRef.current = [];
@@ -413,10 +429,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             const options = { mimeType: "video/webm;codecs=vp9" };
             let recorder: MediaRecorder;
             try {
-                recorder = new MediaRecorder(stream, options);
+                recorder = new MediaRecorder(cameraStream, options);
             } catch {
                 // Fallback for browsers that don't support VP9
-                recorder = new MediaRecorder(stream);
+                recorder = new MediaRecorder(cameraStream);
             }
 
             recorder.ondataavailable = (e) => {
@@ -621,9 +637,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 ? "Recording in progress"
                 : isCameraStarting
                   ? "Starting camera"
-                  : stream
-                    ? "Camera ready"
-                    : "Waiting for camera";
+                    : stream
+                      ? "Camera ready"
+                      : "Ready to start";
     const recorderPhaseTone = error
         ? "error"
         : isRecording
@@ -818,11 +834,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         <span />
                                     </div>
 
-                                    {!isRecording && countdown === null && stream && !isCameraStarting && (
+                                    {!isRecording && countdown === null && !error && !isCameraStarting && (
                                         <Button
                                             type="button"
                                             className="recorder-center-start"
-                                            onClick={initiateCountdown}
+                                            onClick={handleStartRecording}
                                         >
                                             <Video />
                                             Start Recording
@@ -934,7 +950,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             </div>
                             <div className="recorder-action-buttons">
                             {error ? (
-                                <Button variant="outline" onClick={startCamera} disabled={isCameraStarting}>
+                                <Button variant="outline" onClick={handleStartRecording} disabled={isCameraStarting}>
                                     {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
                                     Try Again
                                 </Button>
