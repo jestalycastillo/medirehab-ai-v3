@@ -1857,6 +1857,351 @@ body {
   margin: 5px 0 0;
 }
 
+/* Role dashboards share a calm shell; each role keeps one primary work queue. */
+.role-dashboard {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+}
+
+.role-dashboard-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.role-dashboard-eyebrow {
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.role-dashboard-header h1 {
+  margin: 3px 0 2px;
+  color: var(--color-text-primary);
+  font-size: clamp(27px, 3vw, 36px);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+.role-dashboard-header p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.role-dashboard-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.role-dashboard-actions [data-slot="button"] {
+  min-height: 42px;
+  padding-inline: 15px;
+}
+
+.doctor-attention-card {
+  overflow: hidden;
+  border-color: #b9ddd7;
+  box-shadow: 0 14px 36px rgba(15, 76, 69, 0.08);
+}
+
+.doctor-attention-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.doctor-attention-header [data-slot="card-title"] {
+  margin-top: 4px;
+  font-size: 22px;
+  letter-spacing: -0.025em;
+}
+
+.doctor-attention-header [data-slot="card-description"] {
+  margin: 7px 0 0;
+  color: var(--color-text-muted);
+}
+
+.doctor-attention-list {
+  padding: 0;
+}
+
+.doctor-attention-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 13px;
+  min-height: 72px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.doctor-attention-row:last-child {
+  border-bottom: 0;
+}
+
+.doctor-attention-row:hover {
+  background: var(--color-primary-soft);
+}
+
+.doctor-attention-row > svg {
+  width: 17px;
+  color: var(--color-text-muted);
+}
+
+.doctor-patient-avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.doctor-patient-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.doctor-patient-copy strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-patient-copy small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.doctor-attention-plan,
+.doctor-attention-missed {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.doctor-attention-plan {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.doctor-attention-missed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.doctor-all-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 150px;
+  padding: 24px;
+  text-align: left;
+}
+
+.doctor-all-clear > span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.doctor-all-clear strong {
+  font-size: 15px;
+}
+
+.doctor-all-clear p {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.role-dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.role-summary-card {
+  min-width: 0;
+  box-shadow: var(--shadow-card);
+}
+
+.role-summary-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-summary-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.role-summary-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.role-summary-card [data-slot="card-title"] {
+  font-size: 16px;
+}
+
+.role-summary-card [data-slot="card-description"] {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+}
+
+.role-summary-card [data-slot="card-content"] {
+  padding-top: 22px;
+}
+
+.doctor-care-number {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.doctor-care-number strong {
+  font-size: 34px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.doctor-care-number span {
+  max-width: 230px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.role-progress {
+  height: 8px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dcebe8;
+}
+
+.role-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.role-progress-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 9px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.role-progress-footer a {
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.role-update-content {
+  display: flex;
+  min-height: 128px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.role-latest-update strong {
+  font-size: 13px;
+}
+
+.role-latest-update p,
+.role-no-update {
+  display: -webkit-box;
+  margin: 4px 0 5px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.role-latest-update span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.role-update-content [data-slot="button"] {
+  min-height: 34px;
+  margin-left: -10px;
+  color: var(--color-primary-dark);
+}
+
+.role-dashboard-loading {
+  display: flex;
+  min-height: 55vh;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+}
+
+.role-dashboard-error {
+  max-width: 720px;
+  margin: 40px auto;
+  border-color: #fecaca;
+}
+
+.role-dashboard-error-content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding-top: 24px;
+}
+
+.role-dashboard-error-content > svg {
+  color: var(--color-danger);
+}
+
+.role-dashboard-error-content [data-slot="card-description"] {
+  margin: 5px 0 0;
+}
+
 .responsive-actions {
   display: flex;
   align-items: center;
@@ -1944,6 +2289,10 @@ body {
   .patient-dashboard-summary-grid {
     grid-template-columns: 1fr;
   }
+
+  .role-dashboard-summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1951,6 +2300,45 @@ body {
     align-items: flex-start;
     flex-direction: column;
     gap: 14px;
+  }
+
+  .role-dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .role-dashboard-actions,
+  .role-dashboard-actions [data-slot="button"] {
+    width: 100%;
+  }
+
+  .doctor-attention-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .doctor-attention-row {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    padding-inline: 18px;
+  }
+
+  .doctor-attention-row > svg {
+    display: none;
+  }
+
+  .role-summary-card [data-slot="card-header"],
+  .role-summary-card [data-slot="card-content"] {
+    padding-inline: 20px;
+  }
+
+  .role-dashboard-error-content {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .role-dashboard-error-content [data-slot="button"] {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .patient-dashboard-all-link {
