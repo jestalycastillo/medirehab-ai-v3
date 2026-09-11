@@ -835,14 +835,18 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     </div>
 
                                     {!isRecording && countdown === null && !error && !isCameraStarting && (
-                                        <Button
+                                        <button
                                             type="button"
                                             className="recorder-center-start"
                                             onClick={handleStartRecording}
+                                            aria-label="Start recording and turn on camera"
                                         >
-                                            <Video />
-                                            Start Recording
-                                        </Button>
+                                            <span className="recorder-start-orb" aria-hidden="true">
+                                                <Camera size={34} strokeWidth={1.8} />
+                                            </span>
+                                            <span className="recorder-start-label">Start recording</span>
+                                            <span className="recorder-start-helper">Camera turns on after you click</span>
+                                        </button>
                                     )}
 
                                     {isCameraStarting && (
