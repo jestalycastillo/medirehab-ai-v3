@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, CalendarDays, CheckCircle2, ChevronRight, CircleAlert, HeartPulse, LoaderCircle } from "lucide-react";
+import { Bell, CalendarDays, ChevronRight, CircleAlert, Dumbbell, LoaderCircle } from "lucide-react";
 import { api, ApiError, type CareNotification, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
 import { formatScore } from "@/lib/score";
 import { CameraRecorder } from "@/components/patient/camera-recorder";
@@ -42,6 +42,28 @@ function formatNotificationTime(value: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
   }).format(new Date(value));
+}
+
+function ExerciseVisual({ assignment }: { assignment: ExerciseAssignment | null }) {
+  const image = assignment?.exercise?.images?.[0];
+
+  return (
+    <div className="patient-exercise-visual" aria-hidden={!image}>
+      {image ? (
+        // Exercise images can be served by the API or an administrator-provided URL.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={image.filepath}
+          alt={image.imageName || `${assignment?.exercise?.name || "Exercise"} guide`}
+          onError={(event) => { event.currentTarget.style.display = "none"; }}
+        />
+      ) : null}
+      <div className="patient-exercise-placeholder">
+        <span><Dumbbell /></span>
+        <strong>{assignment ? "Exercise guide" : "Care plan"}</strong>
+      </div>
+    </div>
+  );
 }
 
 export default function PatientDashboardPage() {
@@ -154,9 +176,7 @@ export default function PatientDashboardPage() {
 
       <Card className="patient-next-card">
         <CardContent className="patient-next-content">
-          <div className="patient-next-icon" aria-hidden="true">
-            {dashboard.todayComplete ? <CheckCircle2 /> : <HeartPulse />}
-          </div>
+          <ExerciseVisual assignment={dashboard.nextAssignment} />
 
           {assignments.length === 0 ? (
             <div className="patient-next-copy">

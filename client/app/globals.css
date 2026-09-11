@@ -1544,12 +1544,11 @@ body {
 
 .patient-next-content {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: minmax(180px, 0.38fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 42px);
   padding: clamp(24px, 4vw, 40px);
 }
 
-.patient-next-icon,
 .patient-summary-icon {
   display: grid;
   place-items: center;
@@ -1558,14 +1557,56 @@ body {
   color: var(--color-primary-dark);
 }
 
-.patient-next-icon {
-  width: 64px;
-  height: 64px;
+.patient-exercise-visual {
+  position: relative;
+  min-height: 250px;
+  overflow: hidden;
+  border: 1px solid #c9dfdb;
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.75), rgba(211, 240, 236, 0.78)),
+    var(--color-primary-soft);
 }
 
-.patient-next-icon svg {
-  width: 28px;
-  height: 28px;
+.patient-exercise-visual img {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.patient-exercise-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  color: var(--color-primary-dark);
+  text-align: center;
+}
+
+.patient-exercise-placeholder > span {
+  display: grid;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto;
+  place-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 10px 24px rgba(15, 76, 69, 0.1);
+}
+
+.patient-exercise-placeholder svg {
+  width: 29px;
+  height: 29px;
+}
+
+.patient-exercise-placeholder strong {
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .patient-next-copy {
@@ -1922,9 +1963,8 @@ body {
     padding: 24px 20px;
   }
 
-  .patient-next-icon {
-    width: 52px;
-    height: 52px;
+  .patient-exercise-visual {
+    min-height: 190px;
   }
 
   .patient-dashboard-primary-action,
