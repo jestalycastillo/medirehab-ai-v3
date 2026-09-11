@@ -751,15 +751,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             )}
                         </div>
 
-                        {/* Action Footer */}
-                        <div className="recorder-progress" aria-hidden={!isRecording}>
-                            <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
-                            </div>
                             {liveGuidanceEnabled && (
                                 <aside className="recorder-guidance-sidebar" aria-label="Live body position guidance">
                                     <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
                                 </aside>
                             )}
+                        </div>
+
+                        {/* Action Footer */}
+                        <div className="recorder-progress" aria-hidden={!isRecording}>
+                            <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
                         </div>
 
                         <div className="recorder-actions">
