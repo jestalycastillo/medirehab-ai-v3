@@ -604,19 +604,20 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         </div>
 
                         {/* Video Feed Workspace */}
-                        <div
-                            className="recorder-video-stage"
-                            style={{
-                                position: "relative",
-                                backgroundColor: "#061311",
-                                width: "100%",
-                                flex: "1 1 0",
-                                minHeight: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }}
-                        >
+                        <div className={`recorder-workspace ${liveGuidanceEnabled ? "recorder-workspace-with-guidance" : ""}`}>
+                            <div
+                                className="recorder-video-stage"
+                                style={{
+                                    position: "relative",
+                                    backgroundColor: "#061311",
+                                    width: "100%",
+                                    flex: "1 1 0",
+                                    minHeight: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
                             {error ? (
                                 <div className="recorder-empty-state" role="alert">
                                     <span className="recorder-empty-icon recorder-empty-icon-error">
@@ -709,7 +710,6 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                 />
                                                 Live guidance
                                             </div>
-                                            <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
                                             {liveCoachingMessage && (
                                                 <div
                                                     aria-live="polite"
@@ -754,6 +754,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         {/* Action Footer */}
                         <div className="recorder-progress" aria-hidden={!isRecording}>
                             <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
+                            </div>
+                            {liveGuidanceEnabled && (
+                                <aside className="recorder-guidance-sidebar" aria-label="Live body position guidance">
+                                    <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
+                                </aside>
+                            )}
                         </div>
 
                         <div className="recorder-actions">
