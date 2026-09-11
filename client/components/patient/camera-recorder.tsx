@@ -40,6 +40,13 @@ const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance…",
 ]);
 
+type CameraAccessIssue =
+    | "consent"
+    | "permission"
+    | "unavailable"
+    | "verification"
+    | null;
+
 export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave}: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -49,6 +56,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [countdown, setCountdown] = useState<number | null>(null);
     const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [cameraAccessIssue, setCameraAccessIssue] = useState<CameraAccessIssue>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [evaluationScore, setEvaluationScore] = useState<number | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -282,9 +290,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
+        setCameraAccessIssue(null);
         setRecordedUrl(null);
         setIsCameraStarting(true);
         try {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setCameraAccessIssue("unavailable");
+                setError("Camera access is not available here. Open MediRehab on HTTPS or localhost in a browser that supports camera recording.");
+                return null;
+            }
+
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "user",
@@ -301,9 +316,21 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             return mediaStream;
         } catch (err: unknown) {
             console.error("Error accessing camera:", err);
-            setError(
-                "Could not access your front camera. Please check your camera permissions and ensure no other application is using it."
-            );
+            const errorName = err instanceof DOMException ? err.name : "";
+
+            if (errorName === "NotAllowedError" || errorName === "SecurityError") {
+                setCameraAccessIssue("permission");
+                setError("Camera access is blocked. Click reconnect and allow the browser prompt. If no prompt appears, use the camera or lock icon in the address bar to allow access for this site.");
+            } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+                setCameraAccessIssue("unavailable");
+                setError("No camera was found. Connect or enable a camera, then click reconnect.");
+            } else if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+                setCameraAccessIssue("unavailable");
+                setError("Your camera is busy or unavailable. Close other apps using it, then click reconnect.");
+            } else {
+                setCameraAccessIssue("unavailable");
+                setError("Could not access your camera. Check the browser permission and make sure another application is not using it, then reconnect.");
+            }
             return null;
         } finally {
             setIsCameraStarting(false);
@@ -322,6 +349,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const handleOpen = () => {
         setError(null);
+        setCameraAccessIssue(null);
         setIsOpen(true);
     };
 
@@ -345,6 +373,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setRecordingElapsedSeconds(0);
         setIsOpen(false);
         setError(null);
+        setCameraAccessIssue(null);
         setRecordedUrl(null);
         setIsEvaluating(false);
         setEvaluationScore(null);
@@ -397,11 +426,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
         setIsCameraStarting(true);
         setError(null);
+        setCameraAccessIssue(null);
 
         try {
             const { consent } = await api.getMyConsent();
             if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
-                setError("Camera consent is required. Enable it in your Profile before recording.");
+                setCameraAccessIssue("consent");
+                setError("Before recording, allow MediRehab to process your rehabilitation data and use your camera for exercise evaluation. You can revoke this later in Profile.");
                 setIsCameraStarting(false);
                 return;
             }
@@ -410,7 +441,29 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (mediaStream) initiateCountdown(mediaStream);
         } catch {
             setIsCameraStarting(false);
+            setCameraAccessIssue("verification");
             setError("Unable to verify camera consent. Please try again.");
+        }
+    };
+
+    const handleCameraRecovery = async () => {
+        if (isCameraStarting) return;
+
+        if (cameraAccessIssue !== "consent") {
+            await handleStartRecording();
+            return;
+        }
+
+        setIsCameraStarting(true);
+        setError(null);
+        try {
+            await api.updateMyConsent(true, true);
+            const mediaStream = await startCamera();
+            if (mediaStream) initiateCountdown(mediaStream);
+        } catch {
+            setIsCameraStarting(false);
+            setCameraAccessIssue("verification");
+            setError("Unable to save camera consent. Please try again or update it in Profile.");
         }
     };
 
@@ -762,11 +815,24 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             >
                             {error ? (
                                 <div className="recorder-empty-state" role="alert">
-                                    <span className="recorder-empty-icon recorder-empty-icon-error">
-                                        <Camera size={28} />
-                                    </span>
-                                    <h4>We could not start your camera</h4>
-                                    <p>{error}</p>
+                                    <button
+                                        type="button"
+                                        className="recorder-camera-reconnect"
+                                        onClick={handleCameraRecovery}
+                                        disabled={isCameraStarting}
+                                        aria-label={cameraAccessIssue === "consent" ? "Agree and allow camera access" : "Reconnect camera"}
+                                    >
+                                        <span className="recorder-empty-icon recorder-empty-icon-error">
+                                            {isCameraStarting
+                                                ? <LoaderCircle className="recorder-spin" size={28} />
+                                                : <Camera size={28} />}
+                                        </span>
+                                        <h4>{cameraAccessIssue === "consent" ? "Allow camera access" : "We could not start your camera"}</h4>
+                                        <p>{error}</p>
+                                        <span className="recorder-reconnect-label">
+                                            {cameraAccessIssue === "consent" ? "I agree — allow camera & start recording" : "Reconnect camera"}
+                                        </span>
+                                    </button>
                                 </div>
                             ) : evaluationScore !== null ? (
                                 /* Evaluation Success Screen */
@@ -954,9 +1020,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             </div>
                             <div className="recorder-action-buttons">
                             {error ? (
-                                <Button variant="outline" onClick={handleStartRecording} disabled={isCameraStarting}>
+                                <Button variant="outline" onClick={handleCameraRecovery} disabled={isCameraStarting}>
                                     {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
-                                    Try Again
+                                    {cameraAccessIssue === "consent" ? "Allow Camera" : "Reconnect"}
                                 </Button>
                             ) : evaluationScore !== null ? (
                                 <Button

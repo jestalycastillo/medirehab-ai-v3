@@ -570,6 +570,24 @@ body {
   text-align: center;
 }
 
+.recorder-camera-reconnect {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  flex-direction: column;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.recorder-camera-reconnect:disabled {
+  cursor: wait;
+}
+
 .recorder-empty-state h4 {
   margin: 14px 0 6px;
   font-size: 18px;
@@ -580,6 +598,36 @@ body {
   color: rgba(255, 255, 255, 0.68);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.recorder-reconnect-label {
+  display: inline-flex;
+  min-height: 34px;
+  margin-top: 18px;
+  padding: 0 15px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(94, 234, 212, 0.4);
+  border-radius: 999px;
+  background: rgba(13, 148, 136, 0.2);
+  color: #ccfbf1;
+  font-size: 12px;
+  font-weight: 750;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.recorder-camera-reconnect:hover .recorder-reconnect-label {
+  border-color: rgba(94, 234, 212, 0.7);
+  background: rgba(13, 148, 136, 0.34);
+}
+
+.recorder-camera-reconnect:focus-visible {
+  outline: none;
+}
+
+.recorder-camera-reconnect:focus-visible .recorder-empty-icon {
+  outline: 3px solid #5eead4;
+  outline-offset: 6px;
 }
 
 .recorder-empty-icon {
