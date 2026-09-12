@@ -41,6 +41,16 @@ const EXERCISE_REQUIRED_KEY_POINTS: Record<string, PoseLandmarkKey[]> = {
     "side arms raise": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
 };
 
+const CAMERA_FRAMING_KEY_POINTS: PoseLandmarkKey[] = [
+    "nose",
+    "leftShoulder",
+    "rightShoulder",
+    "leftHip",
+    "rightHip",
+    "leftAnkle",
+    "rightAnkle",
+];
+
 export function getExerciseKeyPointVisibility(
     exerciseName: string,
     landmarks: PoseLandmarkMap | null,
@@ -67,6 +77,17 @@ export function getRequiredExerciseKeyPointVisibility(
         landmarks,
         requiredVisibility,
     ).filter((point) => point.isRequired);
+}
+
+export function getCameraFramingKeyPointVisibility(
+    landmarks: PoseLandmarkMap | null,
+    requiredVisibility = REQUIRED_VISIBILITY,
+): ExerciseKeyPointVisibility[] {
+    return CAMERA_FRAMING_KEY_POINTS.map((id) => ({
+        ...KEY_POINT_DETAILS[id],
+        isRequired: true,
+        isVisible: (landmarks?.[id]?.visibility ?? 0) >= requiredVisibility,
+    }));
 }
 
 export function exerciseSupportsKeyPointVisibility(exerciseName: string): boolean {

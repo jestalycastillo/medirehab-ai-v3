@@ -51,6 +51,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [isFinalizingRecording, setIsFinalizingRecording] = useState(false);
     const [isCameraStarting, setIsCameraStarting] = useState(false);
     const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useState(0);
     const [countdown, setCountdown] = useState<number | null>(null);
@@ -92,15 +93,22 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const lastSpokenGuidanceRef = useRef("");
     const lastSpokenGuidanceAtRef = useRef(0);
     const isVoiceEnabledRef = useRef(true);
+    const isPreviewing =
+        isOpen &&
+        Boolean(stream) &&
+        !recordedUrl &&
+        !isRecording &&
+        countdown === null &&
+        !isFinalizingRecording;
     const liveGuidanceEnabled =
         isOpen &&
         Boolean(stream) &&
-        (countdown !== null || isRecording) &&
         !recordedUrl &&
-        supportsSideArmsRaiseGuidance(exerciseName);
+        (isPreviewing || supportsSideArmsRaiseGuidance(exerciseName));
     const liveGuidance = useSideArmsRaiseGuidance(
         liveGuidanceEnabled,
         videoRef,
+        isPreviewing ? "framing" : "exercise",
     );
     const recordingLimitSeconds = Math.min(300, Math.max(MAX_RECORDING_SECONDS, targetDurationSeconds ?? 0, minimumDurationSeconds ?? 0));
 
@@ -170,7 +178,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     useEffect(() => {
         if (
-            !isRecording
+            (!isRecording && !isPreviewing)
             || !isVoiceEnabled
             || liveGuidance.status !== "ready"
             || !liveGuidance.message
@@ -181,7 +189,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
 
         const speakGuidance = () => {
-            if (!isRecordingRef.current || !isVoiceEnabledRef.current) return;
+            if ((!isRecordingRef.current && !isPreviewing) || !isVoiceEnabledRef.current) return;
 
             lastSpokenGuidanceRef.current = liveGuidance.message;
             lastSpokenGuidanceAtRef.current = Date.now();
@@ -205,7 +213,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 liveGuidanceSpeechTimeoutRef.current = null;
             }
         };
-    }, [isRecording, isVoiceEnabled, liveGuidance.message, liveGuidance.status]);
+    }, [isPreviewing, isRecording, isVoiceEnabled, liveGuidance.message, liveGuidance.status]);
 
     useEffect(() => {
         if (!isRecording || !assignmentId || liveGuidance.status !== "ready") {
@@ -302,6 +310,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setError(null);
         setCameraAccessIssue(null);
         setRecordedUrl(null);
+        setLiveCoachingMessage(null);
+        setIsFinalizingRecording(false);
         setIsCameraStarting(true);
         try {
             if (!navigator.mediaDevices?.getUserMedia) {
@@ -382,6 +392,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
         setCountdown(null);
         setIsRecording(false);
+        setIsFinalizingRecording(false);
         setIsCameraStarting(false);
         setRecordingElapsedSeconds(0);
         setIsOpen(false);
@@ -498,6 +509,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const startRecording = (cameraStream: MediaStream | null = stream) => {
         if (!cameraStream) return;
         chunksRef.current = [];
+        setIsFinalizingRecording(false);
         setRecordingElapsedSeconds(0);
         liveGuidanceFeedbackRef.current = [];
         setLiveCoachingMessage(null);
@@ -544,6 +556,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 blobRef.current = blob;
                 const url = URL.createObjectURL(blob);
                 setRecordedUrl(url);
+                setIsFinalizingRecording(false);
                 stopCamera();
                 if (onSave) {
                     onSave(blob);
@@ -561,6 +574,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             recordingTimeoutRef.current = setTimeout(() => {
                 if (recorder.state === "recording") {
                     isRecordingRef.current = false;
+                    setIsFinalizingRecording(true);
                     liveCoachingRequestIdRef.current += 1;
                     stopLiveCoachingPlayback();
                     recorder.stop();
@@ -580,6 +594,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
         if (mediaRecorderRef.current && isRecording) {
             isRecordingRef.current = false;
+            setIsFinalizingRecording(true);
             liveCoachingRequestIdRef.current += 1;
             if (liveGuidanceSpeechTimeoutRef.current) {
                 clearTimeout(liveGuidanceSpeechTimeoutRef.current);
@@ -974,7 +989,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                 {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
                                                 {isVoiceEnabled ? "Voice on" : "Voice muted"}
                                             </button>
-                                            {liveCoachingMessage && (
+                                            {isRecording && liveCoachingMessage && (
                                                 <div
                                                     aria-live="polite"
                                                     className="live-coaching-message"
@@ -987,7 +1002,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                 className={`live-guidance-cue ${liveGuidance.justCompletedRepetition ? "live-guidance-cue-complete" : ""}`}
                                             >
                                                 <div>{liveGuidance.message}</div>
-                                                {liveGuidance.status === "ready" && (
+                                                {liveGuidance.status === "ready" && !isPreviewing && (
                                                     <div className="live-guidance-repetitions">
                                                         Detected repetitions: {liveGuidance.repetitions}
                                                     </div>
@@ -1034,6 +1049,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         ? "Camera access is needed"
                                         : recordedUrl
                                           ? "Review before sending"
+                                          : isFinalizingRecording
+                                            ? "Finishing your recording"
                                           : isRecording
                                             ? "Your session is recording"
                                             : countdown !== null
@@ -1047,6 +1064,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         ? "Check browser permission, then try again."
                                         : recordedUrl
                                           ? "Replay the video or record another attempt."
+                                          : isFinalizingRecording
+                                            ? "Your video will be ready to review shortly."
                                           : isRecording
                                             ? "Move naturally and follow the live guidance."
                                             : countdown !== null
@@ -1089,6 +1108,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         {isEvaluating ? "Evaluating..." : "Evaluate Session"}
                                     </Button>
                                 </>
+                            ) : isFinalizingRecording ? (
+                                <Button disabled>
+                                    <LoaderCircle className="recorder-spin" />
+                                    Finishing...
+                                </Button>
                             ) : countdown !== null ? (
                                 <Button disabled>
                                     Starting in {countdown}s...
