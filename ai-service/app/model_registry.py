@@ -44,7 +44,71 @@ MODEL_REGISTRY = {
             "Right Elbow_x",
             "Right Elbow_y",
         ),
-    )
+    ),
+    "left_flexion": AnalysisModelDefinition(
+        checkpoint_path=Path(__file__).resolve().parent
+        / "models"
+        / "left_flexion.pth",
+        input_frames=200,
+        features=(
+            "Left Shoulder_x",
+            "Left Shoulder_y",
+            "Right Shoulder_x",
+            "Right Shoulder_y",
+            "Left Elbow_x",
+            "Left Elbow_y",
+            "Right Elbow_x",
+            "Right Elbow_y",
+        ),
+    ),
+    "right_flexion": AnalysisModelDefinition(
+        checkpoint_path=Path(__file__).resolve().parent
+        / "models"
+        / "right_flexion.pth",
+        input_frames=200,
+        features=(
+            "Left Shoulder_x",
+            "Left Shoulder_y",
+            "Right Shoulder_x",
+            "Right Shoulder_y",
+            "Left Elbow_x",
+            "Left Elbow_y",
+            "Right Elbow_x",
+            "Right Elbow_y",
+        ),
+    ),
+    "left_abduction": AnalysisModelDefinition(
+        checkpoint_path=Path(__file__).resolve().parent
+        / "models"
+        / "left_abduction.pth",
+        input_frames=200,
+        features=(
+            "Left Shoulder_x",
+            "Left Shoulder_y",
+            "Right Shoulder_x",
+            "Right Shoulder_y",
+            "Left Elbow_x",
+            "Left Elbow_y",
+            "Right Elbow_x",
+            "Right Elbow_y",
+        ),
+    ),
+    "right_abduction": AnalysisModelDefinition(
+        checkpoint_path=Path(__file__).resolve().parent
+        / "models"
+        / "right_abduction.pth",
+        input_frames=200,
+        features=(
+            "Left Shoulder_x",
+            "Left Shoulder_y",
+            "Right Shoulder_x",
+            "Right Shoulder_y",
+            "Left Elbow_x",
+            "Left Elbow_y",
+            "Right Elbow_x",
+            "Right Elbow_y",
+        ),
+    ),
 }
 
 _LOADED_MODELS: dict[str, LoadedAnalysisModel] = {}
