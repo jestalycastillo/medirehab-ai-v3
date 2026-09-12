@@ -95,6 +95,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const liveGuidanceEnabled =
         isOpen &&
         Boolean(stream) &&
+        (countdown !== null || isRecording) &&
         !recordedUrl &&
         supportsSideArmsRaiseGuidance(exerciseName);
     const liveGuidance = useSideArmsRaiseGuidance(
@@ -291,6 +292,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         };
     }, []);
 
+    useEffect(() => {
+        if (videoRef.current && stream && !error && !recordedUrl) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [stream, error, recordedUrl]);
+
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
         setCameraAccessIssue(null);
@@ -431,12 +438,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }, 1000);
     };
 
-    const handleStartRecording = async () => {
-        if (stream) {
-            initiateCountdown(stream);
-            return;
+    const handleStartCamera = async () => {
+        if (isCameraStarting) return;
+        if (streamRef.current) {
+            if (streamRef.current.getVideoTracks().some((track) => track.readyState === "live")) {
+                setError(null);
+                setCameraAccessIssue(null);
+                return;
+            }
+            stopCamera();
         }
-
         setIsCameraStarting(true);
         setError(null);
         setCameraAccessIssue(null);
@@ -445,13 +456,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             const { consent } = await api.getMyConsent();
             if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
                 setCameraAccessIssue("consent");
-                setError("Before recording, allow MediRehab to process your rehabilitation data and use your camera for exercise evaluation. You can revoke this later in Profile.");
+                setError("Before using the camera, allow MediRehab to process your rehabilitation data and record exercises for evaluation. Opening the camera will only show a preview; recording starts when you press Start Recording. You can revoke consent later in Profile.");
                 setIsCameraStarting(false);
                 return;
             }
 
-            const mediaStream = await startCamera();
-            if (mediaStream) initiateCountdown(mediaStream);
+            await startCamera();
         } catch {
             setIsCameraStarting(false);
             setCameraAccessIssue("verification");
@@ -459,11 +469,17 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
     };
 
+    const handleStartRecording = () => {
+        const activeStream = streamRef.current ?? stream;
+        if (!activeStream || isCameraStarting || countdown !== null || isRecording) return;
+        initiateCountdown(activeStream);
+    };
+
     const handleCameraRecovery = async () => {
         if (isCameraStarting) return;
 
         if (cameraAccessIssue !== "consent") {
-            await handleStartRecording();
+            await handleStartCamera();
             return;
         }
 
@@ -471,8 +487,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setError(null);
         try {
             await api.updateMyConsent(true, true);
-            const mediaStream = await startCamera();
-            if (mediaStream) initiateCountdown(mediaStream);
+            await startCamera();
         } catch {
             setIsCameraStarting(false);
             setCameraAccessIssue("verification");
@@ -704,7 +719,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 : isCameraStarting
                   ? "Starting camera"
                     : stream
-                      ? "Camera ready"
+                      ? "Camera preview"
                       : "Ready to start";
     const recorderPhaseTone = error
         ? "error"
@@ -843,7 +858,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         <h4>{cameraAccessIssue === "consent" ? "Allow camera access" : "We could not start your camera"}</h4>
                                         <p>{error}</p>
                                         <span className="recorder-reconnect-label">
-                                            {cameraAccessIssue === "consent" ? "I agree — allow camera & start recording" : "Reconnect camera"}
+                                            {cameraAccessIssue === "consent" ? "I agree — turn on camera" : "Reconnect camera"}
                                         </span>
                                     </button>
                                 </div>
@@ -913,19 +928,25 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         <span />
                                     </div>
 
-                                    {!isRecording && countdown === null && !error && !isCameraStarting && (
+                                    {!stream && !isRecording && countdown === null && !isCameraStarting && (
                                         <button
                                             type="button"
                                             className="recorder-center-start"
-                                            onClick={handleStartRecording}
-                                            aria-label="Start recording and turn on camera"
+                                            onClick={handleStartCamera}
+                                            aria-label="Turn on camera to preview your position"
                                         >
                                             <span className="recorder-start-orb" aria-hidden="true">
                                                 <Camera size={34} strokeWidth={1.8} />
                                             </span>
-                                            <span className="recorder-start-label">Start recording</span>
-                                            <span className="recorder-start-helper">Camera turns on after you click</span>
+                                            <span className="recorder-start-label">Turn on camera</span>
+                                            <span className="recorder-start-helper">Check your position before recording</span>
                                         </button>
+                                    )}
+
+                                    {stream && !isRecording && countdown === null && (
+                                        <div className="recorder-camera-preview-badge" role="status">
+                                            Preview only · Not recording
+                                        </div>
                                     )}
 
                                     {isCameraStarting && (
@@ -1017,6 +1038,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                             ? "Your session is recording"
                                             : countdown !== null
                                               ? "Move into position"
+                                              : stream
+                                                ? "Check your position"
                                               : "Ready when you are"}
                                 </strong>
                                 <span>
@@ -1028,7 +1051,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                             ? "Move naturally and follow the live guidance."
                                             : countdown !== null
                                               ? "Recording begins automatically after the countdown."
-                                              : "A five-second countdown will begin first."}
+                                              : stream
+                                                ? "Make sure your body is visible, then start recording."
+                                                : "Turn on your camera to see yourself first."}
                                 </span>
                             </div>
                             <div className="recorder-action-buttons">
@@ -1050,10 +1075,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 <>
                                     <Button
                                         variant="outline"
-                                        onClick={() => {
-                                            setRecordedUrl(null);
-                                            startCamera();
-                                        }}
+                                        onClick={handleStartCamera}
                                         disabled={isEvaluating}
                                     >
                                         <RotateCcw />
@@ -1078,6 +1100,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 >
                                     <CircleStop />
                                     Stop Recording
+                                </Button>
+                            ) : stream ? (
+                                <Button onClick={handleStartRecording}>
+                                    <Video />
+                                    Start Recording
                                 </Button>
                             ) : null}
                             </div>

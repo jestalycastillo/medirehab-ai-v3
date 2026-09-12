@@ -555,6 +555,21 @@ body {
   background: rgba(159, 18, 57, 0.88);
 }
 
+.recorder-camera-preview-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 12;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(3, 15, 14, 0.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
 .recorder-live-dot {
   width: 8px;
   height: 8px;
