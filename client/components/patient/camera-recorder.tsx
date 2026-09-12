@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
+import { exerciseSupportsKeyPointVisibility } from "@/lib/pose/exercise-key-points";
 import { supportsSideArmsRaiseGuidance } from "@/lib/pose/side-arms-raise-guidance";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { formatScore } from "@/lib/score";
@@ -104,11 +105,14 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         isOpen &&
         Boolean(stream) &&
         !recordedUrl &&
-        (isPreviewing || supportsSideArmsRaiseGuidance(exerciseName));
+        (isPreviewing
+            ? exerciseSupportsKeyPointVisibility(exerciseName)
+            : supportsSideArmsRaiseGuidance(exerciseName));
     const liveGuidance = useSideArmsRaiseGuidance(
         liveGuidanceEnabled,
         videoRef,
         isPreviewing ? "framing" : "exercise",
+        exerciseName,
     );
     const recordingLimitSeconds = Math.min(300, Math.max(MAX_RECORDING_SECONDS, targetDurationSeconds ?? 0, minimumDurationSeconds ?? 0));
 
@@ -836,7 +840,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         </div>
 
                         <div className="recorder-prep-bar">
-                            <span><Camera size={16} /> Keep your full body visible</span>
+                            <span><Camera size={16} /> Keep your movement in view</span>
                             <span><Clock3 size={16} /> Up to {formatRecordingTime(recordingLimitSeconds)}</span>
                             <span><Sparkles size={16} /> Review before submitting</span>
                         </div>

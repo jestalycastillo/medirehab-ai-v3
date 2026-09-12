@@ -9,7 +9,6 @@ import {
     type SideArmsRaiseGuidanceState,
 } from "@/lib/pose/side-arms-raise-guidance";
 import {
-    getCameraFramingKeyPointVisibility,
     getRequiredExerciseKeyPointVisibility,
     type ExerciseKeyPointVisibility,
 } from "@/lib/pose/exercise-key-points";
@@ -30,26 +29,25 @@ const MODEL_ASSET_PATH = "/models/pose_landmarker_lite.task";
 type LiveGuidanceStatus = "disabled" | "loading" | "ready" | "error";
 type LiveGuidanceMode = "framing" | "exercise";
 
-const FRAMING_PROMPT = "Move back until your head, shoulders, and feet are visible.";
+const FRAMING_PROMPT = "Move into frame until the required body points are visible.";
 
 function getFramingMessage(points: ExerciseKeyPointVisibility[]): string {
-    const missing = new Set(points.filter((point) => !point.isVisible).map((point) => point.id));
-    if (missing.size === points.length) return "Move into view of the camera.";
-    if (missing.has("leftAnkle") || missing.has("rightAnkle")) {
-        return "Step back until both feet are visible.";
+    const missing = points.filter((point) => !point.isVisible);
+    if (missing.length === points.length) return FRAMING_PROMPT;
+    if (missing.length === 0) {
+        return "The required body points are visible. Start recording when you’re ready.";
     }
-    if (missing.has("nose")) return "Adjust the camera so your head is visible.";
-    if (missing.has("leftShoulder") || missing.has("rightShoulder")) {
-        return "Move to the center so both shoulders are visible.";
-    }
-    if (missing.has("leftHip") || missing.has("rightHip")) {
-        return "Move into frame so your hips are visible.";
-    }
-    return "Your full body is in frame. Start recording when you’re ready.";
+
+    const labels = missing.map((point) => point.label.toLowerCase());
+    const missingLabels = labels.length === 1
+        ? labels[0]
+        : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
+    return `Adjust your position so your ${missingLabels} ${missing.length === 1 ? "is" : "are"} visible.`;
 }
 
 interface LiveGuidanceView {
     mode: LiveGuidanceMode;
+    exerciseName: string;
     status: LiveGuidanceStatus;
     message: string;
     repetitions: number;
@@ -63,6 +61,7 @@ interface LiveGuidanceView {
 
 const DISABLED_VIEW: LiveGuidanceView = {
     mode: "exercise",
+    exerciseName: "Side Arms Raise",
     status: "disabled",
     message: "",
     repetitions: 0,
@@ -76,6 +75,7 @@ const DISABLED_VIEW: LiveGuidanceView = {
 
 const LOADING_VIEW: LiveGuidanceView = {
     mode: "exercise",
+    exerciseName: "Side Arms Raise",
     status: "loading",
     message: "Preparing live guidance…",
     repetitions: 0,
@@ -87,17 +87,21 @@ const LOADING_VIEW: LiveGuidanceView = {
     recentGuidanceEvents: [],
 };
 
-const FRAMING_LOADING_VIEW: LiveGuidanceView = {
-    ...LOADING_VIEW,
-    mode: "framing",
-    message: "Checking your position…",
-    keyPoints: getCameraFramingKeyPointVisibility(null),
-};
+function getFramingLoadingView(exerciseName: string): LiveGuidanceView {
+    return {
+        ...LOADING_VIEW,
+        mode: "framing",
+        exerciseName,
+        message: "Checking your position…",
+        keyPoints: getRequiredExerciseKeyPointVisibility(exerciseName, null),
+    };
+}
 
 export function useSideArmsRaiseGuidance(
     enabled: boolean,
     videoRef: RefObject<HTMLVideoElement | null>,
     mode: LiveGuidanceMode = "exercise",
+    exerciseName = "Side Arms Raise",
 ): LiveGuidanceView {
     const [view, setView] = useState<LiveGuidanceView>(DISABLED_VIEW);
     const guidanceStateRef = useRef<SideArmsRaiseGuidanceState>(INITIAL_SIDE_ARMS_RAISE_STATE);
@@ -117,7 +121,7 @@ export function useSideArmsRaiseGuidance(
         guidanceStateRef.current = INITIAL_SIDE_ARMS_RAISE_STATE;
         guidanceDisplayRef.current = INITIAL_GUIDANCE_DISPLAY_STATE;
         const resetViewFrameId = window.requestAnimationFrame(() =>
-            setView(mode === "framing" ? FRAMING_LOADING_VIEW : LOADING_VIEW),
+            setView(mode === "framing" ? getFramingLoadingView(exerciseName) : LOADING_VIEW),
         );
 
         const worker = new Worker(
@@ -131,6 +135,7 @@ export function useSideArmsRaiseGuidance(
             framePending = false;
             setView({
                 mode,
+                exerciseName,
                 status: "error",
                 message: mode === "framing"
                     ? "Position checking is unavailable. You can still preview and record."
@@ -139,7 +144,7 @@ export function useSideArmsRaiseGuidance(
                 hasReliablePose: false,
                 justCompletedRepetition: false,
                 keyPoints: mode === "framing"
-                    ? getCameraFramingKeyPointVisibility(null)
+                    ? getRequiredExerciseKeyPointVisibility(exerciseName, null)
                     : getRequiredExerciseKeyPointVisibility("Side Arms Raise", null),
                 activeIssues: [],
                 resolvedIssues: [],
@@ -163,13 +168,14 @@ export function useSideArmsRaiseGuidance(
                 );
                 setView({
                     mode,
+                    exerciseName,
                     status: "ready",
                     message,
                     repetitions: 0,
                     hasReliablePose: false,
                     justCompletedRepetition: false,
                     keyPoints: mode === "framing"
-                        ? getCameraFramingKeyPointVisibility(null)
+                        ? getRequiredExerciseKeyPointVisibility(exerciseName, null)
                         : getRequiredExerciseKeyPointVisibility("Side Arms Raise", null),
                     activeIssues: [],
                     resolvedIssues: [],
@@ -185,7 +191,7 @@ export function useSideArmsRaiseGuidance(
 
             framePending = false;
             if (mode === "framing") {
-                const keyPoints = getCameraFramingKeyPointVisibility(event.data.landmarks);
+                const keyPoints = getRequiredExerciseKeyPointVisibility(exerciseName, event.data.landmarks);
                 const message = getFramingMessage(keyPoints);
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
                     guidanceDisplayRef.current,
@@ -195,6 +201,7 @@ export function useSideArmsRaiseGuidance(
                 );
                 setView({
                     mode,
+                    exerciseName,
                     status: "ready",
                     message: guidanceDisplayRef.current.displayedMessage,
                     repetitions: 0,
@@ -220,6 +227,7 @@ export function useSideArmsRaiseGuidance(
             );
             setView({
                 mode,
+                exerciseName,
                 status: "ready",
                 message: guidanceDisplayRef.current.displayedMessage,
                 repetitions: snapshot.state.repetitions,
@@ -286,10 +294,10 @@ export function useSideArmsRaiseGuidance(
             worker.postMessage(closeMessage);
             worker.terminate();
         };
-    }, [enabled, mode, videoRef]);
+    }, [enabled, exerciseName, mode, videoRef]);
 
     if (!enabled) return DISABLED_VIEW;
-    return view.status === "disabled" || view.mode !== mode
-        ? mode === "framing" ? FRAMING_LOADING_VIEW : LOADING_VIEW
+    return view.status === "disabled" || view.mode !== mode || (mode === "framing" && view.exerciseName !== exerciseName)
+        ? mode === "framing" ? getFramingLoadingView(exerciseName) : LOADING_VIEW
         : view;
 }
