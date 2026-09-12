@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronRight, CircleAlert, ClipboardPlus, LoaderCircle, UserPlus, UsersRound } from "lucide-react";
+import { Bell, ChevronRight, CircleAlert, ClipboardPlus, LoaderCircle, UsersRound } from "lucide-react";
 import { api, ApiError, type ApiPatient, type CareNotification, type DoctorProfile, type ExerciseAssignment } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +14,6 @@ function patientName(patient: ApiPatient) {
 function patientInitials(patient: ApiPatient) {
   const name = patientName(patient);
   return name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-}
-
-function formatNotificationTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  }).format(new Date(value));
 }
 
 export default function DoctorDashboardPage() {
@@ -86,10 +80,9 @@ export default function DoctorDashboardPage() {
     const weeklyTarget = Object.values(assignmentsByPatient).flat().reduce(
       (sum, assignment) => sum + (assignment.adherence?.currentWeek.target ?? assignment.targetSessionsPerWeek ?? 0), 0,
     );
-    const weeklyPercentage = weeklyTarget > 0 ? Math.min(100, Math.round((weeklyCompleted / weeklyTarget) * 100)) : 0;
     const unreadNotifications = notifications.filter((notification) => !notification.isRead);
 
-    return { activePatients, attention, weeklyCompleted, weeklyTarget, weeklyPercentage, unreadNotifications };
+    return { activePatients, attention, weeklyCompleted, weeklyTarget, unreadNotifications };
   }, [assignmentsByPatient, notifications, patients]);
 
   if (loading) {
@@ -124,14 +117,9 @@ export default function DoctorDashboardPage() {
           <h1>{doctorName ? `Hello, Dr. ${doctorName}` : "Hello, Doctor"}</h1>
           <p>Start with the patients who need you most.</p>
         </div>
-        <div className="role-dashboard-actions">
-          <Button variant="outline" render={<Link href="/doctor/exercise-assignments" />}>
-            <ClipboardPlus aria-hidden="true" /> Assign exercise
-          </Button>
-          <Button render={<Link href="/doctor/patients" />}>
-            <UserPlus aria-hidden="true" /> Add patient
-          </Button>
-        </div>
+        <Button render={<Link href="/doctor/exercise-assignments" />}>
+          <ClipboardPlus aria-hidden="true" /> Assign exercise
+        </Button>
       </header>
 
       <Card className="doctor-attention-card">
@@ -169,36 +157,11 @@ export default function DoctorDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="role-dashboard-summary-grid">
-        <Card className="role-summary-card">
-          <CardHeader>
-            <div className="role-summary-heading">
-              <span className="role-summary-icon"><UsersRound /></span>
-              <div><CardTitle>Your patients</CardTitle><CardDescription>{dashboard.activePatients.length} currently active</CardDescription></div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="doctor-care-number"><strong>{dashboard.weeklyCompleted}</strong><span>of {dashboard.weeklyTarget || "—"} planned sessions completed this week</span></div>
-            <div className="role-progress"><span style={{ width: `${dashboard.weeklyPercentage}%` }} /></div>
-            <div className="role-progress-footer"><span>{dashboard.weeklyPercentage}% complete</span><Link href="/doctor/patients">Open patient list</Link></div>
-          </CardContent>
-        </Card>
-
-        <Card className="role-summary-card">
-          <CardHeader>
-            <div className="role-summary-heading">
-              <span className="role-summary-icon"><Bell /></span>
-              <div><CardTitle>Updates</CardTitle><CardDescription>{dashboard.unreadNotifications.length > 0 ? `${dashboard.unreadNotifications.length} unread` : "You are all caught up"}</CardDescription></div>
-            </div>
-          </CardHeader>
-          <CardContent className="role-update-content">
-            {latestUpdate ? (
-              <div className="role-latest-update"><strong>{latestUpdate.title}</strong><p>{latestUpdate.body}</p><span>{formatNotificationTime(latestUpdate.createdAt)}</span></div>
-            ) : <p className="role-no-update">Patient results, notes, and requests will appear here.</p>}
-            <Button variant="ghost" render={<Link href="/doctor/notifications" />}>View updates <ChevronRight /></Button>
-          </CardContent>
-        </Card>
-      </div>
+      <nav className="role-dashboard-quick-links" aria-label="Doctor overview">
+        <Link href="/doctor/patients"><UsersRound aria-hidden="true" /><span>Patients</span><strong>{dashboard.activePatients.length} active</strong><ChevronRight aria-hidden="true" /></Link>
+        <Link href="/doctor/patients"><ClipboardPlus aria-hidden="true" /><span>Sessions this week</span><strong>{dashboard.weeklyCompleted} of {dashboard.weeklyTarget} planned</strong><ChevronRight aria-hidden="true" /></Link>
+        <Link href="/doctor/notifications"><Bell aria-hidden="true" /><span>Updates</span><strong>{dashboard.unreadNotifications.length > 0 ? `${dashboard.unreadNotifications.length} unread` : latestUpdate?.title ?? "No new updates"}</strong><ChevronRight aria-hidden="true" /></Link>
+      </nav>
     </div>
   );
 }
