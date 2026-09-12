@@ -74,9 +74,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
 
     const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const blobRef = useRef<Blob | null>(null);
@@ -266,11 +267,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         liveGuidance.status,
     ]);
 
-    // Clean up streams on unmount or close
+    // Clean up resources only when the recorder unmounts. Tying this cleanup to
+    // stream changes clears a newly started countdown as soon as the camera connects.
     useEffect(() => {
         return () => {
-            if (stream) {
-                stream.getTracks().forEach((track) => track.stop());
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop());
+                streamRef.current = null;
             }
             if (countdownIntervalRef.current) {
                 clearInterval(countdownIntervalRef.current);
@@ -286,7 +289,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             }
             stopLiveCoachingPlayback();
         };
-    }, [stream]);
+    }, []);
 
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
@@ -309,6 +312,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 },
                 audio: false
             });
+            streamRef.current = mediaStream;
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
@@ -338,8 +342,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     };
 
     const stopCamera = () => {
-        if (stream) {
-            stream.getTracks().forEach((track) => track.stop());
+        const activeStream = streamRef.current ?? stream;
+        if (activeStream) {
+            activeStream.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
             setStream(null);
         }
         if (videoRef.current) {
@@ -400,21 +406,28 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const initiateCountdown = (cameraStream: MediaStream | null = stream) => {
         if (!cameraStream) return;
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
         if (supportsSideArmsRaiseGuidance(exerciseName) && isVoiceEnabledRef.current) {
             primeLiveCoachingVoice();
         }
-        setCountdown(5);
+        let remaining = 5;
+        setCountdown(remaining);
 
         countdownIntervalRef.current = setInterval(() => {
-            setCountdown((prev) => {
-                if (prev === null) return null;
-                if (prev <= 1) {
-                    clearInterval(countdownIntervalRef.current!);
-                    startRecording(cameraStream);
-                    return null;
+            remaining -= 1;
+            if (remaining <= 0) {
+                if (countdownIntervalRef.current) {
+                    clearInterval(countdownIntervalRef.current);
+                    countdownIntervalRef.current = null;
                 }
-                return prev - 1;
-            });
+                setCountdown(null);
+                startRecording(cameraStream);
+                return;
+            }
+            setCountdown(remaining);
         }, 1000);
     };
 
