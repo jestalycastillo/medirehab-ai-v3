@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, ChevronRight, CircleAlert, Dumbbell, LoaderCircle, Stethoscope, UserRoundPlus, UsersRound } from "lucide-react";
+import { Activity, ChevronRight, CircleAlert, Dumbbell, LoaderCircle, Stethoscope, UsersRound } from "lucide-react";
 import { api, type ApiDoctor, type ApiExercise, type ApiPatient, type AuditLog, type CareSession, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
     const activePatients = patients.filter((patient) => patient.isActive && !patient.archivedAt);
     const activeExercises = exercises.filter((exercise) => !exercise.archivedAt);
     const patientsWithoutDoctor = activePatients.filter((patient) => !patient.profile?.assignedDoctor?.user?.id);
-    const inactiveDoctors = doctors.filter((doctor) => !doctor.isActive || doctor.archivedAt);
+    const inactiveDoctors = doctors.filter((doctor) => !doctor.isActive && !doctor.archivedAt);
     const activityDays = buildActivityDays(sessions);
     const activityTotal = activityDays.reduce((sum, day) => sum + day.value, 0);
     const maxActivity = Math.max(1, ...activityDays.map((day) => day.value));
@@ -128,58 +128,40 @@ export default function AdminDashboard() {
           <h1>Platform overview</h1>
           <p>Manage care accounts and keep the exercise library ready.</p>
         </div>
-        <div className="role-dashboard-actions">
-          <Button variant="outline" render={<Link href="/admin/exercises" />}><Dumbbell /> Exercises</Button>
-          <Button render={<Link href="/admin/doctors" />}><UserRoundPlus /> Add doctor</Button>
-        </div>
+        <Button render={<Link href="/admin/doctors" />}><Stethoscope aria-hidden="true" /> Manage doctors</Button>
       </header>
 
       <Card className="admin-overview-card">
         <CardHeader>
-          <span className="role-dashboard-eyebrow">At a glance</span>
-          <CardTitle>Your active platform</CardTitle>
-          <CardDescription>Only current, usable accounts and exercises are counted.</CardDescription>
+          <span className="role-dashboard-eyebrow">Start here</span>
+          <CardTitle>Needs setup</CardTitle>
+          <CardDescription>{setupIssueCount > 0 ? `${setupIssueCount} item${setupIssueCount === 1 ? "" : "s"} to check` : "No account setup issues"}</CardDescription>
         </CardHeader>
-        <CardContent className="admin-metric-grid">
-          <Link href="/admin/doctors" className="admin-metric">
-            <span><Stethoscope /></span><div><strong>{dashboard.activeDoctors.length}</strong><small>Doctors</small></div><ChevronRight />
-          </Link>
-          <Link href="/admin/patients" className="admin-metric">
-            <span><UsersRound /></span><div><strong>{dashboard.activePatients.length}</strong><small>Patients</small></div><ChevronRight />
-          </Link>
-          <Link href="/admin/exercises" className="admin-metric">
-            <span><Dumbbell /></span><div><strong>{dashboard.activeExercises.length}</strong><small>Exercises</small></div><ChevronRight />
-          </Link>
-          <div className="admin-metric">
-            <span><Activity /></span><div><strong>{dashboard.activityTotal}</strong><small>Sessions this week</small></div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="admin-dashboard-grid">
-        <Card className="role-summary-card">
-          <CardHeader>
-            <div className="role-summary-heading">
-              <span className="role-summary-icon"><CircleAlert /></span>
-              <div><CardTitle>Needs setup</CardTitle><CardDescription>{setupIssueCount > 0 ? `${setupIssueCount} item${setupIssueCount === 1 ? "" : "s"} to check` : "Everything is ready"}</CardDescription></div>
-            </div>
-          </CardHeader>
-          <CardContent className="admin-setup-list">
+        <CardContent className="admin-setup-list">
             {setupIssueCount === 0 ? (
-              <div className="admin-setup-clear"><strong>No setup issues</strong><p>All active patients have a doctor and all doctors are active.</p></div>
+              <div className="admin-setup-clear"><strong>Everything is ready</strong><p>Active patients have a doctor and accounts are ready to use.</p></div>
             ) : (
               <>
                 {dashboard.patientsWithoutDoctor.length > 0 && (
                   <Link href="/admin/patients"><span>Patients without a doctor</span><strong>{dashboard.patientsWithoutDoctor.length}</strong><ChevronRight /></Link>
                 )}
                 {dashboard.inactiveDoctors.length > 0 && (
-                  <Link href="/admin/doctors"><span>Inactive or archived doctors</span><strong>{dashboard.inactiveDoctors.length}</strong><ChevronRight /></Link>
+                  <Link href="/admin/doctors"><span>Inactive doctors</span><strong>{dashboard.inactiveDoctors.length}</strong><ChevronRight /></Link>
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
 
+      <nav className="role-dashboard-quick-links" aria-label="Admin overview">
+        <Link href="/admin/doctors"><Stethoscope aria-hidden="true" /><span>Doctors</span><strong>{dashboard.activeDoctors.length} active</strong><ChevronRight aria-hidden="true" /></Link>
+        <Link href="/admin/patients"><UsersRound aria-hidden="true" /><span>Patients</span><strong>{dashboard.activePatients.length} active</strong><ChevronRight aria-hidden="true" /></Link>
+        <Link href="/admin/exercises"><Dumbbell aria-hidden="true" /><span>Exercises</span><strong>{dashboard.activeExercises.length} available</strong><ChevronRight aria-hidden="true" /></Link>
+      </nav>
+
+      <details className="role-dashboard-disclosure">
+        <summary><span>Activity and recent changes</span><span>{dashboard.activityTotal} sessions this week</span><ChevronRight aria-hidden="true" /></summary>
+        <div className="role-dashboard-disclosure-content">
         <Card className="role-summary-card">
           <CardHeader>
             <div className="role-summary-heading">
@@ -196,7 +178,6 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
       <Card className="admin-audit-card">
         <CardHeader className="admin-audit-header">
@@ -214,6 +195,8 @@ export default function AdminDashboard() {
           ))}
         </CardContent>
       </Card>
+        </div>
+      </details>
     </div>
   );
 }
