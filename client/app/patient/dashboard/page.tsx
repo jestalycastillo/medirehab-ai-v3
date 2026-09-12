@@ -168,7 +168,7 @@ export default function PatientDashboardPage() {
           <h1>Hello{firstName ? `, ${firstName}` : ""}</h1>
           <p>Here is the one thing to focus on next.</p>
         </div>
-        <Button variant="outline" className="patient-dashboard-all-link" render={<Link href="/patient/exercises" />}>
+        <Button variant="outline" className="patient-dashboard-all-link" nativeButton={false} render={<Link href="/patient/exercises" />}>
           All exercises
           <ChevronRight aria-hidden="true" />
         </Button>
@@ -189,14 +189,14 @@ export default function PatientDashboardPage() {
               <span className="patient-next-label">Today&apos;s plan</span>
               <h2>You&apos;re finished for today</h2>
               <p>Great work. Rest and come back for your next scheduled session.</p>
-              <Button variant="outline" render={<Link href="/patient/exercises" />}>Review my exercises</Button>
+              <Button variant="outline" nativeButton={false} render={<Link href="/patient/exercises" />}>Review my exercises</Button>
             </div>
           ) : dashboard.isRestDay ? (
             <div className="patient-next-copy">
               <span className="patient-next-label">Today&apos;s plan</span>
               <h2>Today is a rest day</h2>
               <p>No exercise is scheduled today. Your next sessions are available on the exercises page.</p>
-              <Button variant="outline" render={<Link href="/patient/exercises" />}>See my schedule</Button>
+              <Button variant="outline" nativeButton={false} render={<Link href="/patient/exercises" />}>See my schedule</Button>
             </div>
           ) : dashboard.nextAssignment ? (
             <div className="patient-next-copy">
@@ -292,7 +292,7 @@ export default function PatientDashboardPage() {
             ) : (
               <p className="patient-no-update">Messages and reminders from your care team will appear here.</p>
             )}
-            <Button variant="ghost" render={<Link href="/patient/notifications" />}>
+            <Button variant="ghost" nativeButton={false} render={<Link href="/patient/notifications" />}>
               View updates
               <ChevronRight aria-hidden="true" />
             </Button>

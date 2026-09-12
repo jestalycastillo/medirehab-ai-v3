@@ -117,7 +117,7 @@ export default function DoctorDashboardPage() {
           <h1>{doctorName ? `Hello, Dr. ${doctorName}` : "Hello, Doctor"}</h1>
           <p>Start with the patients who need you most.</p>
         </div>
-        <Button render={<Link href="/doctor/exercise-assignments" />}>
+        <Button nativeButton={false} render={<Link href="/doctor/exercise-assignments" />}>
           <ClipboardPlus aria-hidden="true" /> Assign exercise
         </Button>
       </header>
@@ -133,7 +133,7 @@ export default function DoctorDashboardPage() {
                 : "No missed goals or unfinished care plans"}
             </CardDescription>
           </div>
-          <Button variant="ghost" render={<Link href="/doctor/patients" />}>All patients <ChevronRight /></Button>
+          <Button variant="ghost" nativeButton={false} render={<Link href="/doctor/patients" />}>All patients <ChevronRight /></Button>
         </CardHeader>
         <CardContent className="doctor-attention-list">
           {dashboard.attention.length === 0 ? (

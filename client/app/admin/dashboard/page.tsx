@@ -128,7 +128,7 @@ export default function AdminDashboard() {
           <h1>Platform overview</h1>
           <p>Manage care accounts and keep the exercise library ready.</p>
         </div>
-        <Button render={<Link href="/admin/doctors" />}><Stethoscope aria-hidden="true" /> Manage doctors</Button>
+        <Button nativeButton={false} render={<Link href="/admin/doctors" />}><Stethoscope aria-hidden="true" /> Manage doctors</Button>
       </header>
 
       <Card className="admin-overview-card">

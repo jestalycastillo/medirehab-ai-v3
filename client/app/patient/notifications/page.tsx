@@ -88,7 +88,7 @@ export default function PatientNotificationsPage() {
                       {busyId === notification.id ? <LoaderCircle className="recorder-spin" /> : <Check />} Mark read
                     </Button>
                   )}
-                  {notification.link && <Button variant="outline" render={<Link href={notification.link} />}>Open <ChevronRight /></Button>}
+                  {notification.link && <Button variant="outline" nativeButton={false} render={<Link href={notification.link} />}>Open <ChevronRight /></Button>}
                 </div>
               </article>
             ))}
