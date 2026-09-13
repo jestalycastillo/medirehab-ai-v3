@@ -289,11 +289,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
-        setCameraAccessIssue(null);
-        setRecordedUrl(null);
-        setLiveCoachingMessage(null);
-        setIsFinalizingRecording(false);
-        setIsCameraStarting(true);
+        setRecordedUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         try {
             if (!navigator.mediaDevices?.getUserMedia) {
                 setCameraAccessIssue("unavailable");
@@ -429,8 +428,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsCameraStarting(false);
         setIsOpen(false);
         setError(null);
-        setCameraAccessIssue(null);
-        setRecordedUrl(null);
+        setRecordedUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         setIsEvaluating(false);
         setEvaluationScore(null);
         setSessionId(null);
@@ -517,9 +518,28 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
             recorder.onerror = (e) => {
                 console.error("MediaRecorder error:", e);
+                setIsRecording(false);
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
+                if (elapsedIntervalRef.current) {
+                    clearInterval(elapsedIntervalRef.current);
+                    elapsedIntervalRef.current = null;
+                }
+                setError("Recording error occurred. Please try again.");
             };
 
             recorder.onstop = () => {
+                setIsRecording(false);
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
+                if (elapsedIntervalRef.current) {
+                    clearInterval(elapsedIntervalRef.current);
+                    elapsedIntervalRef.current = null;
+                }
                 try {
                     isRecordingRef.current = false;
                     liveCoachingRequestIdRef.current += 1;
@@ -527,23 +547,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                     if (assignmentId) {
                         void api.stopExerciseActivity(assignmentId).catch(() => undefined);
                     }
-                    if (recordingTimeoutRef.current) {
-                        clearTimeout(recordingTimeoutRef.current);
-                        recordingTimeoutRef.current = null;
-                    }
-                    if (elapsedIntervalRef.current) {
-                        clearInterval(elapsedIntervalRef.current);
-                        elapsedIntervalRef.current = null;
-                    }
-                    setIsRecording(false);
-                    const mimeType = recorder.mimeType || "video/webm";
+                    const rawMimeType = recorder.mimeType || preferredMimeType || "video/webm";
+                    const cleanMimeType = rawMimeType.split(";")[0]?.trim() || "video/webm";
                     recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
-                    setElapsedSeconds(recordingDurationSecondsRef.current);
-                    const blob = new Blob(chunksRef.current, { type: mimeType });
+                    const blob = new Blob(chunksRef.current, { type: cleanMimeType });
                     blobRef.current = blob;
                     const url = URL.createObjectURL(blob);
-                    setRecordedUrl(url);
-                    setIsFinalizingRecording(false);
+                    setRecordedUrl((prev) => {
+                        if (prev) URL.revokeObjectURL(prev);
+                        return url;
+                    });
                     stopCamera();
                     if (onSave) {
                         onSave(blob);
@@ -566,7 +579,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             }, 250);
 
             clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            recorder.start(1000); // 1000ms timeslice to flush chunks periodically
+            recorder.start();
             setIsRecording(true);
             if (assignmentId) {
                 void api.startExerciseActivity(assignmentId).catch(() => undefined);
@@ -574,11 +587,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
             if (selectedTimerSeconds !== null && selectedTimerSeconds > 0) {
                 recordingTimeoutRef.current = setTimeout(() => {
-                    if (recorder.state === "recording") {
-                        liveCoachingRequestIdRef.current += 1;
-                        setIsFinalizingRecording(true);
-                        recorder.stop();
-                    }
+                    stopRecording();
                 }, selectedTimerSeconds * 1000);
             } else {
                 recordingTimeoutRef.current = null;
@@ -606,8 +615,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 mediaRecorderRef.current.stop();
             } catch (err) {
                 console.error("Error stopping media recorder:", err);
-                setIsFinalizingRecording(false);
+                setIsRecording(false);
             }
+        } else {
+            setIsRecording(false);
         }
     };
 
@@ -990,9 +1001,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 /* Post-Recording Preview */
                                 <div className="recorder-preview">
                                     <video
+                                        key={recordedUrl}
                                         src={recordedUrl}
                                         controls
-                                        className="recorder-video"
+                                        playsInline
+                                        preload="auto"
+                                        style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
                                     />
                                     <div className="recorder-preview-label">
                                         <CheckCircle2 size={15} />
@@ -1236,9 +1250,15 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 </Button>
                             ) : recordedUrl ? (
                                 <>
-                                    <Button
-                                        variant="outline"
-                                        onClick={handleStartCamera}
+                                    <button
+                                        className="btn btn-secondary"
+                                        onClick={() => {
+                                            setRecordedUrl((prev) => {
+                                                if (prev) URL.revokeObjectURL(prev);
+                                                return null;
+                                            });
+                                            startCamera();
+                                        }}
                                         disabled={isEvaluating}
                                     >
                                         <RotateCcw />
@@ -1481,10 +1501,10 @@ function formatTime(totalSeconds: number): string {
 function getPreferredMimeType(): string | undefined {
     if (typeof MediaRecorder === "undefined") return undefined;
     const candidates = [
+        "video/mp4",
         "video/webm;codecs=vp8",
         "video/webm;codecs=vp9",
         "video/webm",
-        "video/mp4",
     ];
     for (const candidate of candidates) {
         if (MediaRecorder.isTypeSupported(candidate)) {
