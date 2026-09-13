@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
-import type { LiveCoachingEvent } from "../utils/liveCoachingValidation";
+import type { LiveCoachingEvent, LiveCoachingSide } from "../utils/liveCoachingValidation";
 
 const DEFAULT_AI_SERVICE_BASE_URL = "http://127.0.0.1:8000";
 const DEFAULT_AI_SERVICE_TIMEOUT_MS = 120_000;
@@ -11,12 +11,13 @@ type AiServiceCoachingResponse = {
     source?: unknown;
 };
 
-const fallbackForEvent = (event: LiveCoachingEvent): string => {
+const fallbackForEvent = (event: LiveCoachingEvent, side?: LiveCoachingSide): string => {
+    const sideContext = side ? ` on your ${side} arm` : "";
     switch (event) {
         case "issue_resolved":
-            return "Nice adjustment. Keep moving with steady control.";
+            return `Nice adjustment${sideContext}. Keep moving with steady control.`;
         case "repetition_completed":
-            return "Great control on that repetition. Keep the pace smooth.";
+            return `Great control on that repetition${sideContext}. Keep the pace smooth.`;
     }
 };
 
@@ -48,19 +49,25 @@ const getAiServiceTimeoutMs = (): number => {
 
 const requestCoachingMessage = async (
     exerciseName: string,
-    event: LiveCoachingEvent
+    event: LiveCoachingEvent,
+    side?: LiveCoachingSide
 ): Promise<{ message: string; source: "ollama" | "fallback" } | null> => {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), getAiServiceTimeoutMs());
 
     try {
+        const fullExerciseName = side
+            ? `${exerciseName} (${side === "left" ? "Left" : "Right"} Arm)`
+            : exerciseName;
+
         const response = await fetch(`${getAiServiceBaseUrl()}/coaching`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             signal: abortController.signal,
             body: JSON.stringify({
-                exercise_name: exerciseName,
+                exercise_name: fullExerciseName,
                 event,
+                side,
             }),
         });
 
@@ -87,23 +94,31 @@ export const createLiveCoachingMessage = async (
     patientUserId: string,
     exerciseId: string,
     assignmentId: string,
-    event: LiveCoachingEvent
+    event: LiveCoachingEvent,
+    side?: LiveCoachingSide
 ): Promise<{ message: string; source: "ollama" | "fallback" }> => {
+    let exerciseName = "Shoulder Flexion";
+
     const assignment = await prisma.exerciseAssignment.findFirst({
         where: {
             id: assignmentId,
-            exerciseId,
-            archivedAt: null,
             patientProfile: { is: { userId: patientUserId } },
-            exercise: { is: { isActive: true, archivedAt: null } },
         },
         select: { exercise: { select: { name: true } } },
     });
 
-    if (!assignment) {
-        throw new HttpError(404, "Assigned exercise not found.");
+    if (assignment?.exercise?.name) {
+        exerciseName = assignment.exercise.name;
+    } else {
+        const exercise = await prisma.exercise.findUnique({
+            where: { id: exerciseId },
+            select: { name: true }
+        });
+        if (exercise?.name) {
+            exerciseName = exercise.name;
+        }
     }
 
-    const coaching = await requestCoachingMessage(assignment.exercise.name, event);
-    return coaching ?? { message: fallbackForEvent(event), source: "fallback" };
+    const coaching = await requestCoachingMessage(exerciseName, event, side);
+    return coaching ?? { message: fallbackForEvent(event, side), source: "fallback" };
 };

@@ -1,9 +1,11 @@
 import { HttpError } from "./httpError";
 
 export type LiveCoachingEvent = "issue_resolved" | "repetition_completed";
+export type LiveCoachingSide = "left" | "right";
 
 export type ValidatedLiveCoachingInput = {
     event: LiveCoachingEvent;
+    side?: LiveCoachingSide;
 };
 
 const LIVE_COACHING_EVENTS = new Set<LiveCoachingEvent>([
@@ -18,5 +20,10 @@ export const validateLiveCoachingInput = (
         throw new HttpError(400, "Live coaching event is invalid.");
     }
 
-    return { event: body.event as LiveCoachingEvent };
+    const side = body.side === "left" || body.side === "right" ? body.side : undefined;
+
+    return {
+        event: body.event as LiveCoachingEvent,
+        ...(side ? { side } : {})
+    };
 };
