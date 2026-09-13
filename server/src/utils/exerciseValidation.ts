@@ -13,12 +13,14 @@ export type ValidatedExerciseImageInput = {
 export type ValidatedCreateExerciseInput = {
     name: string;
     description: string;
+    analysisModelKey?: string | null | undefined;
     images: ValidatedExerciseImageInput[];
 };
 
 export type ValidatedUpdateExerciseInput = {
     name?: string | undefined;
     description?: string | undefined;
+    analysisModelKey?: string | null | undefined;
     images?: ValidatedExerciseImageInput[] | undefined;
 };
 
@@ -68,6 +70,7 @@ export const validateCreateExerciseInput = (
 ): ValidatedCreateExerciseInput => ({
     name: requireString(body.name ?? body.exercise, "Exercise name"),
     description: requireString(body.description, "Description"),
+    analysisModelKey: body.analysisModelKey === null ? null : optionalString(body.analysisModelKey, "Analysis model key"),
     images: validateImages(body.images)
 });
 
@@ -78,6 +81,7 @@ export const validateUpdateExerciseInput = (
     const input = {
         name: optionalString(body.name ?? body.exercise, "Exercise name"),
         description: optionalString(body.description, "Description"),
+        analysisModelKey: body.analysisModelKey === null ? null : optionalString(body.analysisModelKey, "Analysis model key"),
         images: hasImages ? validateImages(body.images) : undefined
     };
 
