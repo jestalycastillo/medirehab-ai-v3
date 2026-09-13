@@ -10,13 +10,19 @@ export function ExerciseForm({
 }: {
   isOpen: boolean;
   initialData?: ApiExercise;
-  onSave: (data: { name: string; description: string; images: ExerciseImage[] }) => void;
+  onSave: (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[] }) => void;
   onCancel: () => void;
   isLoading: boolean;
 }) {
-  const [formData, setFormData] = useState<{ name: string; description: string; images: ExerciseImage[] }>({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    analysisModelKey: string;
+    images: ExerciseImage[];
+  }>({
     name: "",
     description: "",
+    analysisModelKey: "",
     images: [],
   });
 
@@ -25,16 +31,17 @@ export function ExerciseForm({
       setFormData({
         name: initialData.name || "",
         description: initialData.description || "",
+        analysisModelKey: initialData.analysisModelKey || "",
         images: initialData.images || [],
       });
     } else {
-      setFormData({ name: "", description: "", images: [] });
+      setFormData({ name: "", description: "", analysisModelKey: "", images: [] });
     }
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -56,7 +63,10 @@ export function ExerciseForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+      ...formData,
+      analysisModelKey: formData.analysisModelKey.trim() ? formData.analysisModelKey.trim() : null,
+    });
   };
 
   return (
@@ -82,7 +92,7 @@ export function ExerciseForm({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 20px 0", color: "var(--color-text-primary)" }}>
-          {initialData ? "Edit Exercise" : "Create Exercise"}
+          Edit Exercise
         </h3>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
@@ -99,6 +109,19 @@ export function ExerciseForm({
               style={{ minHeight: "80px", padding: "10px 14px" }}
               required
             />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>AI Evaluation Model</label>
+            <select
+              name="analysisModelKey"
+              className="input"
+              value={formData.analysisModelKey}
+              onChange={handleChange}
+            >
+              <option value="shoulder_flexion">Shoulder Flexion (shoulder_flexion)</option>
+              <option value="shoulder_abduction">Shoulder Abduction (shoulder_abduction)</option>
+              <option value="side_arms_raise_v1">Side Arms Raise (side_arms_raise_v1)</option>
+            </select>
           </div>
           
           <div>
