@@ -61,15 +61,16 @@ export function PatientList({
                     <Link className="btn btn-secondary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
                       Assign
                     </Link>
-                    <details className="list-row-actions">
-                      <summary>More</summary>
-                      <div>
-                        <button onClick={() => onEdit(patient)}>Edit profile</button>
-                        <button onClick={() => onResetPassword(patient)}>Reset password</button>
-                        <button onClick={() => onToggleStatus(patient)}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-                        {!patient.archivedAt && <button onClick={() => onArchive(patient)}>Archive</button>}
-                      </div>
-                    </details>
+                    <button className="btn btn-secondary" onClick={() => onEdit(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>Edit</button>
+                    <button className="btn btn-secondary" onClick={() => onResetPassword(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>Reset</button>
+                    <button className="btn btn-secondary" onClick={() => onToggleStatus(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
+                      {patient.isActive ? "Deactivate" : "Activate"}
+                    </button>
+                    {!patient.archivedAt && (
+                      <button className="btn btn-danger" onClick={() => onArchive(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
+                        Archive
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -93,15 +94,10 @@ export function PatientList({
             <div style={{ color: "var(--color-text-secondary)", fontSize: "14px" }}>{patient.profile?.medicalCondition || "No condition recorded."}</div>
             <div className="responsive-actions">
               <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "38px" }}>Assign Exercise</Link>
-              <details className="list-row-actions">
-                <summary>More options</summary>
-                <div>
-                  <button onClick={() => onEdit(patient)}>Edit profile</button>
-                  <button onClick={() => onResetPassword(patient)}>Reset password</button>
-                  <button onClick={() => onToggleStatus(patient)}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-                  {!patient.archivedAt && <button onClick={() => onArchive(patient)}>Archive</button>}
-                </div>
-              </details>
+              <button className="btn btn-secondary" onClick={() => onEdit(patient)} style={{ height: "38px" }}>Edit</button>
+              <button className="btn btn-secondary" onClick={() => onResetPassword(patient)} style={{ height: "38px" }}>Reset</button>
+              <button className="btn btn-secondary" onClick={() => onToggleStatus(patient)} style={{ height: "38px" }}>{patient.isActive ? "Deactivate" : "Activate"}</button>
+              {!patient.archivedAt && <button className="btn btn-danger" onClick={() => onArchive(patient)} style={{ height: "38px" }}>Archive</button>}
             </div>
           </div>
         ))}

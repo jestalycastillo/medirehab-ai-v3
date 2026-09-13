@@ -1,68 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, CalendarDays, ChevronRight, CircleAlert, Dumbbell, LoaderCircle } from "lucide-react";
 import { api, ApiError, type CareNotification, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
 import { formatScore } from "@/lib/score";
-import { CameraRecorder } from "@/components/patient/camera-recorder";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { MyExerciseList } from "@/components/patient/my-exercise-list";
+import { NotificationsPanel } from "@/components/care/notifications-panel";
 
-const WEEKDAY_LABELS: Record<number, string> = {
-  1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday",
-  5: "Friday", 6: "Saturday", 7: "Sunday",
-};
-
-function getTodayNumber() {
-  const day = new Date().getDay();
-  return day === 0 ? 7 : day;
-}
-
-function isPlannedToday(assignment: ExerciseAssignment, today: number) {
-  if (assignment.adherence?.today) return true;
-  if (assignment.scheduledDays?.length) return assignment.scheduledDays.includes(today);
-  return true;
-}
-
-function getRemaining(assignment: ExerciseAssignment) {
-  const period = assignment.adherence?.today ?? assignment.adherence?.currentWeek;
-  return period?.remaining ?? 1;
-}
-
-function getPrescription(assignment: ExerciseAssignment) {
-  return [
-    assignment.targetSets ? `${assignment.targetSets} sets` : "",
-    assignment.targetRepsPerSet ? `${assignment.targetRepsPerSet} reps each` : "",
-    assignment.targetDurationSeconds ? `${assignment.targetDurationSeconds} seconds` : "",
-  ].filter(Boolean);
-}
-
-function formatNotificationTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function ExerciseVisual({ assignment }: { assignment: ExerciseAssignment | null }) {
-  const image = assignment?.exercise?.images?.[0];
-
+function ActivityIcon() {
   return (
-    <div className="patient-exercise-visual" aria-hidden={!image}>
-      {image ? (
-        // Exercise images can be served by the API or an administrator-provided URL.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={image.filepath}
-          alt={image.imageName || `${assignment?.exercise?.name || "Exercise"} guide`}
-          onError={(event) => { event.currentTarget.style.display = "none"; }}
-        />
-      ) : null}
-      <div className="patient-exercise-placeholder">
-        <span><Dumbbell /></span>
-        <strong>{assignment ? "Exercise guide" : "Care plan"}</strong>
-      </div>
-    </div>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
   );
 }
 
@@ -100,205 +59,87 @@ export default function PatientDashboardPage() {
     }
 
     loadDashboard();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const dashboard = useMemo(() => {
-    const todayNumber = getTodayNumber();
-    const plannedToday = assignments.filter((assignment) => isPlannedToday(assignment, todayNumber));
-    const nextAssignment =
-      plannedToday.find((assignment) => getRemaining(assignment) > 0) ??
-      assignments.find((assignment) => getRemaining(assignment) > 0) ??
-      plannedToday[0] ?? assignments[0] ?? null;
-    const todayComplete = plannedToday.length > 0 && plannedToday.every((assignment) => getRemaining(assignment) === 0);
-    const isRestDay = assignments.length > 0 && plannedToday.length === 0;
-    const weeklyCompleted = assignments.reduce(
-      (sum, assignment) => sum + (assignment.adherence?.currentWeek.completed ?? 0), 0,
-    );
-    const weeklyTarget = assignments.reduce(
-      (sum, assignment) => sum + (assignment.adherence?.currentWeek.target ?? assignment.targetSessionsPerWeek ?? 0), 0,
-    );
-    const weeklyPercentage = weeklyTarget > 0
-      ? Math.min(100, Math.round((weeklyCompleted / weeklyTarget) * 100)) : 0;
-    const latestSession = [...sessions].sort(
-      (left, right) => new Date(right.performedAt).getTime() - new Date(left.performedAt).getTime(),
-    )[0];
-    const unreadNotifications = notifications.filter((notification) => !notification.isRead);
-
-    return {
-      todayNumber, nextAssignment, todayComplete, isRestDay, weeklyCompleted,
-      weeklyTarget, weeklyPercentage, latestSession, unreadNotifications,
-    };
-  }, [assignments, notifications, sessions]);
-
   if (loading) {
-    return (
-      <div className="patient-dashboard-loading" aria-label="Loading your dashboard">
-        <LoaderCircle className="recorder-spin" />
-        <span>Loading your care plan…</span>
-      </div>
-    );
+    return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
   }
 
   if (error) {
     return (
-      <Card className="patient-dashboard-error">
-        <CardContent className="patient-dashboard-error-content">
-          <CircleAlert aria-hidden="true" />
-          <div>
-            <CardTitle>We could not load your dashboard</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </div>
-          <Button onClick={() => window.location.reload()}>Try again</Button>
-        </CardContent>
-      </Card>
+      <div className="card" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "#FEF2F2" }}>
+        <h1 style={{ color: "var(--color-danger)", fontSize: "20px", margin: "0 0 8px 0" }}>Unable to load dashboard</h1>
+        <p style={{ margin: 0, color: "var(--color-text-secondary)" }}>{error}</p>
+      </div>
     );
   }
 
-  const firstName = profile?.firstName?.trim();
-  const prescription = dashboard.nextAssignment ? getPrescription(dashboard.nextAssignment) : [];
-  const primaryPeriod = dashboard.nextAssignment?.adherence?.today ?? dashboard.nextAssignment?.adherence?.currentWeek;
-  const latestUpdate = dashboard.unreadNotifications[0] ?? notifications[0];
+  const patientName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ");
+  const latestScore = formatScore(sessions[0]?.score);
 
   return (
-    <div className="patient-dashboard animate-fade-in">
-      <header className="patient-dashboard-header">
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+      <section className="card" style={{ padding: "28px", display: "flex", justifyContent: "space-between", gap: "20px", alignItems: "center", flexWrap: "wrap" }}>
         <div>
-          <span className="patient-dashboard-day">{WEEKDAY_LABELS[dashboard.todayNumber]}</span>
-          <h1>Hello{firstName ? `, ${firstName}` : ""}</h1>
-          <p>Here is the one thing to focus on next.</p>
+          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>
+            Welcome{patientName ? `, ${patientName}` : ""}
+          </h1>
+          <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
+            Review your assigned rehabilitation exercises and recovery profile.
+          </p>
         </div>
-        <Button variant="outline" className="patient-dashboard-all-link" nativeButton={false} render={<Link href="/patient/exercises" />}>
-          All exercises
-          <ChevronRight aria-hidden="true" />
-        </Button>
-      </header>
+        <div className="responsive-actions">
+          <Link className="btn btn-primary" href="/patient/exercises">View Exercises</Link>
+          <Link className="btn btn-secondary" href="/patient/profile">Update Profile</Link>
+        </div>
+      </section>
 
-      <Card className="patient-next-card">
-        <CardContent className="patient-next-content">
-          <ExerciseVisual assignment={dashboard.nextAssignment} />
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
+        <StatCard title="Assigned Exercises" value={assignments.length} icon={<ActivityIcon />} />
+        <StatCard title="Latest Score" value={latestScore} icon={<ActivityIcon />} />
+        <StatCard title="Profile Status" value={profile?.medicalCondition ? "Updated" : "Incomplete"} icon={<UserIcon />} />
+      </section>
 
-          {assignments.length === 0 ? (
-            <div className="patient-next-copy">
-              <span className="patient-next-label">Your care plan</span>
-              <h2>No exercises assigned yet</h2>
-              <p>Your doctor will add exercises here when your plan is ready.</p>
-            </div>
-          ) : dashboard.todayComplete ? (
-            <div className="patient-next-copy">
-              <span className="patient-next-label">Today&apos;s plan</span>
-              <h2>You&apos;re finished for today</h2>
-              <p>Great work. Rest and come back for your next scheduled session.</p>
-              <Button variant="outline" nativeButton={false} render={<Link href="/patient/exercises" />}>Review my exercises</Button>
-            </div>
-          ) : dashboard.isRestDay ? (
-            <div className="patient-next-copy">
-              <span className="patient-next-label">Today&apos;s plan</span>
-              <h2>Today is a rest day</h2>
-              <p>No exercise is scheduled today. Your next sessions are available on the exercises page.</p>
-              <Button variant="outline" nativeButton={false} render={<Link href="/patient/exercises" />}>See my schedule</Button>
-            </div>
-          ) : dashboard.nextAssignment ? (
-            <div className="patient-next-copy">
-              <span className="patient-next-label">Do this next</span>
-              <h2>{dashboard.nextAssignment.exercise?.name || "Exercise"}</h2>
-              <p>{dashboard.nextAssignment.exercise?.description || "Follow the movement your doctor assigned."}</p>
+      <section className="doctor-two-column">
+        <div className="card" style={{ padding: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Recent Exercises</h2>
+            <Link href="/patient/exercises" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600, fontSize: "14px" }}>
+              View all
+            </Link>
+          </div>
+          <MyExerciseList assignments={assignments.slice(0, 3)} compact />
+        </div>
 
-              {prescription.length > 0 && (
-                <div className="patient-prescription" aria-label="Exercise instructions">
-                  {prescription.map((item) => <span key={item}>{item}</span>)}
-                </div>
-              )}
+        <div className="card" style={{ padding: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 18px 0" }}>Care Profile</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase" }}>Medical Condition</div>
+              <div style={{ fontWeight: 600, marginTop: "4px" }}>{profile?.medicalCondition || "-"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase" }}>Contact Number</div>
+              <div style={{ fontWeight: 600, marginTop: "4px" }}>{profile?.contactNumber || "-"}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase" }}>Address</div>
+              <div style={{ fontWeight: 600, marginTop: "4px" }}>{profile?.address || "-"}</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              {dashboard.nextAssignment.doctorInstructions && (
-                <div className="patient-doctor-note">
-                  <strong>Your doctor says:</strong> {dashboard.nextAssignment.doctorInstructions}
-                </div>
-              )}
-
-              {primaryPeriod && (
-                <div className="patient-next-progress">
-                  <span>
-                    {primaryPeriod.remaining > 0
-                      ? `${primaryPeriod.remaining} session${primaryPeriod.remaining === 1 ? "" : "s"} left ${dashboard.nextAssignment.adherence?.today ? "today" : "this week"}`
-                      : "Goal complete"}
-                  </span>
-                  <div aria-label={`${primaryPeriod.completed} of ${primaryPeriod.target} sessions complete`}>
-                    <i style={{ width: `${primaryPeriod.target ? Math.min(100, (primaryPeriod.completed / primaryPeriod.target) * 100) : 0}%` }} />
-                  </div>
-                </div>
-              )}
-
-              <div className="patient-dashboard-primary-action">
-                <CameraRecorder
-                  exerciseName={dashboard.nextAssignment.exercise?.name}
-                  exerciseId={dashboard.nextAssignment.exercise?.id}
-                  assignmentId={dashboard.nextAssignment.id}
-                  targetDurationSeconds={dashboard.nextAssignment.targetDurationSeconds}
-                  minimumDurationSeconds={dashboard.nextAssignment.minimumDurationSeconds}
-                />
-                <span>The camera only turns on after you click.</span>
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <div className="patient-dashboard-summary-grid">
-        <Card className="patient-summary-card">
-          <CardHeader>
-            <div className="patient-summary-heading">
-              <span className="patient-summary-icon"><CalendarDays aria-hidden="true" /></span>
-              <div>
-                <CardTitle>Your week</CardTitle>
-                <CardDescription>A simple view of your progress</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="patient-week-number">
-              <strong>{dashboard.weeklyCompleted}</strong>
-              <span>of {dashboard.weeklyTarget || "—"} sessions done</span>
-            </div>
-            <div className="patient-week-progress" aria-label={`${dashboard.weeklyPercentage}% of weekly goal complete`}>
-              <span style={{ width: `${dashboard.weeklyPercentage}%` }} />
-            </div>
-            <div className="patient-week-footer">
-              <span>{dashboard.weeklyPercentage}% complete</span>
-              <span>{dashboard.latestSession?.score != null ? `Latest score: ${formatScore(dashboard.latestSession.score)}` : "No score yet"}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="patient-summary-card">
-          <CardHeader>
-            <div className="patient-summary-heading">
-              <span className="patient-summary-icon"><Bell aria-hidden="true" /></span>
-              <div>
-                <CardTitle>Updates</CardTitle>
-                <CardDescription>
-                  {dashboard.unreadNotifications.length > 0 ? `${dashboard.unreadNotifications.length} new for you` : "You are all caught up"}
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="patient-update-content">
-            {latestUpdate ? (
-              <div className="patient-latest-update">
-                <strong>{latestUpdate.title}</strong>
-                <p>{latestUpdate.body}</p>
-                <span>{formatNotificationTime(latestUpdate.createdAt)}</span>
-              </div>
-            ) : (
-              <p className="patient-no-update">Messages and reminders from your care team will appear here.</p>
-            )}
-            <Button variant="ghost" nativeButton={false} render={<Link href="/patient/notifications" />}>
-              View updates
-              <ChevronRight aria-hidden="true" />
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <section className="card" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Notifications</h2>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{notifications.filter((notification) => !notification.isRead).length} unread</span>
+        </div>
+        <NotificationsPanel notifications={notifications.slice(0, 4)} />
+      </section>
     </div>
   );
 }

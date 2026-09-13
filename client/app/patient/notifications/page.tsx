@@ -1,100 +1,60 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { Bell, BellRing, CalendarClock, Check, ChevronRight, CircleAlert, HandHeart, LoaderCircle, MessageCircle, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api, ApiError, type CareNotification } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function NotificationIcon({ type }: { type: CareNotification["type"] }) {
-  if (type === "CHAT_MESSAGE" || type === "DOCTOR_COMMENT") return <MessageCircle />;
-  if (type === "REMINDER") return <CalendarClock />;
-  if (type === "PATIENT_HELP") return <HandHeart />;
-  if (type === "SESSION_RESULT" || type === "SESSION_CHECKIN") return <Sparkles />;
-  return <Bell />;
-}
+import { NotificationsPanel } from "@/components/care/notifications-panel";
 
 export default function PatientNotificationsPage() {
   const [notifications, setNotifications] = useState<CareNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
-    api.getMyNotifications()
-      .then((res) => { if (mounted) setNotifications(res.notifications); })
-      .catch((err) => { if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load notifications."); })
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
-  }, []);
-
-  const orderedNotifications = useMemo(() => [...notifications].sort((left, right) => {
-    if (left.isRead !== right.isRead) return left.isRead ? 1 : -1;
-    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-  }), [notifications]);
-
-  const handleMarkRead = async (notificationId: string) => {
-    setBusyId(notificationId);
-    setError("");
+  const loadNotifications = async () => {
     try {
-      await api.markNotificationRead(notificationId);
-      setNotifications((current) => current.map((notification) => notification.id === notificationId
-        ? { ...notification, isRead: true, readAt: new Date().toISOString() }
-        : notification));
+      const res = await api.getMyNotifications();
+      setNotifications(res.notifications);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to update notification.");
+      setError(err instanceof ApiError ? err.message : "Failed to load notifications.");
     } finally {
-      setBusyId(null);
+      setLoading(false);
     }
   };
 
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const handleMarkRead = async (notificationId: string) => {
+    try {
+      await api.markNotificationRead(notificationId);
+      await loadNotifications();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update notification.");
+    }
+  };
+
+  if (loading) {
+    return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+  }
 
   return (
-    <div className="patient-page patient-notifications-page animate-fade-in">
-      <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Care updates</span><h1>Notifications</h1><p>Messages, reminders, and feedback from your care team.</p></div>
-        {unreadCount > 0 && <span className="patient-unread-count"><BellRing /> {unreadCount} new</span>}
-      </header>
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div>
+        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Notifications</h1>
+        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
+          Follow up on doctor feedback, reminders, and care updates.
+        </p>
+      </div>
 
-      {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
-
-      {loading ? (
-        <div className="patient-page-loading"><LoaderCircle className="recorder-spin" /><span>Loading your updates…</span></div>
-      ) : orderedNotifications.length === 0 ? (
-        <Card className="patient-notification-empty"><CardContent><span><Check /></span><strong>You&apos;re all caught up</strong><p>New messages and reminders will appear here.</p></CardContent></Card>
-      ) : (
-        <Card className="patient-notification-card">
-          <CardContent className="patient-notification-list">
-            {orderedNotifications.map((notification) => (
-              <article className={`patient-notification-row ${notification.isRead ? "" : "patient-notification-unread"}`} key={notification.id}>
-                <span className="patient-notification-icon"><NotificationIcon type={notification.type} /></span>
-                <div className="patient-notification-copy">
-                  <div><strong>{notification.title}</strong>{!notification.isRead && <i>New</i>}</div>
-                  <p>{notification.body}</p>
-                  <time>{formatDate(notification.createdAt)}</time>
-                </div>
-                <div className="patient-notification-actions">
-                  {!notification.isRead && (
-                    <Button variant="ghost" onClick={() => handleMarkRead(notification.id)} disabled={busyId === notification.id}>
-                      {busyId === notification.id ? <LoaderCircle className="recorder-spin" /> : <Check />} Mark read
-                    </Button>
-                  )}
-                  {notification.link && <Button variant="outline" nativeButton={false} render={<Link href={notification.link} />}>Open <ChevronRight /></Button>}
-                </div>
-              </article>
-            ))}
-          </CardContent>
-        </Card>
+      {error && (
+        <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
+          {error}
+        </div>
       )}
+
+      <div className="card" style={{ padding: "24px" }}>
+        <NotificationsPanel notifications={notifications} onMarkRead={handleMarkRead} />
+      </div>
     </div>
   );
 }

@@ -274,7 +274,7 @@ function guidanceMessage(
     justCompletedRepetition: boolean,
 ): string {
     if (justCompletedRepetition) {
-        return "Keep it up. Nice control—reset slowly, then raise both arms again.";
+        return `Repetition ${state.repetitions} complete. Raise both arms when ready.`;
     }
 
     switch (state.phase) {

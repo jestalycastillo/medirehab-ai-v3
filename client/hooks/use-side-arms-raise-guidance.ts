@@ -44,23 +44,6 @@ const WASM_BASE_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0
 const MODEL_ASSET_PATH = "/models/pose_landmarker_lite.task";
 
 type LiveGuidanceStatus = "disabled" | "loading" | "ready" | "error";
-type LiveGuidanceMode = "framing" | "exercise";
-
-const FRAMING_PROMPT = "Move into frame until the required body points are visible.";
-
-function getFramingMessage(points: ExerciseKeyPointVisibility[]): string {
-    const missing = points.filter((point) => !point.isVisible);
-    if (missing.length === points.length) return FRAMING_PROMPT;
-    if (missing.length === 0) {
-        return "The required body points are visible. Start recording when you’re ready.";
-    }
-
-    const labels = missing.map((point) => point.label.toLowerCase());
-    const missingLabels = labels.length === 1
-        ? labels[0]
-        : `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}`;
-    return `Adjust your position so your ${missingLabels} ${missing.length === 1 ? "is" : "are"} visible.`;
-}
 
 export type LiveGuidanceIssue = SideArmsRaiseGuidanceIssue | ShoulderFlexionGuidanceIssue | ShoulderAbductionGuidanceIssue;
 export type LiveGuidanceEvent = SideArmsRaiseGuidanceEvent | ShoulderFlexionGuidanceEvent | ShoulderAbductionGuidanceEvent;
@@ -78,8 +61,6 @@ export interface LiveGuidanceView {
 }
 
 const DISABLED_VIEW: LiveGuidanceView = {
-    mode: "exercise",
-    exerciseName: "Side Arms Raise",
     status: "disabled",
     message: "",
     repetitions: 0,
@@ -97,16 +78,6 @@ export function supportsExerciseLiveGuidance(exerciseName: string): boolean {
         supportsShoulderFlexionGuidance(exerciseName) ||
         supportsShoulderAbductionGuidance(exerciseName)
     );
-}
-
-function getFramingLoadingView(exerciseName: string): LiveGuidanceView {
-    return {
-        ...LOADING_VIEW,
-        mode: "framing",
-        exerciseName,
-        message: "Checking your position…",
-        keyPoints: getRequiredExerciseKeyPointVisibility(exerciseName, null),
-    };
 }
 
 export function useSideArmsRaiseGuidance(
@@ -171,8 +142,6 @@ export function useSideArmsRaiseGuidance(
             workerReady = false;
             framePending = false;
             setView({
-                mode,
-                exerciseName,
                 status: "error",
                 message: "Live guidance is unavailable. Recording still works.",
                 repetitions: isFlexion ? flexionStateRef.current.repetitions : sideArmsStateRef.current.repetitions,
@@ -200,8 +169,6 @@ export function useSideArmsRaiseGuidance(
                     true,
                 );
                 setView({
-                    mode,
-                    exerciseName,
                     status: "ready",
                     message,
                     repetitions: 0,

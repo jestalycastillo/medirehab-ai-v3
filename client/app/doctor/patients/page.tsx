@@ -200,29 +200,29 @@ export default function DoctorPatientsPage() {
 
       <div className="card" style={{ padding: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <div className="account-tabs" role="group" aria-label="Patient account status">
+          <div className="account-tabs" role="tablist" aria-label="Patient account status">
             <button
               type="button"
               className={`account-tab ${accountTab === "ACTIVE" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ACTIVE")}
-              aria-pressed={accountTab === "ACTIVE"}
-              aria-label={`Current accounts, ${activeAccountCount}`}
-              title="Current accounts"
+              role="tab"
+              aria-selected={accountTab === "ACTIVE"}
+              aria-label={`Active accounts, ${activeAccountCount}`}
+              title="Active accounts"
             >
               <ActiveAccountsIcon />
-              <span>Current</span>
               <span className="account-tab-count">{activeAccountCount}</span>
             </button>
             <button
               type="button"
               className={`account-tab ${accountTab === "ARCHIVED" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ARCHIVED")}
-              aria-pressed={accountTab === "ARCHIVED"}
+              role="tab"
+              aria-selected={accountTab === "ARCHIVED"}
               aria-label={`Archived accounts, ${archivedAccountCount}`}
               title="Archived accounts"
             >
               <ArchivedAccountsIcon />
-              <span>Archived</span>
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
