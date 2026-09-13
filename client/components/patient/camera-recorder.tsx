@@ -848,6 +848,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                                {targetSide && !recordedUrl && (
+                                    <span className="recorder-active-arm" aria-live="polite">
+                                        {isRecording ? "Recording" : recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
+                                    </span>
+                                )}
                                 <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
                                     {targetDurationSeconds ? `Time goal: ${formatTime(targetDurationSeconds)}${isSideSelectable ? " per arm" : ""}` : "No prescribed time goal"}
                                     {minimumDurationSeconds ? ` · Minimum to count: ${formatTime(minimumDurationSeconds)}` : ""}
@@ -965,12 +970,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                         muted
                                         className="recorder-video"
                                     />
-                                    <div className="recorder-frame-guide" aria-hidden="true">
-                                        <span />
-                                        <span />
-                                        <span />
-                                        <span />
-                                    </div>
 
                                     {!stream && !isRecording && countdown === null && !isCameraStarting && (
                                         <button
@@ -1074,40 +1073,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                             ) : (
                                                 <span>REC · {formatTime(elapsedSeconds)}</span>
                                             )}
-                                        </div>
-                                    )}
-
-                                    {/* Arm selection indicator on video feed */}
-                                    {targetSide && (
-                                        <div
-                                            style={{
-                                                position: "absolute",
-                                                top: isRecording ? "52px" : "16px",
-                                                left: "16px",
-                                                backgroundColor: "rgba(15, 23, 42, 0.75)",
-                                                backdropFilter: "blur(4px)",
-                                                padding: "5px 11px",
-                                                borderRadius: "9999px",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "6px",
-                                                fontSize: "11px",
-                                                fontWeight: 700,
-                                                color: "#FFF",
-                                                zIndex: 10,
-                                                border: "1px solid rgba(255, 255, 255, 0.15)",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    width: "6px",
-                                                    height: "6px",
-                                                    borderRadius: "50%",
-                                                    backgroundColor: "#2DD4BF",
-                                                    display: "inline-block",
-                                                }}
-                                            />
-                                            {targetSide === "left" ? "Left Arm" : "Right Arm"}
                                         </div>
                                     )}
 

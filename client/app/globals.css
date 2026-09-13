@@ -427,6 +427,20 @@ body {
   text-transform: uppercase;
 }
 
+.recorder-active-arm {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
 .recorder-phase {
   display: inline-flex;
   align-items: center;
@@ -537,6 +551,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: center center;
   transform: scaleX(-1);
 }
 
@@ -841,9 +856,11 @@ body {
   display: flex;
   width: 250px;
   max-width: calc(100% - 32px);
-  padding: 24px 28px;
+  height: 92px;
+  padding: 0;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   border: 0;
   background: transparent;
   color: #fff;
@@ -891,17 +908,27 @@ body {
 }
 
 .recorder-start-label {
-  margin-top: 42px;
+  position: absolute;
+  top: 132px;
+  left: 50%;
+  width: 100%;
   font-size: 16px;
   font-weight: 750;
   letter-spacing: -0.01em;
+  text-align: center;
+  transform: translateX(-50%);
 }
 
 .recorder-start-helper {
-  margin-top: 3px;
+  position: absolute;
+  top: 158px;
+  left: 50%;
+  width: 100%;
   color: rgba(255, 255, 255, 0.58);
   font-size: 11px;
   font-weight: 550;
+  text-align: center;
+  transform: translateX(-50%);
 }
 
 .recorder-center-start:hover .recorder-start-orb {
@@ -933,49 +960,6 @@ body {
 
 .recorder-spin {
   animation: spin 900ms linear infinite;
-}
-
-.recorder-frame-guide {
-  position: absolute;
-  inset: 9%;
-  z-index: 4;
-  pointer-events: none;
-}
-
-.recorder-frame-guide span {
-  position: absolute;
-  width: 36px;
-  height: 36px;
-  border-color: rgba(94, 234, 212, 0.72);
-  border-style: solid;
-}
-
-.recorder-frame-guide span:nth-child(1) {
-  top: 0;
-  left: 0;
-  border-width: 2px 0 0 2px;
-  border-radius: 8px 0 0;
-}
-
-.recorder-frame-guide span:nth-child(2) {
-  top: 0;
-  right: 0;
-  border-width: 2px 2px 0 0;
-  border-radius: 0 8px 0 0;
-}
-
-.recorder-frame-guide span:nth-child(3) {
-  bottom: 0;
-  left: 0;
-  border-width: 0 0 2px 2px;
-  border-radius: 0 0 0 8px;
-}
-
-.recorder-frame-guide span:nth-child(4) {
-  right: 0;
-  bottom: 0;
-  border-width: 0 2px 2px 0;
-  border-radius: 0 0 8px;
 }
 
 .live-guidance-pill {
