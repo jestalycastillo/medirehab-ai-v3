@@ -14,6 +14,7 @@ const exerciseSelect = {
     id: true,
     name: true,
     description: true,
+    analysisModelKey: true,
     isActive: true,
     archivedAt: true,
     images: {
@@ -169,6 +170,7 @@ export const createExercise = async (input: ValidatedCreateExerciseInput) => {
         data: {
             name: input.name,
             description: input.description,
+            ...(input.analysisModelKey !== undefined ? { analysisModelKey: input.analysisModelKey } : {}),
             images: {
                 create: toImageCreateMany(input)
             }
@@ -210,6 +212,7 @@ export const updateExercise = async (
             data: {
                 ...(input.name !== undefined ? { name: input.name } : {}),
                 ...(input.description !== undefined ? { description: input.description } : {}),
+                ...(input.analysisModelKey !== undefined ? { analysisModelKey: input.analysisModelKey } : {}),
                 ...(input.images !== undefined
                     ? { images: { create: toImageCreateMany(input) } }
                     : {})
@@ -535,7 +538,8 @@ export const evaluateExercise = async (
     exerciseId: string,
     assignmentId: string,
     videoBuffer: Buffer,
-    videoContentType: string
+    videoContentType: string,
+    selectedSide?: "left" | "right" | string
 ) => {
     const assignment = await prisma.exerciseAssignment.findFirst({
         where: {
@@ -574,6 +578,13 @@ export const evaluateExercise = async (
         throw new HttpError(400, "Exercise recording is empty.");
     }
 
+    let targetModelKey = modelKey;
+    if (modelKey === "shoulder_flexion") {
+        targetModelKey = selectedSide?.toLowerCase() === "right" ? "right_flexion" : "left_flexion";
+    } else if (modelKey === "shoulder_abduction") {
+        targetModelKey = selectedSide?.toLowerCase() === "right" ? "right_abduction" : "left_abduction";
+    }
+
     const uint8Array = new Uint8Array(videoBuffer);
     const formData = new FormData();
     formData.append(
@@ -583,7 +594,7 @@ export const evaluateExercise = async (
     );
 
     const aiServiceBaseUrl = getAiServiceBaseUrl();
-    const encodedModelKey = encodeURIComponent(modelKey);
+    const encodedModelKey = encodeURIComponent(targetModelKey);
     const evaluationResponse = await fetchAiService(
         `${aiServiceBaseUrl}/evaluate/${encodedModelKey}`,
         {

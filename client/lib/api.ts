@@ -60,6 +60,7 @@ export interface ApiExercise {
   id: string;
   name: string;
   description: string;
+  analysisModelKey?: string | null;
   archivedAt: string | null;
   images: ExerciseImage[];
 }
@@ -516,13 +517,14 @@ export const api = {
     return request<{ success: boolean; assignments: ExerciseAssignment[], patientUserId: string }>("/exercises/me/assigned");
   },
 
-  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string) {
+  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string, selectedSide?: "left" | "right") {
     return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
         "X-Recording-Duration-Seconds": String(durationSeconds),
         "X-Client-Session-Id": clientSessionId,
+        ...(selectedSide ? { "X-Selected-Side": selectedSide } : {}),
       },
       body: videoBlob,
     });
@@ -532,6 +534,7 @@ export const api = {
     exerciseId: string,
     assignmentId: string,
     event: "issue_resolved" | "repetition_completed",
+    side?: "left" | "right",
   ) {
     return request<{
       success: boolean;
@@ -539,7 +542,7 @@ export const api = {
       source: "ollama" | "fallback";
     }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/live-coaching`, {
       method: "POST",
-      body: JSON.stringify({ event }),
+      body: JSON.stringify({ event, side }),
     });
   },
 

@@ -110,13 +110,10 @@ export default function ExercisesPage() {
   }, []);
 
   const handleSaveExercise = async (data: { name: string; description: string; images: ExerciseImage[] }) => {
+    if (!editingExercise) return;
     setFormLoading(true);
     try {
-      if (editingExercise) {
-        await api.updateExercise(editingExercise.id, data);
-      } else {
-        await api.createExercise({ ...data, exercise: data.name });
-      }
+      await api.updateExercise(editingExercise.id, data);
       await loadExercises();
       setIsFormOpen(false);
       setEditingExercise(undefined);
@@ -209,18 +206,9 @@ export default function ExercisesPage() {
             Exercises
           </h1>
           <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Manage the platform&apos;s exercise catalog.
+            Platform built-in exercise catalog and AI analysis models.
           </p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setEditingExercise(undefined);
-            setIsFormOpen(true);
-          }}
-        >
-          <PlusIcon /> Add Exercise
-        </button>
       </div>
 
       <div className="card" style={{ padding: "20px" }}>

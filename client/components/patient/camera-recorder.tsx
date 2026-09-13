@@ -2,9 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
-import { exerciseSupportsKeyPointVisibility } from "@/lib/pose/exercise-key-points";
-import { supportsSideArmsRaiseGuidance } from "@/lib/pose/side-arms-raise-guidance";
+import { useSideArmsRaiseGuidance, supportsExerciseLiveGuidance } from "@/hooks/use-side-arms-raise-guidance";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
@@ -31,7 +29,18 @@ interface CameraRecorderProps {
     onSave?: (blob: Blob) => void;
 }
 
-const MAX_RECORDING_SECONDS = 20;
+type TimerOption = {
+    label: string;
+    seconds: number | null;
+};
+
+const TIMER_OPTIONS: TimerOption[] = [
+    { label: "No Timer", seconds: null },
+    { label: "20s", seconds: 20 },
+    { label: "30s", seconds: 30 },
+    { label: "1 min", seconds: 60 },
+];
+
 const LIVE_COACHING_COOLDOWN_MS = 7_000;
 const LIVE_GUIDANCE_SPEECH_COOLDOWN_MS = 2_500;
 const MAX_AI_COACHING_SPEECH_LATENCY_MS = 5_000;
@@ -73,7 +82,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
     const [checkInMessage, setCheckInMessage] = useState<string | null>(null);
     const [liveCoachingMessage, setLiveCoachingMessage] = useState<string | null>(null);
-    const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+    const [selectedSide, setSelectedSide] = useState<"left" | "right">("left");
+    const [selectedTimerSeconds, setSelectedTimerSeconds] = useState<number | null>(null);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+    const isSideSelectable =
+        exerciseName.toLowerCase().includes("flexion") ||
+        exerciseName.toLowerCase().includes("abduction");
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -81,7 +96,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const chunksRef = useRef<Blob[]>([]);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const elapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const blobRef = useRef<Blob | null>(null);
     const recordingStartedAtRef = useRef(0);
     const recordingDurationSecondsRef = useRef(0);
@@ -90,31 +105,19 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const isRecordingRef = useRef(false);
     const lastLiveCoachingAtRef = useRef(0);
     const liveCoachingRequestIdRef = useRef(0);
-    const liveGuidanceSpeechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const lastSpokenGuidanceRef = useRef("");
-    const lastSpokenGuidanceAtRef = useRef(0);
-    const isVoiceEnabledRef = useRef(true);
-    const isPreviewing =
-        isOpen &&
-        Boolean(stream) &&
-        !recordedUrl &&
-        !isRecording &&
-        countdown === null &&
-        !isFinalizingRecording;
+    const lastSpokenMessageRef = useRef("");
+    const lastSpokenAtRef = useRef(0);
     const liveGuidanceEnabled =
         isOpen &&
         Boolean(stream) &&
         !recordedUrl &&
-        (isPreviewing
-            ? exerciseSupportsKeyPointVisibility(exerciseName)
-            : supportsSideArmsRaiseGuidance(exerciseName));
+        supportsExerciseLiveGuidance(exerciseName);
     const liveGuidance = useSideArmsRaiseGuidance(
         liveGuidanceEnabled,
         videoRef,
-        isPreviewing ? "framing" : "exercise",
         exerciseName,
+        selectedSide,
     );
-    const recordingLimitSeconds = Math.min(300, Math.max(MAX_RECORDING_SECONDS, targetDurationSeconds ?? 0, minimumDurationSeconds ?? 0));
 
     useEffect(() => {
         isRecordingRef.current = isRecording;
@@ -178,49 +181,21 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 liveGuidance.message,
             ];
         }
+
+        // Speak live movement guidance when instruction changes
+        const now = Date.now();
+        if (
+            liveGuidance.message !== lastSpokenMessageRef.current &&
+            now - lastSpokenAtRef.current > 1_800
+        ) {
+            lastSpokenMessageRef.current = liveGuidance.message;
+            lastSpokenAtRef.current = now;
+            speakLiveCoaching(liveGuidance.message);
+        }
     }, [isRecording, liveGuidance.message, liveGuidance.status]);
 
     useEffect(() => {
-        if (
-            (!isRecording && !isPreviewing)
-            || !isVoiceEnabled
-            || liveGuidance.status !== "ready"
-            || !liveGuidance.message
-            || GUIDANCE_MESSAGES_TO_SKIP.has(liveGuidance.message)
-            || lastSpokenGuidanceRef.current === liveGuidance.message
-        ) {
-            return;
-        }
-
-        const speakGuidance = () => {
-            if ((!isRecordingRef.current && !isPreviewing) || !isVoiceEnabledRef.current) return;
-
-            lastSpokenGuidanceRef.current = liveGuidance.message;
-            lastSpokenGuidanceAtRef.current = Date.now();
-            speakLiveCoaching(liveGuidance.message);
-        };
-        const delay = Math.max(
-            0,
-            LIVE_GUIDANCE_SPEECH_COOLDOWN_MS
-                - (Date.now() - lastSpokenGuidanceAtRef.current),
-        );
-
-        if (delay === 0) {
-            speakGuidance();
-            return;
-        }
-
-        liveGuidanceSpeechTimeoutRef.current = setTimeout(speakGuidance, delay);
-        return () => {
-            if (liveGuidanceSpeechTimeoutRef.current) {
-                clearTimeout(liveGuidanceSpeechTimeoutRef.current);
-                liveGuidanceSpeechTimeoutRef.current = null;
-            }
-        };
-    }, [isPreviewing, isRecording, isVoiceEnabled, liveGuidance.message, liveGuidance.status]);
-
-    useEffect(() => {
-        if (!isRecording || !assignmentId || liveGuidance.status !== "ready") {
+        if (!isRecording || liveGuidance.status !== "ready") {
             return;
         }
 
@@ -240,41 +215,51 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         liveCoachingRequestIdRef.current = requestId;
         const requestedAt = Date.now();
 
-        api.requestLiveCoaching(exerciseId, assignmentId, event)
-            .then((response) => {
-                if (
-                    liveCoachingRequestIdRef.current !== requestId
-                    || !isRecordingRef.current
-                ) {
-                    return;
-                }
+        if (assignmentId) {
+            api.requestLiveCoaching(exerciseId, assignmentId, event, isSideSelectable ? selectedSide : undefined)
+                .then((response) => {
+                    if (
+                        liveCoachingRequestIdRef.current !== requestId
+                        || !isRecordingRef.current
+                    ) {
+                        return;
+                    }
 
-                setLiveCoachingMessage(response.message);
-                if (!liveGuidanceFeedbackRef.current.includes(response.message)) {
-                    liveGuidanceFeedbackRef.current = [
-                        ...liveGuidanceFeedbackRef.current,
-                        response.message,
-                    ];
-                }
-                if (
-                    isVoiceEnabledRef.current
-                    && Date.now() - requestedAt <= MAX_AI_COACHING_SPEECH_LATENCY_MS
-                    && Date.now() - lastSpokenGuidanceAtRef.current >= LIVE_GUIDANCE_SPEECH_COOLDOWN_MS
-                    && !isLiveCoachingPlaybackActive()
-                ) {
+                    setLiveCoachingMessage(response.message);
+                    if (!liveGuidanceFeedbackRef.current.includes(response.message)) {
+                        liveGuidanceFeedbackRef.current = [
+                            ...liveGuidanceFeedbackRef.current,
+                            response.message,
+                        ];
+                    }
+                    lastSpokenMessageRef.current = response.message;
+                    lastSpokenAtRef.current = Date.now();
                     speakLiveCoaching(response.message);
-                }
-            })
-            .catch((coachingError: unknown) => {
-                console.warn(
-                    "Failed to load live coaching:",
-                    getErrorMessage(coachingError, "Unknown error"),
-                );
-            });
+                })
+                .catch(() => {
+                    const fallbackMsg = event === "repetition_completed"
+                        ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
+                        : "Nice adjustment. Keep moving with steady control.";
+                    setLiveCoachingMessage(fallbackMsg);
+                    lastSpokenMessageRef.current = fallbackMsg;
+                    lastSpokenAtRef.current = Date.now();
+                    speakLiveCoaching(fallbackMsg);
+                });
+        } else {
+            const fallbackMsg = event === "repetition_completed"
+                ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
+                : "Nice adjustment. Keep moving with steady control.";
+            setLiveCoachingMessage(fallbackMsg);
+            lastSpokenMessageRef.current = fallbackMsg;
+            lastSpokenAtRef.current = Date.now();
+            speakLiveCoaching(fallbackMsg);
+        }
     }, [
         assignmentId,
         exerciseId,
         isRecording,
+        isSideSelectable,
+        selectedSide,
         liveGuidance.justCompletedRepetition,
         liveGuidance.resolvedIssues,
         liveGuidance.status,
@@ -294,13 +279,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (recordingTimeoutRef.current) {
                 clearTimeout(recordingTimeoutRef.current);
             }
-            if (recordingTimerRef.current) {
-                clearInterval(recordingTimerRef.current);
+            if (elapsedIntervalRef.current) {
+                clearInterval(elapsedIntervalRef.current);
             }
-            if (liveGuidanceSpeechTimeoutRef.current) {
-                clearTimeout(liveGuidanceSpeechTimeoutRef.current);
-            }
-            stopLiveCoachingPlayback();
         };
     }, []);
 
@@ -363,12 +344,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     };
 
     const stopCamera = () => {
-        const activeStream = streamRef.current ?? stream;
-        if (activeStream) {
-            activeStream.getTracks().forEach((track) => track.stop());
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
-            setStream(null);
         }
+        setStream(null);
         if (videoRef.current) {
             videoRef.current.srcObject = null;
         }
@@ -390,10 +370,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             clearTimeout(recordingTimeoutRef.current);
             recordingTimeoutRef.current = null;
         }
-        if (liveGuidanceSpeechTimeoutRef.current) {
-            clearTimeout(liveGuidanceSpeechTimeoutRef.current);
-            liveGuidanceSpeechTimeoutRef.current = null;
+        if (elapsedIntervalRef.current) {
+            clearInterval(elapsedIntervalRef.current);
+            elapsedIntervalRef.current = null;
         }
+        setElapsedSeconds(0);
         setCountdown(null);
         setIsRecording(false);
         setIsFinalizingRecording(false);
@@ -453,65 +434,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }, 1000);
     };
 
-    const handleStartCamera = async () => {
-        if (isCameraStarting) return;
-        if (streamRef.current) {
-            if (streamRef.current.getVideoTracks().some((track) => track.readyState === "live")) {
-                setError(null);
-                setCameraAccessIssue(null);
-                return;
-            }
-            stopCamera();
-        }
-        setIsCameraStarting(true);
-        setError(null);
-        setCameraAccessIssue(null);
-
-        try {
-            const { consent } = await api.getMyConsent();
-            if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
-                setCameraAccessIssue("consent");
-                setError("Before using the camera, allow MediRehab to process your rehabilitation data and record exercises for evaluation. Opening the camera will only show a preview; recording starts when you press Start Recording. You can revoke consent later in Profile.");
-                setIsCameraStarting(false);
-                return;
-            }
-
-            await startCamera();
-        } catch {
-            setIsCameraStarting(false);
-            setCameraAccessIssue("verification");
-            setError("Unable to verify camera consent. Please try again.");
-        }
-    };
-
-    const handleStartRecording = () => {
-        const activeStream = streamRef.current ?? stream;
-        if (!activeStream || isCameraStarting || countdown !== null || isRecording) return;
-        initiateCountdown(activeStream);
-    };
-
-    const handleCameraRecovery = async () => {
-        if (isCameraStarting) return;
-
-        if (cameraAccessIssue !== "consent") {
-            await handleStartCamera();
-            return;
-        }
-
-        setIsCameraStarting(true);
-        setError(null);
-        try {
-            await api.updateMyConsent(true, true);
-            await startCamera();
-        } catch {
-            setIsCameraStarting(false);
-            setCameraAccessIssue("verification");
-            setError("Unable to save camera consent. Please try again or update it in Profile.");
-        }
-    };
-
-    const startRecording = (cameraStream: MediaStream | null = stream) => {
-        if (!cameraStream) return;
+    const startRecording = () => {
+        const activeStream = streamRef.current || stream;
+        if (!activeStream) return;
         chunksRef.current = [];
         setIsFinalizingRecording(false);
         setRecordingElapsedSeconds(0);
@@ -523,13 +448,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         lastSpokenGuidanceAtRef.current = 0;
 
         try {
-            const options = { mimeType: "video/webm;codecs=vp9" };
+            const preferredMimeType = getPreferredMimeType();
             let recorder: MediaRecorder;
             try {
-                recorder = new MediaRecorder(cameraStream, options);
+                recorder = preferredMimeType ? new MediaRecorder(activeStream, { mimeType: preferredMimeType }) : new MediaRecorder(activeStream);
             } catch {
-                // Fallback for browsers that don't support VP9
-                recorder = new MediaRecorder(cameraStream);
+                // Fallback for browsers
+                recorder = new MediaRecorder(activeStream);
             }
 
             recorder.ondataavailable = (e) => {
@@ -538,53 +463,67 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 }
             };
 
+            recorder.onerror = (e) => {
+                console.error("MediaRecorder error:", e);
+            };
+
             recorder.onstop = () => {
-                isRecordingRef.current = false;
-                liveCoachingRequestIdRef.current += 1;
-                if (liveGuidanceSpeechTimeoutRef.current) {
-                    clearTimeout(liveGuidanceSpeechTimeoutRef.current);
-                    liveGuidanceSpeechTimeoutRef.current = null;
-                }
-                stopLiveCoachingPlayback();
-                if (assignmentId) {
-                    void api.stopExerciseActivity(assignmentId).catch(() => undefined);
-                }
-                if (recordingTimeoutRef.current) {
-                    clearTimeout(recordingTimeoutRef.current);
-                    recordingTimeoutRef.current = null;
-                }
-                const mimeType = recorder.mimeType || "video/webm";
-                recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
-                setRecordingElapsedSeconds(recordingDurationSecondsRef.current);
-                const blob = new Blob(chunksRef.current, { type: mimeType });
-                blobRef.current = blob;
-                const url = URL.createObjectURL(blob);
-                setRecordedUrl(url);
-                setIsFinalizingRecording(false);
-                stopCamera();
-                if (onSave) {
-                    onSave(blob);
+                try {
+                    if (assignmentId) {
+                        void api.stopExerciseActivity(assignmentId).catch(() => undefined);
+                    }
+                    if (recordingTimeoutRef.current) {
+                        clearTimeout(recordingTimeoutRef.current);
+                        recordingTimeoutRef.current = null;
+                    }
+                    if (elapsedIntervalRef.current) {
+                        clearInterval(elapsedIntervalRef.current);
+                        elapsedIntervalRef.current = null;
+                    }
+                    setIsRecording(false);
+                    const mimeType = recorder.mimeType || "video/webm";
+                    recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
+                    const blob = new Blob(chunksRef.current, { type: mimeType });
+                    blobRef.current = blob;
+                    const url = URL.createObjectURL(blob);
+                    setRecordedUrl(url);
+                    stopCamera();
+                    if (onSave) {
+                        onSave(blob);
+                    }
+                } catch (err) {
+                    console.error("Error finalizing recording:", err);
+                    setError("Failed to finalize video recording.");
                 }
             };
 
             mediaRecorderRef.current = recorder;
             recordingStartedAtRef.current = Date.now();
+            setElapsedSeconds(0);
+            if (elapsedIntervalRef.current) {
+                clearInterval(elapsedIntervalRef.current);
+            }
+            elapsedIntervalRef.current = setInterval(() => {
+                setElapsedSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)));
+            }, 250);
+
             clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            recorder.start(); // Start recording without timeslice for maximum stability
+            recorder.start(1000); // 1000ms timeslice to flush chunks periodically
             setIsRecording(true);
             if (assignmentId) {
                 void api.startExerciseActivity(assignmentId).catch(() => undefined);
             }
-            recordingTimeoutRef.current = setTimeout(() => {
-                if (recorder.state === "recording") {
-                    isRecordingRef.current = false;
-                    setIsFinalizingRecording(true);
-                    liveCoachingRequestIdRef.current += 1;
-                    stopLiveCoachingPlayback();
-                    recorder.stop();
-                    setIsRecording(false);
-                }
-            }, recordingLimitSeconds * 1000);
+
+            if (selectedTimerSeconds !== null && selectedTimerSeconds > 0) {
+                recordingTimeoutRef.current = setTimeout(() => {
+                    if (recorder.state === "recording") {
+                        liveCoachingRequestIdRef.current += 1;
+                        recorder.stop();
+                    }
+                }, selectedTimerSeconds * 1000);
+            } else {
+                recordingTimeoutRef.current = null;
+            }
         } catch (err) {
             console.error("Failed to start recording:", err);
             setError("Failed to initialize video recording.");
@@ -596,17 +535,18 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             clearTimeout(recordingTimeoutRef.current);
             recordingTimeoutRef.current = null;
         }
-        if (mediaRecorderRef.current && isRecording) {
-            isRecordingRef.current = false;
-            setIsFinalizingRecording(true);
-            liveCoachingRequestIdRef.current += 1;
-            if (liveGuidanceSpeechTimeoutRef.current) {
-                clearTimeout(liveGuidanceSpeechTimeoutRef.current);
-                liveGuidanceSpeechTimeoutRef.current = null;
+        if (elapsedIntervalRef.current) {
+            clearInterval(elapsedIntervalRef.current);
+            elapsedIntervalRef.current = null;
+        }
+        liveCoachingRequestIdRef.current += 1;
+        stopLiveCoachingPlayback();
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+            try {
+                mediaRecorderRef.current.stop();
+            } catch (err) {
+                console.error("Error stopping media recorder:", err);
             }
-            stopLiveCoachingPlayback();
-            mediaRecorderRef.current.stop();
-            setIsRecording(false);
         }
     };
 
@@ -619,7 +559,14 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsEvaluating(true);
         setError(null);
         try {
-            const res = await api.evaluateExercise(exerciseId, assignmentId, blobRef.current, recordingDurationSecondsRef.current, clientSessionIdRef.current);
+            const res = await api.evaluateExercise(
+                exerciseId,
+                assignmentId,
+                blobRef.current,
+                recordingDurationSecondsRef.current,
+                clientSessionIdRef.current,
+                isSideSelectable ? selectedSide : undefined
+            );
             if (res.success) {
                 setEvaluationScore(res.score);
                 setSessionId(res.sessionId);
@@ -802,12 +749,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         {/* Header */}
                         <div
                             style={{
-                                padding: "18px 20px",
+                                padding: "14px 20px",
                                 borderBottom: "1px solid var(--color-border)",
                                 display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "center",
-                                gap: "16px",
+                                gap: "12px",
+                                flexWrap: "wrap",
                             }}
                         >
                             <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
@@ -821,45 +769,142 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     </h3>
                                 </div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-                                <div className={`recorder-phase recorder-phase-${recorderPhaseTone}`} aria-live="polite">
-                                    <span className="recorder-phase-dot" />
-                                    {recorderPhase}
-                                </div>
-                                <Button
-                                    type="button"
-                                    onClick={handleClose}
-                                    variant="ghost"
-                                    size="icon"
-                                    aria-label="Close recorder"
-                                    disabled={isEvaluating}
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                                {isSideSelectable && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            backgroundColor: "rgba(15, 23, 42, 0.06)",
+                                            padding: "3px",
+                                            borderRadius: "8px",
+                                            border: "1px solid var(--color-border)",
+                                            gap: "2px",
+                                        }}
+                                    >
+                                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-text-muted)", padding: "0 6px" }}>
+                                            Arm:
+                                        </span>
+                                        <button
+                                            type="button"
+                                            disabled={isRecording || isEvaluating || countdown !== null}
+                                            onClick={() => setSelectedSide("left")}
+                                            style={{
+                                                padding: "5px 12px",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                borderRadius: "6px",
+                                                border: "none",
+                                                cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
+                                                backgroundColor: selectedSide === "left" ? "var(--color-primary, #0D9488)" : "transparent",
+                                                color: selectedSide === "left" ? "#FFF" : "var(--color-text-secondary, #475569)",
+                                                transition: "all 0.15s ease",
+                                                boxShadow: selectedSide === "left" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
+                                            }}
+                                        >
+                                            Left Arm
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={isRecording || isEvaluating || countdown !== null}
+                                            onClick={() => setSelectedSide("right")}
+                                            style={{
+                                                padding: "5px 12px",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                borderRadius: "6px",
+                                                border: "none",
+                                                cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
+                                                backgroundColor: selectedSide === "right" ? "var(--color-primary, #0D9488)" : "transparent",
+                                                color: selectedSide === "right" ? "#FFF" : "var(--color-text-secondary, #475569)",
+                                                transition: "all 0.15s ease",
+                                                boxShadow: selectedSide === "right" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
+                                            }}
+                                        >
+                                            Right Arm
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Timer Mode Selector */}
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        backgroundColor: "rgba(15, 23, 42, 0.06)",
+                                        padding: "3px",
+                                        borderRadius: "8px",
+                                        border: "1px solid var(--color-border)",
+                                        gap: "2px",
+                                    }}
                                 >
-                                    <X />
-                                </Button>
+                                    <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-text-muted)", padding: "0 6px" }}>
+                                        Timer:
+                                    </span>
+                                    {TIMER_OPTIONS.map((opt) => {
+                                        const isSelected = selectedTimerSeconds === opt.seconds;
+                                        return (
+                                            <button
+                                                key={opt.label}
+                                                type="button"
+                                                disabled={isRecording || isEvaluating || countdown !== null}
+                                                onClick={() => setSelectedTimerSeconds(opt.seconds)}
+                                                style={{
+                                                    padding: "5px 10px",
+                                                    fontSize: "12px",
+                                                    fontWeight: 600,
+                                                    borderRadius: "6px",
+                                                    border: "none",
+                                                    cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
+                                                    backgroundColor: isSelected ? "var(--color-primary, #0D9488)" : "transparent",
+                                                    color: isSelected ? "#FFF" : "var(--color-text-secondary, #475569)",
+                                                    transition: "all 0.15s ease",
+                                                    boxShadow: isSelected ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
+                                                }}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={handleClose}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        color: "var(--color-text-muted)",
+                                        padding: "4px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "50%",
+                                    }}
+                                    className="btn-secondary"
+                                    aria-label="Close dialog"
+                                >
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
-                        <div className="recorder-prep-bar">
-                            <span><Camera size={16} /> Keep your movement in view</span>
-                            <span><Clock3 size={16} /> Up to {formatRecordingTime(recordingLimitSeconds)}</span>
-                            <span><Sparkles size={16} /> Review before submitting</span>
-                        </div>
-
                         {/* Video Feed Workspace */}
-                        <div className={`recorder-workspace ${liveGuidanceEnabled ? "recorder-workspace-with-guidance" : ""}`}>
-                            <div
-                                className="recorder-video-stage"
-                                style={{
-                                    position: "relative",
-                                    backgroundColor: "#061311",
-                                    width: "100%",
-                                    flex: "1 1 0",
-                                    minHeight: 0,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                }}
-                            >
+                        <div
+                            style={{
+                                position: "relative",
+                                backgroundColor: "#000",
+                                width: "100%",
+                                flex: "1 1 0",
+                                minHeight: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
                             {error ? (
                                 <div className="recorder-empty-state" role="alert">
                                     <button
@@ -1017,9 +1062,72 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
                                     {/* Recording Status Overlay */}
                                     {isRecording && (
-                                        <div className="recorder-live-badge">
-                                            <span className="recorder-live-dot" />
-                                            REC&nbsp;&nbsp;{formatRecordingTime(recordingElapsedSeconds)} / {formatRecordingTime(recordingLimitSeconds)}
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "16px",
+                                                left: "16px",
+                                                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                                                padding: "6px 12px",
+                                                borderRadius: "9999px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "8px",
+                                                fontSize: "12px",
+                                                fontWeight: 600,
+                                                color: "#FFF",
+                                                zIndex: 10,
+                                            }}
+                                        >
+                                            <span
+                                                className="animate-pulse-subtle"
+                                                style={{
+                                                    width: "8px",
+                                                    height: "8px",
+                                                    borderRadius: "50%",
+                                                    backgroundColor: "#EF4444",
+                                                    display: "inline-block",
+                                                }}
+                                            />
+                                            {selectedTimerSeconds !== null ? (
+                                                <span>REC · {formatTime(elapsedSeconds)} / {formatTime(selectedTimerSeconds)}</span>
+                                            ) : (
+                                                <span>REC · {formatTime(elapsedSeconds)}</span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Arm selection indicator on video feed */}
+                                    {isSideSelectable && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: isRecording ? "52px" : "16px",
+                                                left: "16px",
+                                                backgroundColor: "rgba(15, 23, 42, 0.75)",
+                                                backdropFilter: "blur(4px)",
+                                                padding: "5px 11px",
+                                                borderRadius: "9999px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "6px",
+                                                fontSize: "11px",
+                                                fontWeight: 700,
+                                                color: "#FFF",
+                                                zIndex: 10,
+                                                border: "1px solid rgba(255, 255, 255, 0.15)",
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    width: "6px",
+                                                    height: "6px",
+                                                    borderRadius: "50%",
+                                                    backgroundColor: "#2DD4BF",
+                                                    display: "inline-block",
+                                                }}
+                                            />
+                                            Target: {selectedSide === "left" ? "Left Arm" : "Right Arm"}
                                         </div>
                                     )}
 
@@ -1330,4 +1438,26 @@ function stopLiveCoachingPlayback(): void {
     if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
     }
+}
+
+function formatTime(totalSeconds: number): string {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function getPreferredMimeType(): string | undefined {
+    if (typeof MediaRecorder === "undefined") return undefined;
+    const candidates = [
+        "video/webm;codecs=vp8",
+        "video/webm;codecs=vp9",
+        "video/webm",
+        "video/mp4",
+    ];
+    for (const candidate of candidates) {
+        if (MediaRecorder.isTypeSupported(candidate)) {
+            return candidate;
+        }
+    }
+    return undefined;
 }

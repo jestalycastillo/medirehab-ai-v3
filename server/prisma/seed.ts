@@ -17,6 +17,30 @@ const SIDE_ARMS_RAISE = {
     }
 };
 
+const SHOULDER_FLEXION = {
+    name: "Shoulder Flexion",
+    description:
+        "Stand upright with your arms at your sides. Select your target arm (left or right). Keeping your elbow straight, raise your arm forward and upward to shoulder height, then lower it slowly with control.",
+    analysisModelKey: "shoulder_flexion",
+    image: {
+        imageName: "Shoulder Flexion",
+        filepath: "/exercises/left_flexion.jpg"
+    }
+};
+
+const SHOULDER_ABDUCTION = {
+    name: "Shoulder Abduction",
+    description:
+        "Stand upright with your arms at your sides. Select your target arm (left or right). Keeping your elbow straight, raise your arm outward to the side up to shoulder height, then lower it slowly with control.",
+    analysisModelKey: "shoulder_abduction",
+    image: {
+        imageName: "Shoulder Abduction",
+        filepath: "/exercises/arms_raise.jpg"
+    }
+};
+
+const SEED_EXERCISES = [SIDE_ARMS_RAISE, SHOULDER_FLEXION, SHOULDER_ABDUCTION];
+
 const seedAdmin = async (): Promise<void> => {
     const email = process.env.SEED_ADMIN_EMAIL ?? DEFAULT_ADMIN_EMAIL;
     const password = process.env.SEED_ADMIN_PASSWORD ?? DEFAULT_ADMIN_PASSWORD;
@@ -51,35 +75,69 @@ const seedAdmin = async (): Promise<void> => {
 };
 
 const seedExerciseCatalog = async (): Promise<void> => {
-    const exercise = await prisma.exercise.upsert({
-        where: { name: SIDE_ARMS_RAISE.name },
-        update: {
-            description: SIDE_ARMS_RAISE.description,
-            analysisModelKey: SIDE_ARMS_RAISE.analysisModelKey,
-            isActive: true,
-            archivedAt: null,
-            images: {
-                deleteMany: {},
-                create: SIDE_ARMS_RAISE.image
-            }
-        },
-        create: {
-            name: SIDE_ARMS_RAISE.name,
-            description: SIDE_ARMS_RAISE.description,
-            analysisModelKey: SIDE_ARMS_RAISE.analysisModelKey,
-            images: {
-                create: SIDE_ARMS_RAISE.image
-            }
-        },
-        select: {
-            name: true,
-            analysisModelKey: true
-        }
+    const legacyExercise = await prisma.exercise.findFirst({
+        where: { name: "Arms Raise" }
     });
 
-    console.log(
-        `Seeded exercise: ${exercise.name} (${exercise.analysisModelKey})`
-    );
+    if (legacyExercise) {
+        await prisma.exercise.update({
+            where: { id: legacyExercise.id },
+            data: { name: SIDE_ARMS_RAISE.name }
+        });
+    }
+
+    // Clean up obsolete separate left/right flexion exercises if present
+    const obsoleteExercises = await prisma.exercise.findMany({
+        where: {
+            name: { in: ["Left Shoulder Flexion", "Right Shoulder Flexion"] }
+        },
+        include: { assignments: true }
+    });
+    for (const obs of obsoleteExercises) {
+        if (obs.assignments.length === 0) {
+            await prisma.exerciseImage.deleteMany({ where: { exerciseId: obs.id } });
+            await prisma.exercise.delete({ where: { id: obs.id } });
+            console.log(`Cleaned up obsolete separate exercise: ${obs.name}`);
+        } else {
+            await prisma.exercise.update({
+                where: { id: obs.id },
+                data: { isActive: false, archivedAt: new Date() }
+            });
+            console.log(`Archived obsolete separate exercise: ${obs.name}`);
+        }
+    }
+
+    for (const item of SEED_EXERCISES) {
+        const exercise = await prisma.exercise.upsert({
+            where: { name: item.name },
+            update: {
+                description: item.description,
+                analysisModelKey: item.analysisModelKey,
+                isActive: true,
+                archivedAt: null,
+                images: {
+                    deleteMany: {},
+                    create: item.image
+                }
+            },
+            create: {
+                name: item.name,
+                description: item.description,
+                analysisModelKey: item.analysisModelKey,
+                images: {
+                    create: item.image
+                }
+            },
+            select: {
+                name: true,
+                analysisModelKey: true
+            }
+        });
+
+        console.log(
+            `Seeded exercise: ${exercise.name} (${exercise.analysisModelKey})`
+        );
+    }
 };
 
 const main = async (): Promise<void> => {
