@@ -1250,8 +1250,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 </Button>
                             ) : recordedUrl ? (
                                 <>
-                                    <button
-                                        className="btn btn-secondary"
+                                    <Button
+                                        variant="outline"
                                         onClick={() => {
                                             setRecordedUrl((prev) => {
                                                 if (prev) URL.revokeObjectURL(prev);
