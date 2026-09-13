@@ -69,7 +69,8 @@ def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
         cap.release()
         raise VideoProcessingError("The exercise recording has invalid dimensions.")
 
-    fps = float(cap.get(cv2.CAP_PROP_FPS))
+    raw_fps = float(cap.get(cv2.CAP_PROP_FPS))
+    fps = 30.0 if (raw_fps <= 0.0 or raw_fps > 120.0) else raw_fps
     frame_count_hint = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     analysis_indices = _analysis_frame_indices(frame_count_hint)
     fallback_stride = max(
@@ -100,8 +101,7 @@ def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
                     total_frames in analysis_indices
                     if analysis_indices is not None
                     else (
-                        analyzed_frames < MAX_ANALYSIS_FRAMES
-                        and total_frames % fallback_stride == 0
+                        total_frames % fallback_stride == 0
                     )
                 )
 

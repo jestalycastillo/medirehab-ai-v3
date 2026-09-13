@@ -38,18 +38,21 @@ COACH_SYSTEM_PROMPT = " ".join(
 class LiveCoachingRequest(BaseModel):
     exercise_name: str = Field(min_length=1, max_length=120)
     event: Literal["issue_resolved", "repetition_completed"]
+    side: Literal["left", "right"] | None = None
 
 
-def _praise_for_event(event: str) -> str:
+def _praise_for_event(event: str, side: str | None = None) -> str:
+    arm_text = f" on the {side} arm" if side else ""
     if event == "issue_resolved":
-        return "The patient corrected a movement issue."
-    return "The patient completed a controlled repetition."
+        return f"The patient corrected a movement issue{arm_text}."
+    return f"The patient completed a controlled repetition{arm_text}."
 
 
-def _fallback_for_event(event: str) -> str:
+def _fallback_for_event(event: str, side: str | None = None) -> str:
+    side_text = f" on your {side} arm" if side else ""
     if event == "issue_resolved":
-        return "Nice adjustment. Keep moving with steady control."
-    return "Great control on that repetition. Keep the pace smooth."
+        return f"Nice adjustment{side_text}. Keep moving with steady control."
+    return f"Great control on that repetition{side_text}. Keep the pace smooth."
 
 
 def _ollama_base_url() -> str:
@@ -88,7 +91,7 @@ async def _request_coaching_message(request: LiveCoachingRequest) -> str | None:
                 "role": "user",
                 "content": (
                     f"Exercise: {request.exercise_name}\n"
-                    f"Verified praise: {_praise_for_event(request.event)}"
+                    f"Verified praise: {_praise_for_event(request.event, request.side)}"
                 ),
             },
         ],
@@ -118,6 +121,6 @@ async def create_live_coaching(request: LiveCoachingRequest):
 
     return {
         "success": True,
-        "message": _fallback_for_event(request.event),
+        "message": _fallback_for_event(request.event, request.side),
         "source": "fallback",
     }
