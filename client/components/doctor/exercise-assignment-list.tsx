@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { type AssignmentPlanUpdate, type ExerciseAssignment } from "@/lib/api";
-import { formatScore } from "@/lib/score";
+import { formatAssignmentScoreSummary } from "@/lib/score";
 import { AdherenceSummary } from "@/components/care/adherence-summary";
 
 function formatDate(value?: string) {
@@ -87,7 +87,7 @@ export function ExerciseAssignmentList({
                 </form>}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                <span className="badge badge-blue">Score {formatScore(assignment.result?.score)}</span>
+                <span className="badge badge-blue">{formatAssignmentScoreSummary(assignment)}</span>
                 <button className="btn btn-secondary" onClick={() => setEditingId(editingId === assignment.id ? null : assignment.id)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>Plan</button>
                 <button className="btn btn-danger" onClick={() => onRemove(assignment)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>
                   Remove

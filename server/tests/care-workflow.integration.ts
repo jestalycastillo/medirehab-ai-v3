@@ -1,5 +1,6 @@
 import "dotenv/config";
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import app from "../src/app";
 import { prisma } from "../src/lib/prisma";
@@ -146,18 +147,40 @@ async function main() {
         const flexion = available.payload.exercises.find((item: Json) => item.analysisModelKey === "shoulder_flexion");
         assert(flexion, "Shoulder Flexion must be available from the seeded catalog");
         const flexionAssignment = await request(`/exercises/patients/${patientId}/assignments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { exerciseId: flexion.id } });
-        await recordExerciseSession(patientId, flexionAssignment.payload.assignment.id, flexion.id, 91, ["Controlled flexion"], {
+        const visitId = randomUUID();
+        const leftFlexion = await recordExerciseSession(patientId, flexionAssignment.payload.assignment.id, flexion.id, 91, ["Controlled flexion"], {
             durationSeconds: 15,
             clientSessionId: `flexion-${suffix}`,
             evaluatedModelKey: "left_flexion",
-            selectedSide: "left"
+            selectedSide: "left",
+            visitId
         });
+        const rightFlexion = await recordExerciseSession(patientId, flexionAssignment.payload.assignment.id, flexion.id, 86, ["Controlled flexion"], {
+            durationSeconds: 16,
+            clientSessionId: `right-flexion-${suffix}`,
+            evaluatedModelKey: "right_flexion",
+            selectedSide: "right",
+            visitId
+        });
+        assert.equal(rightFlexion.visitId, visitId);
+        const repeatedFlexion = await recordExerciseSession(patientId, flexionAssignment.payload.assignment.id, flexion.id, 86, [], {
+            clientSessionId: `right-flexion-${suffix}`, selectedSide: "right", visitId
+        });
+        assert.equal(repeatedFlexion.id, rightFlexion.id);
+        await assert.rejects(() => recordExerciseSession(patientId, flexionAssignment.payload.assignment.id, flexion.id, 90, [], {
+            clientSessionId: `another-left-${suffix}`, selectedSide: "left", visitId
+        }), /already been recorded/);
         const doctorModelSessions = await request(`/care/patients/${patientId}/sessions`, { cookie: doctor.cookie });
         const flexionSession = doctorModelSessions.payload.sessions.find((item: Json) => item.assignment.exercise.id === flexion.id);
-        assert.equal(flexionSession.evaluatedModelKey, "left_flexion");
-        assert.equal(flexionSession.selectedSide, "left");
+        assert.equal(flexionSession.visitId, visitId);
+        assert.deepEqual(new Set(doctorModelSessions.payload.sessions.filter((item: Json) => item.visitId === visitId).map((item: Json) => item.selectedSide)), new Set(["left", "right"]));
+        const flexionWithAdherence = await request("/exercises/me/assigned", { cookie: patientCookie });
+        const flexionPlan = flexionWithAdherence.payload.assignments.find((item: Json) => item.id === flexionAssignment.payload.assignment.id);
+        assert.equal(flexionPlan.adherence.currentWeek.completed, 1, "Both arms in one visit count once");
+        assert.deepEqual(flexionPlan.latestScoresBySide, { right: 86, left: 91 });
+        assert.equal(leftFlexion.selectedSide, "left");
 
-        console.log("Integration workflow passed: schedule, prescription, qualification, deduplication, adherence, alerts, chat, score, model history, check-in, comments, and authorization.");
+        console.log("Integration workflow passed: schedule, prescription, qualification, shared arm visits, adherence, alerts, chat, scores, check-in, comments, and authorization.");
     } finally {
         for (const id of createdUserIds.reverse()) {
             try {

@@ -68,7 +68,7 @@ export function CareTimeline({
                   Performed {formatDate(session.performedAt)}
                 </p>
               </div>
-              <span className="badge badge-blue">Score {formatScore(session.score ?? session.assignment.result?.score)}</span>
+              <span className="badge badge-blue">{session.score !== null ? `Score ${formatScore(session.score)}` : "Not scored"}</span>
             </div>
 
             <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: "14px" }}>
@@ -76,7 +76,7 @@ export function CareTimeline({
             </p>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <span className={`badge ${session.adherenceQualified === false ? "badge-amber" : "badge-green"}`}>{session.adherenceQualified === false ? "Not counted" : "Counted"}</span>
+              <span className={`badge ${session.adherenceQualified === false ? "badge-amber" : "badge-green"}`}>{session.adherenceQualified === false ? "Does not qualify" : session.visitId ? "Qualifies · visit counts once" : "Counted"}</span>
               {session.durationSeconds && <StatChip label="Duration" value={session.durationSeconds} />}
               <StatChip label="Pain" value={session.painLevel} />
               <StatChip label="Difficulty" value={session.difficultyLevel} />

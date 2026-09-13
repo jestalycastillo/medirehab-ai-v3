@@ -70,6 +70,7 @@ const sessionSelect = {
     score: true,
     evaluatedModelKey: true,
     selectedSide: true,
+    visitId: true,
     aiFeedback: true,
     painLevel: true,
     difficultyLevel: true,
@@ -339,13 +340,14 @@ export const recordExerciseSession = async (
         clientSessionId?: string;
         evaluatedModelKey?: string;
         selectedSide?: "left" | "right";
+        visitId?: string;
     } = {}
 ) => {
     const roundedScore = roundScore(score);
     if (options.clientSessionId) {
         const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId: options.clientSessionId }, select: sessionSelect });
         if (existing) {
-            if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId) {
+            if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId || (existing.visitId ?? null) !== (options.visitId ?? null) || (existing.selectedSide ?? null) !== (options.selectedSide ?? null)) {
                 throw new HttpError(409, "Session identifier is already in use.");
             }
             return { ...mapSession(existing), duplicate: true };
@@ -358,6 +360,25 @@ export const recordExerciseSession = async (
 
     if (assignment.exercise.id !== exerciseId) {
         throw new HttpError(404, "Exercise assignment not found.");
+    }
+
+    if (options.visitId) {
+        if (!options.selectedSide || !["shoulder_flexion", "shoulder_abduction"].includes(assignment.exercise.analysisModelKey ?? "")) {
+            throw new HttpError(400, "A shared visit is only available for side-selectable shoulder exercises.");
+        }
+        const siblings = await prisma.exerciseSession.findMany({
+            where: { visitId: options.visitId },
+            select: { assignmentId: true, patientUserId: true, selectedSide: true, performedAt: true }
+        });
+        if (siblings.some((sibling) => sibling.assignmentId !== assignmentId || sibling.patientUserId !== patientUserId)) {
+            throw new HttpError(409, "This visit belongs to another exercise assignment.");
+        }
+        if (siblings.some((sibling) => sibling.selectedSide === options.selectedSide)) {
+            throw new HttpError(409, "This arm has already been recorded for this visit.");
+        }
+        if (siblings.some((sibling) => Date.now() - sibling.performedAt.getTime() > 2 * 60 * 60 * 1000)) {
+            throw new HttpError(409, "This visit has expired. Start a new exercise visit.");
+        }
     }
 
     const qualificationReasons = [
@@ -375,6 +396,7 @@ export const recordExerciseSession = async (
                 score: roundedScore,
                 evaluatedModelKey: options.evaluatedModelKey ?? null,
                 selectedSide: options.selectedSide ?? null,
+                visitId: options.visitId ?? null,
                 aiFeedback,
                 ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
                 ...(options.clientSessionId !== undefined ? { clientSessionId: options.clientSessionId } : {}),
@@ -385,8 +407,16 @@ export const recordExerciseSession = async (
         });
     } catch (error) {
         if (options.clientSessionId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-            const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId: options.clientSessionId }, select: sessionSelect });
-            if (existing) return { ...mapSession(existing), duplicate: true };
+            const existing = await findRecordedExerciseSession(
+                patientUserId,
+                assignmentId,
+                exerciseId,
+                options.clientSessionId,
+                options.selectedSide,
+                options.visitId
+            );
+            if (existing) return { ...existing, duplicate: true };
+            if (options.visitId) throw new HttpError(409, "This arm has already been recorded for this visit.");
         }
         throw error;
     }
@@ -412,7 +442,7 @@ export const recordExerciseSession = async (
                 firstName: patientProfile.firstName,
                 lastName: patientProfile.lastName
             }
-        })} completed ${assignment.exercise.name}${options.selectedSide ? ` (${options.selectedSide} arm)` : ""} with a score of ${roundedScore.toFixed(2)}.${adherenceQualified ? " The session counted toward adherence." : ` The session did not count: ${qualificationReasons.join(" ")}`}`,
+        })} completed ${assignment.exercise.name}${options.selectedSide ? ` (${options.selectedSide} arm)` : ""} with a score of ${roundedScore.toFixed(2)}.${adherenceQualified ? options.visitId ? " This arm qualifies; the visit counts once toward adherence." : " The session counted toward adherence." : ` This arm did not qualify: ${qualificationReasons.join(" ")}`}`,
         link: `/doctor/patients/${patientUserId}`,
         meta: {
             assignmentId: assignment.id,
@@ -429,7 +459,8 @@ export const findRecordedExerciseSession = async (
     assignmentId: string,
     exerciseId: string,
     clientSessionId: string,
-    selectedSide?: "left" | "right"
+    selectedSide?: "left" | "right",
+    visitId?: string
 ) => {
     const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId }, select: sessionSelect });
     if (!existing) return null;
@@ -438,6 +469,9 @@ export const findRecordedExerciseSession = async (
     }
     if ((existing.selectedSide ?? null) !== (selectedSide ?? null)) {
         throw new HttpError(409, "This session was recorded for a different arm.");
+    }
+    if ((existing.visitId ?? null) !== (visitId ?? null)) {
+        throw new HttpError(409, "This session belongs to a different visit.");
     }
     return mapSession(existing);
 };

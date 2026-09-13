@@ -25,7 +25,7 @@ type AdherenceInput = {
     targetSessionsPerWeek: number;
     targetSessionsPerDay: number | null;
     scheduledDays?: number[];
-    sessions: { performedAt: Date; adherenceQualified?: boolean }[];
+    sessions: { id?: string; visitId?: string | null; performedAt: Date; adherenceQualified?: boolean }[];
 };
 
 const DAY_MS = 86_400_000;
@@ -66,11 +66,20 @@ const mondayOf = (key: string): string => {
 
 const daysBetweenInclusive = (start: string, end: string): number => Math.max(0, Math.round((fromKey(end).getTime() - fromKey(start).getTime()) / DAY_MS) + 1);
 
-const countByDate = (sessions: { performedAt: Date; adherenceQualified?: boolean }[], timeZone: string): Map<string, number> => {
+const countByDate = (sessions: AdherenceInput["sessions"], timeZone: string): Map<string, number> => {
     const counts = new Map<string, number>();
-    for (const session of sessions) {
-        if (session.adherenceQualified === false) continue;
-        const key = dateKey(session.performedAt, timeZone);
+    const visits = new Map<string, { performedAt: Date; qualified: boolean }>();
+    for (const [index, session] of sessions.entries()) {
+        const visitKey = session.visitId ?? `legacy:${session.id ?? index}`;
+        const prior = visits.get(visitKey);
+        visits.set(visitKey, {
+            performedAt: prior && prior.performedAt < session.performedAt ? prior.performedAt : session.performedAt,
+            qualified: Boolean(prior?.qualified || session.adherenceQualified !== false),
+        });
+    }
+    for (const visit of visits.values()) {
+        if (!visit.qualified) continue;
+        const key = dateKey(visit.performedAt, timeZone);
         counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;

@@ -337,7 +337,12 @@ export const evaluateExerciseAssignment = async (
         const selectedSide = typeof selectedSideHeader === "string"
             ? selectedSideHeader.toLowerCase() as "left" | "right"
             : undefined;
-        const existingSession = await findRecordedExerciseSession(authenticatedUserId, assignmentId, exerciseId, clientSessionId, selectedSide);
+        const visitHeader = req.headers["x-exercise-visit-id"];
+        if (visitHeader !== undefined && (typeof visitHeader !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(visitHeader))) {
+            throw new HttpError(400, "A valid exercise visit identifier is required.");
+        }
+        const visitId = typeof visitHeader === "string" ? visitHeader.toLowerCase() : undefined;
+        const existingSession = await findRecordedExerciseSession(authenticatedUserId, assignmentId, exerciseId, clientSessionId, selectedSide, visitId);
         if (existingSession) {
             res.status(200).json({
                 success: true,
@@ -346,6 +351,7 @@ export const evaluateExerciseAssignment = async (
                 feedback: existingSession.aiFeedback,
                 evaluatedModelKey: existingSession.evaluatedModelKey,
                 selectedSide: existingSession.selectedSide,
+                visitId: existingSession.visitId,
                 sessionId: existingSession.id,
                 adherenceQualified: existingSession.adherenceQualified,
                 qualificationReason: existingSession.qualificationReason,
@@ -395,6 +401,7 @@ export const evaluateExerciseAssignment = async (
                 durationSeconds,
                 clientSessionId,
                 evaluatedModelKey: result.evaluatedModelKey,
+                ...(visitId ? { visitId } : {}),
                 ...(result.selectedSide ? { selectedSide: result.selectedSide } : {})
             }
         );
@@ -405,6 +412,7 @@ export const evaluateExerciseAssignment = async (
             message: "Exercise evaluated successfully.",
             ...result,
             sessionId: session.id,
+            visitId: session.visitId,
             adherenceQualified: session.adherenceQualified,
             qualificationReason: session.qualificationReason,
             duplicate: session.duplicate

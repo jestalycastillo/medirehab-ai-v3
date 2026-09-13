@@ -44,7 +44,7 @@ export const runAdherenceAlertScan = async (now = new Date(), patientUserId?: st
                 targetSessionsPerDay: true,
                 scheduledDays: true,
                 exercise: { select: { name: true } },
-                sessions: { select: { performedAt: true, adherenceQualified: true }, orderBy: { performedAt: "desc" }, take: 500 },
+                sessions: { select: { id: true, visitId: true, performedAt: true, adherenceQualified: true }, orderBy: { performedAt: "desc" }, take: 500 },
                 patientProfile: {
                     select: {
                         user: {

@@ -184,6 +184,7 @@ model ExerciseSession {
   score            Float?
   evaluatedModelKey String?
   selectedSide      String?
+  visitId           String?
   aiFeedback       Json?
   painLevel        Int?
   difficultyLevel  Int?
@@ -205,6 +206,8 @@ model ExerciseSession {
   @@map("exercise_sessions")
   @@index([assignmentId, performedAt])
   @@index([patientUserId, performedAt])
+  @@index([visitId])
+  @@unique([visitId, selectedSide])
 }
 
 model ExerciseSessionComment {

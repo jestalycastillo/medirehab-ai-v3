@@ -58,7 +58,7 @@ const assignmentSelect = {
         }
     },
     sessions: {
-        select: { performedAt: true, score: true, adherenceQualified: true },
+        select: { id: true, visitId: true, selectedSide: true, performedAt: true, score: true, adherenceQualified: true },
         orderBy: { performedAt: "desc" as const },
         take: 500
     }
@@ -69,11 +69,17 @@ const withAdherence = <T extends {
     targetSessionsPerWeek: number;
     targetSessionsPerDay: number | null;
     scheduledDays: number[];
-    sessions: { performedAt: Date; adherenceQualified: boolean }[];
-}>(assignment: T) => ({
-    ...assignment,
-    adherence: calculateAssignmentAdherence(assignment)
-});
+    sessions: { id: string; visitId: string | null; selectedSide: string | null; performedAt: Date; score: number | null; adherenceQualified: boolean }[];
+}>(assignment: T) => {
+    const latestScoresBySide: { left?: number; right?: number } = {};
+    for (const session of assignment.sessions) {
+        if ((session.selectedSide === "left" || session.selectedSide === "right")
+            && session.score !== null && latestScoresBySide[session.selectedSide] === undefined) {
+            latestScoresBySide[session.selectedSide] = session.score;
+        }
+    }
+    return { ...assignment, latestScoresBySide, adherence: calculateAssignmentAdherence(assignment) };
+};
 
 const getDoctorProfileIdForUser = async (doctorUserId: string): Promise<string> => {
     const doctorProfile = await prisma.doctorProfile.findUnique({
