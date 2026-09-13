@@ -5,6 +5,18 @@ import { api } from "@/lib/api";
 import { useSideArmsRaiseGuidance, supportsExerciseLiveGuidance } from "@/hooks/use-side-arms-raise-guidance";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { formatScore } from "@/lib/score";
+import { Button } from "@/components/ui/button";
+import {
+    Camera,
+    CheckCircle2,
+    CircleStop,
+    LoaderCircle,
+    RotateCcw,
+    Sparkles,
+    Video,
+    Volume2,
+    VolumeX,
+} from "lucide-react";
 
 interface CameraRecorderProps {
     exerciseName?: string;
@@ -28,18 +40,32 @@ const TIMER_OPTIONS: TimerOption[] = [
 ];
 
 const LIVE_COACHING_COOLDOWN_MS = 7_000;
+const LIVE_GUIDANCE_SPEECH_COOLDOWN_MS = 2_500;
+const MAX_AI_COACHING_SPEECH_LATENCY_MS = 5_000;
+const LIVE_VOICE_STORAGE_KEY = "medirehab-live-voice-enabled";
 const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance...",
     "Preparing live guidance…",
 ]);
 
-export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave}: CameraRecorderProps) {
+type CameraAccessIssue =
+    | "consent"
+    | "permission"
+    | "unavailable"
+    | "verification"
+    | null;
+
+export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, onSave}: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [isFinalizingRecording, setIsFinalizingRecording] = useState(false);
+    const [isCameraStarting, setIsCameraStarting] = useState(false);
+    const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
     const [countdown, setCountdown] = useState<number | null>(null);
     const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [cameraAccessIssue, setCameraAccessIssue] = useState<CameraAccessIssue>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [evaluationScore, setEvaluationScore] = useState<number | null>(null);
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -66,7 +92,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const streamRef = useRef<MediaStream | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const elapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const blobRef = useRef<Blob | null>(null);
@@ -79,6 +105,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const liveCoachingRequestIdRef = useRef(0);
     const lastSpokenMessageRef = useRef("");
     const lastSpokenAtRef = useRef(0);
+    const isVoiceEnabledRef = useRef(true);
+    const isPreviewing = isOpen && Boolean(stream) && !isRecording && countdown === null && !recordedUrl;
     const liveGuidanceEnabled =
         isOpen &&
         Boolean(stream) &&
@@ -89,6 +117,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         videoRef,
         exerciseName,
         selectedSide,
+        isRecording ? "exercise" : "framing",
     );
 
     useEffect(() => {
@@ -96,8 +125,31 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     }, [isRecording]);
 
     useEffect(() => {
+        const frameId = window.requestAnimationFrame(() => {
+            try {
+                const savedPreference = window.localStorage.getItem(LIVE_VOICE_STORAGE_KEY);
+                if (savedPreference === "false") {
+                    isVoiceEnabledRef.current = false;
+                    setIsVoiceEnabled(false);
+                }
+            } catch {
+                // Voice still works when browser storage is unavailable.
+            }
+        });
+
+        return () => window.cancelAnimationFrame(frameId);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+        };
+    }, [recordedUrl]);
+
+    useEffect(() => {
         if (
-            !isRecording ||
+            (!isRecording && !isPreviewing) ||
+            !isVoiceEnabled ||
             liveGuidance.status !== "ready" ||
             !liveGuidance.message ||
             GUIDANCE_MESSAGES_TO_SKIP.has(liveGuidance.message)
@@ -116,13 +168,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         const now = Date.now();
         if (
             liveGuidance.message !== lastSpokenMessageRef.current &&
-            now - lastSpokenAtRef.current > 1_800
+            now - lastSpokenAtRef.current >= LIVE_GUIDANCE_SPEECH_COOLDOWN_MS
         ) {
             lastSpokenMessageRef.current = liveGuidance.message;
             lastSpokenAtRef.current = now;
             speakLiveCoaching(liveGuidance.message);
         }
-    }, [isRecording, liveGuidance.message, liveGuidance.status]);
+    }, [isPreviewing, isRecording, isVoiceEnabled, liveGuidance.message, liveGuidance.status]);
 
     useEffect(() => {
         if (!isRecording || liveGuidance.status !== "ready") {
@@ -143,6 +195,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         lastLiveCoachingAtRef.current = now;
         const requestId = liveCoachingRequestIdRef.current + 1;
         liveCoachingRequestIdRef.current = requestId;
+        const requestedAt = Date.now();
 
         if (assignmentId) {
             api.requestLiveCoaching(exerciseId, assignmentId, event, isSideSelectable ? selectedSide : undefined)
@@ -161,27 +214,41 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             response.message,
                         ];
                     }
-                    lastSpokenMessageRef.current = response.message;
-                    lastSpokenAtRef.current = Date.now();
-                    speakLiveCoaching(response.message);
+                    if (
+                        isVoiceEnabledRef.current &&
+                        Date.now() - requestedAt <= MAX_AI_COACHING_SPEECH_LATENCY_MS &&
+                        !isLiveCoachingPlaybackActive()
+                    ) {
+                        lastSpokenMessageRef.current = response.message;
+                        lastSpokenAtRef.current = Date.now();
+                        speakLiveCoaching(response.message);
+                    }
                 })
                 .catch(() => {
+                    if (liveCoachingRequestIdRef.current !== requestId || !isRecordingRef.current) return;
                     const fallbackMsg = event === "repetition_completed"
                         ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
                         : "Nice adjustment. Keep moving with steady control.";
                     setLiveCoachingMessage(fallbackMsg);
-                    lastSpokenMessageRef.current = fallbackMsg;
-                    lastSpokenAtRef.current = Date.now();
-                    speakLiveCoaching(fallbackMsg);
+                    if (isVoiceEnabledRef.current) {
+                        lastSpokenMessageRef.current = fallbackMsg;
+                        lastSpokenAtRef.current = Date.now();
+                        speakLiveCoaching(fallbackMsg);
+                    }
                 });
         } else {
             const fallbackMsg = event === "repetition_completed"
                 ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
                 : "Nice adjustment. Keep moving with steady control.";
-            setLiveCoachingMessage(fallbackMsg);
-            lastSpokenMessageRef.current = fallbackMsg;
-            lastSpokenAtRef.current = Date.now();
-            speakLiveCoaching(fallbackMsg);
+            queueMicrotask(() => {
+                if (!isRecordingRef.current) return;
+                setLiveCoachingMessage(fallbackMsg);
+                if (isVoiceEnabledRef.current) {
+                    lastSpokenMessageRef.current = fallbackMsg;
+                    lastSpokenAtRef.current = Date.now();
+                    speakLiveCoaching(fallbackMsg);
+                }
+            });
         }
     }, [
         assignmentId,
@@ -194,7 +261,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         liveGuidance.status,
     ]);
 
-    // Clean up streams on unmount or close
+    // Clean up resources only when the recorder unmounts. Tying this cleanup to
+    // stream changes clears a newly started countdown as soon as the camera connects.
     useEffect(() => {
         return () => {
             if (streamRef.current) {
@@ -213,13 +281,25 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         };
     }, []);
 
-    const startCamera = async () => {
+    useEffect(() => {
+        if (videoRef.current && stream && !error && !recordedUrl) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [stream, error, recordedUrl]);
+
+    const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
         setRecordedUrl((prev) => {
             if (prev) URL.revokeObjectURL(prev);
             return null;
         });
         try {
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setCameraAccessIssue("unavailable");
+                setError("Camera access is not available here. Open MediRehab on HTTPS or localhost in a browser that supports camera recording.");
+                return null;
+            }
+
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "user",
@@ -234,11 +314,79 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
             }
+            return mediaStream;
         } catch (err: unknown) {
             console.error("Error accessing camera:", err);
-            setError(
-                "Could not access your front camera. Please check your camera permissions and ensure no other application is using it."
-            );
+            const errorName = err instanceof DOMException ? err.name : "";
+
+            if (errorName === "NotAllowedError" || errorName === "SecurityError") {
+                setCameraAccessIssue("permission");
+                setError("Camera access is blocked. Click reconnect and allow the browser prompt. If no prompt appears, use the camera or lock icon in the address bar to allow access for this site.");
+            } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+                setCameraAccessIssue("unavailable");
+                setError("No camera was found. Connect or enable a camera, then click reconnect.");
+            } else if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+                setCameraAccessIssue("unavailable");
+                setError("Your camera is busy or unavailable. Close other apps using it, then click reconnect.");
+            } else {
+                setCameraAccessIssue("unavailable");
+                setError("Could not access your camera. Check the browser permission and make sure another application is not using it, then reconnect.");
+            }
+            return null;
+        } finally {
+            setIsCameraStarting(false);
+        }
+    };
+
+    const handleStartCamera = async () => {
+        if (isCameraStarting) return;
+        if (streamRef.current?.getVideoTracks().some((track) => track.readyState === "live")) {
+            setError(null);
+            setCameraAccessIssue(null);
+            return;
+        }
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+            setStream(null);
+        }
+
+        setIsCameraStarting(true);
+        setError(null);
+        setCameraAccessIssue(null);
+        try {
+            const { consent } = await api.getMyConsent();
+            if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
+                setCameraAccessIssue("consent");
+                setError("Before using the camera, allow MediRehab to process your rehabilitation data and record exercises for evaluation. The camera starts in preview mode; recording begins only when you press Start Recording. You can revoke consent later in Profile.");
+                return;
+            }
+            await startCamera();
+        } catch {
+            setCameraAccessIssue("verification");
+            setError("Unable to verify camera consent. Please try again.");
+        } finally {
+            setIsCameraStarting(false);
+        }
+    };
+
+    const handleCameraRecovery = async () => {
+        if (isCameraStarting) return;
+        if (cameraAccessIssue !== "consent") {
+            await handleStartCamera();
+            return;
+        }
+
+        setIsCameraStarting(true);
+        setError(null);
+        try {
+            await api.updateMyConsent(true, true);
+            await startCamera();
+        } catch {
+            setCameraAccessIssue("verification");
+            setError("Unable to save camera consent. Please try again or update it in Profile.");
+        } finally {
+            setIsCameraStarting(false);
         }
     };
 
@@ -253,23 +401,14 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
     };
 
-    const handleOpen = async () => {
-        try {
-            const { consent } = await api.getMyConsent();
-            if (!consent.privacyConsentAt || !consent.recordingConsentAt) {
-                setIsOpen(true);
-                setError("Camera consent is required. Enable it in your Profile before recording.");
-                return;
-            }
-            setIsOpen(true);
-            await startCamera();
-        } catch {
-            setIsOpen(true);
-            setError("Unable to verify camera consent. Please try again.");
-        }
+    const handleOpen = () => {
+        setError(null);
+        setCameraAccessIssue(null);
+        setIsOpen(true);
     };
 
     const handleClose = () => {
+        isRecordingRef.current = false;
         stopCamera();
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
@@ -285,6 +424,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setElapsedSeconds(0);
         setCountdown(null);
         setIsRecording(false);
+        setIsFinalizingRecording(false);
+        setIsCameraStarting(false);
         setIsOpen(false);
         setError(null);
         setRecordedUrl((prev) => {
@@ -307,36 +448,57 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setLiveCoachingMessage(null);
         liveCoachingRequestIdRef.current += 1;
         lastLiveCoachingAtRef.current = 0;
+        lastSpokenMessageRef.current = "";
+        lastSpokenAtRef.current = 0;
         stopLiveCoachingPlayback();
         liveGuidanceFeedbackRef.current = [];
         blobRef.current = null;
     };
 
-    const initiateCountdown = () => {
-        if (!stream) return;
-        setCountdown(5);
+    const initiateCountdown = (cameraStream: MediaStream | null = stream) => {
+        if (!cameraStream) return;
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
+        if (supportsExerciseLiveGuidance(exerciseName) && isVoiceEnabledRef.current) {
+            primeLiveCoachingVoice();
+        }
+        let remaining = 5;
+        setCountdown(remaining);
 
         countdownIntervalRef.current = setInterval(() => {
-            setCountdown((prev) => {
-                if (prev === null) return null;
-                if (prev <= 1) {
-                    clearInterval(countdownIntervalRef.current!);
-                    startRecording();
-                    return null;
+            remaining -= 1;
+            if (remaining <= 0) {
+                if (countdownIntervalRef.current) {
+                    clearInterval(countdownIntervalRef.current);
+                    countdownIntervalRef.current = null;
                 }
-                return prev - 1;
-            });
+                setCountdown(null);
+                startRecording();
+                return;
+            }
+            setCountdown(remaining);
         }, 1000);
+    };
+
+    const handleStartRecording = () => {
+        const activeStream = streamRef.current ?? stream;
+        if (!activeStream || isCameraStarting || countdown !== null || isRecording) return;
+        initiateCountdown(activeStream);
     };
 
     const startRecording = () => {
         const activeStream = streamRef.current || stream;
         if (!activeStream) return;
         chunksRef.current = [];
+        setIsFinalizingRecording(false);
         liveGuidanceFeedbackRef.current = [];
         setLiveCoachingMessage(null);
         liveCoachingRequestIdRef.current += 1;
         lastLiveCoachingAtRef.current = 0;
+        lastSpokenMessageRef.current = "";
+        lastSpokenAtRef.current = 0;
 
         try {
             const preferredMimeType = getPreferredMimeType();
@@ -379,6 +541,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                     elapsedIntervalRef.current = null;
                 }
                 try {
+                    isRecordingRef.current = false;
+                    liveCoachingRequestIdRef.current += 1;
+                    stopLiveCoachingPlayback();
                     if (assignmentId) {
                         void api.stopExerciseActivity(assignmentId).catch(() => undefined);
                     }
@@ -399,6 +564,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 } catch (err) {
                     console.error("Error finalizing recording:", err);
                     setError("Failed to finalize video recording.");
+                    setIsFinalizingRecording(false);
                 }
             };
 
@@ -445,6 +611,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         stopLiveCoachingPlayback();
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             try {
+                setIsFinalizingRecording(true);
                 mediaRecorderRef.current.stop();
             } catch (err) {
                 console.error("Error stopping media recorder:", err);
@@ -554,11 +721,34 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }));
     };
 
+    const handleVoiceToggle = () => {
+        const nextValue = !isVoiceEnabled;
+        isVoiceEnabledRef.current = nextValue;
+        setIsVoiceEnabled(nextValue);
+
+        try {
+            window.localStorage.setItem(LIVE_VOICE_STORAGE_KEY, String(nextValue));
+        } catch {
+            // Keep the in-memory preference when browser storage is unavailable.
+        }
+
+        if (nextValue) {
+            speakLiveCoaching("Voice coaching is on.");
+        } else {
+            stopLiveCoachingPlayback();
+        }
+    };
+
+    const recordingProgress = selectedTimerSeconds
+        ? Math.min(100, (elapsedSeconds / selectedTimerSeconds) * 100)
+        : 0;
+
     return (
         <>
-            <button className="btn btn-primary" onClick={handleOpen} style={{ height: "38px", padding: "0 14px" }}>
+            <Button onClick={handleOpen} size="lg" className="camera-launch-button">
+                <Video data-icon="inline-start" />
                 Start Exercise
-            </button>
+            </Button>
 
             {isOpen && (
                 <div
@@ -568,30 +758,35 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        backgroundColor: "rgba(15, 23, 42, 0.75)",
-                        backdropFilter: "blur(4px)",
+                        backgroundColor: "rgba(3, 15, 14, 0.78)",
+                        backdropFilter: "blur(10px)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         zIndex: 9999,
-                        padding: "20px",
+                        padding: "clamp(10px, 2vw, 24px)",
                     }}
                     onClick={handleClose}
                 >
                     <div
                         className="card animate-slide-up"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="exercise-recorder-title"
                         style={{
                             width: "100%",
-                            maxWidth: "960px",
-                            height: "min(720px, calc(100dvh - 40px))",
-                            maxHeight: "calc(100dvh - 40px)",
+                            maxWidth: "1080px",
+                            height: "min(780px, calc(100dvh - 32px))",
+                            maxHeight: "calc(100dvh - 20px)",
                             backgroundColor: "var(--color-surface)",
                             overflow: "hidden",
                             position: "relative",
                             display: "flex",
                             flexDirection: "column",
                             minHeight: 0,
-                            boxShadow: "var(--shadow-elevated)",
+                            borderRadius: "20px",
+                            border: "1px solid rgba(255, 255, 255, 0.28)",
+                            boxShadow: "0 28px 90px rgba(3, 15, 14, 0.36)",
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -607,13 +802,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 flexWrap: "wrap",
                             }}
                         >
-                            <div>
-                                <h3 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
-                                    Record: {exerciseName}
-                                </h3>
-                                <p style={{ fontSize: "12px", color: "var(--color-text-muted)", margin: "2px 0 0 0" }}>
-                                    Align yourself in the frame before starting
-                                </p>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
+                                <span className="recorder-header-icon" aria-hidden="true">
+                                    <Video size={20} />
+                                </span>
+                                <div style={{ minWidth: 0 }}>
+                                    <div className="recorder-eyebrow">Exercise recording</div>
+                                    <h3 id="exercise-recorder-title" style={{ fontSize: "18px", fontWeight: 750, margin: 0, color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                        {exerciseName}
+                                    </h3>
+                                </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                                 {isSideSelectable && (
@@ -752,13 +950,25 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                             }}
                         >
                             {error ? (
-                                <div style={{ color: "#EF4444", padding: "24px", textAlign: "center", fontSize: "14px" }}>
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ margin: "0 auto 12px auto", display: "block" }}>
-                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                    </svg>
-                                    {error}
+                                <div className="recorder-empty-state" role="alert">
+                                    <button
+                                        type="button"
+                                        className="recorder-camera-reconnect"
+                                        onClick={handleCameraRecovery}
+                                        disabled={isCameraStarting}
+                                        aria-label={cameraAccessIssue === "consent" ? "Agree and allow camera access" : "Reconnect camera"}
+                                    >
+                                        <span className="recorder-empty-icon recorder-empty-icon-error">
+                                            {isCameraStarting
+                                                ? <LoaderCircle className="recorder-spin" size={28} />
+                                                : <Camera size={28} />}
+                                        </span>
+                                        <h4>{cameraAccessIssue === "consent" ? "Allow camera access" : "We could not start your camera"}</h4>
+                                        <p>{error}</p>
+                                        <span className="recorder-reconnect-label">
+                                            {cameraAccessIssue === "consent" ? "I agree — turn on camera" : "Reconnect camera"}
+                                        </span>
+                                    </button>
                                 </div>
                             ) : evaluationScore !== null ? (
                                 /* Evaluation Success Screen */
@@ -789,7 +999,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 </div>
                             ) : recordedUrl ? (
                                 /* Post-Recording Preview */
-                                <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                                <div className="recorder-preview">
                                     <video
                                         key={recordedUrl}
                                         src={recordedUrl}
@@ -798,23 +1008,17 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         preload="auto"
                                         style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
                                     />
+                                    <div className="recorder-preview-label">
+                                        <CheckCircle2 size={15} />
+                                        Captured · {formatRecordingTime(elapsedSeconds)}
+                                    </div>
                                     {isEvaluating && (
-                                        <div style={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            backgroundColor: "rgba(15, 23, 42, 0.8)",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: "16px",
-                                            zIndex: 30
-                                        }}>
-                                            <div className="spinner spinner-white" style={{ width: "40px", height: "40px" }} />
-                                            <div style={{ color: "#FFF", fontSize: "16px", fontWeight: 600 }}>Analyzing exercise performance...</div>
+                                        <div className="recorder-analyzing-overlay">
+                                            <LoaderCircle className="recorder-spin" size={38} />
+                                            <div>
+                                                <strong>Analyzing your movement</strong>
+                                                <span>This can take a moment. Keep this window open.</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -826,105 +1030,76 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         autoPlay
                                         playsInline
                                         muted
-                                        style={{
-                                            width: "100%",
-                                            height: "100%",
-                                            objectFit: "contain",
-                                            transform: "scaleX(-1)", // Mirror the front camera output
-                                        }}
+                                        className="recorder-video"
                                     />
+                                    <div className="recorder-frame-guide" aria-hidden="true">
+                                        <span />
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </div>
+
+                                    {!stream && !isRecording && countdown === null && !isCameraStarting && (
+                                        <button
+                                            type="button"
+                                            className="recorder-center-start"
+                                            onClick={handleStartCamera}
+                                            aria-label="Turn on camera to preview your position"
+                                        >
+                                            <span className="recorder-start-orb" aria-hidden="true">
+                                                <Camera size={34} strokeWidth={1.8} />
+                                            </span>
+                                            <span className="recorder-start-label">Turn on camera</span>
+                                            <span className="recorder-start-helper">Check your position before recording</span>
+                                        </button>
+                                    )}
+
+                                    {stream && !isRecording && countdown === null && (
+                                        <div className="recorder-camera-preview-badge" role="status">
+                                            Preview only · Not recording
+                                        </div>
+                                    )}
+
+                                    {isCameraStarting && (
+                                        <div className="recorder-analyzing-overlay">
+                                            <LoaderCircle className="recorder-spin" size={34} />
+                                            <div>
+                                                <strong>Starting your camera</strong>
+                                                <span>Approve camera access if your browser asks.</span>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {liveGuidanceEnabled && (
                                         <>
-                                            <div
-                                                style={{
-                                                    position: "absolute",
-                                                    top: "16px",
-                                                    right: "16px",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: "7px",
-                                                    padding: "6px 10px",
-                                                    borderRadius: "9999px",
-                                                    backgroundColor: "rgba(15, 23, 42, 0.72)",
-                                                    color: "#FFF",
-                                                    fontSize: "12px",
-                                                    fontWeight: 700,
-                                                    zIndex: 10,
-                                                }}
+                                            <button
+                                                type="button"
+                                                className={`live-guidance-pill ${isVoiceEnabled ? "" : "live-guidance-pill-muted"}`}
+                                                onClick={handleVoiceToggle}
+                                                aria-pressed={isVoiceEnabled}
+                                                aria-label={isVoiceEnabled ? "Mute live voice coaching" : "Enable live voice coaching"}
                                             >
                                                 <span
-                                                    style={{
-                                                        width: "8px",
-                                                        height: "8px",
-                                                        borderRadius: "50%",
-                                                        backgroundColor:
-                                                            liveGuidance.status === "ready"
-                                                                ? "#2DD4BF"
-                                                                : liveGuidance.status === "error"
-                                                                  ? "#F59E0B"
-                                                                  : "#94A3B8",
-                                                    }}
+                                                    className={`live-guidance-status live-guidance-status-${liveGuidance.status}`}
                                                 />
-                                                Live guidance
-                                            </div>
-                                            <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
-                                            {liveCoachingMessage && (
+                                                {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
+                                                {isVoiceEnabled ? "Voice on" : "Voice muted"}
+                                            </button>
+                                            {isRecording && liveCoachingMessage && (
                                                 <div
                                                     aria-live="polite"
-                                                    style={{
-                                                        position: "absolute",
-                                                        left: "50%",
-                                                        bottom: "92px",
-                                                        transform: "translateX(-50%)",
-                                                        width: "min(90%, 540px)",
-                                                        padding: "9px 13px",
-                                                        borderRadius: "10px",
-                                                        backgroundColor: "rgba(13, 148, 136, 0.92)",
-                                                        color: "#FFF",
-                                                        textAlign: "center",
-                                                        fontSize: "13px",
-                                                        fontWeight: 600,
-                                                        lineHeight: 1.4,
-                                                        zIndex: 10,
-                                                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
-                                                    }}
+                                                    className="live-coaching-message"
                                                 >
                                                     {liveCoachingMessage}
                                                 </div>
                                             )}
                                             <div
                                                 aria-live="polite"
-                                                style={{
-                                                    position: "absolute",
-                                                    left: "50%",
-                                                    bottom: "18px",
-                                                    transform: "translateX(-50%)",
-                                                    width: "min(90%, 620px)",
-                                                    padding: "10px 14px",
-                                                    borderRadius: "12px",
-                                                    backgroundColor: liveGuidance.justCompletedRepetition
-                                                        ? "rgba(13, 148, 136, 0.9)"
-                                                        : "rgba(15, 23, 42, 0.78)",
-                                                    color: "#FFF",
-                                                    textAlign: "center",
-                                                    fontSize: "14px",
-                                                    fontWeight: 600,
-                                                    lineHeight: 1.4,
-                                                    zIndex: 10,
-                                                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
-                                                }}
+                                                className={`live-guidance-cue ${liveGuidance.justCompletedRepetition ? "live-guidance-cue-complete" : ""}`}
                                             >
                                                 <div>{liveGuidance.message}</div>
-                                                {liveGuidance.status === "ready" && (
-                                                    <div
-                                                        style={{
-                                                            marginTop: "3px",
-                                                            color: "rgba(255, 255, 255, 0.72)",
-                                                            fontSize: "11px",
-                                                            fontWeight: 500,
-                                                        }}
-                                                    >
+                                                {liveGuidance.status === "ready" && !isPreviewing && (
+                                                    <div className="live-guidance-repetitions">
                                                         Detected repetitions: {liveGuidance.repetitions}
                                                     </div>
                                                 )}
@@ -1005,63 +1180,74 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
                                     {/* Countdown Timer Overlay */}
                                     {countdown !== null && (
-                                        <div
-                                            style={{
-                                                position: "absolute",
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                bottom: 0,
-                                                backgroundColor: "rgba(0, 0, 0, 0.4)",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                zIndex: 20,
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    fontSize: "84px",
-                                                    fontWeight: 800,
-                                                    color: "#FFF",
-                                                    animation: "fadeIn 0.2s ease-out",
-                                                    textShadow: "0 4px 12px rgba(0,0,0,0.5)",
-                                                }}
-                                            >
-                                                {countdown}
-                                            </div>
+                                        <div className="recorder-countdown">
+                                            <div key={countdown}>{countdown}</div>
+                                            <span>Get ready</span>
                                         </div>
                                     )}
                                 </>
                             )}
                         </div>
 
+                            {liveGuidanceEnabled && (
+                                <aside className="recorder-guidance-sidebar" aria-label="Live body position guidance">
+                                    <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
+                                </aside>
+                            )}
+
                         {/* Action Footer */}
-                        <div
-                            style={{
-                                padding: "16px 20px",
-                                borderTop: "1px solid var(--color-border)",
-                                display: "flex",
-                                justifyContent: "center",
-                                gap: "12px",
-                                backgroundColor: "var(--color-surface)",
-                            }}
-                        >
+                        <div className="recorder-progress" aria-hidden={!isRecording}>
+                            <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
+                        </div>
+
+                        <div className="recorder-actions">
+                            <div className="recorder-action-copy">
+                                <strong>
+                                    {error
+                                        ? "Camera access is needed"
+                                        : recordedUrl
+                                          ? "Review before sending"
+                                          : isFinalizingRecording
+                                            ? "Finishing your recording"
+                                          : isRecording
+                                            ? "Your session is recording"
+                                            : countdown !== null
+                                              ? "Move into position"
+                                              : stream
+                                                ? "Check your position"
+                                              : "Ready when you are"}
+                                </strong>
+                                <span>
+                                    {error
+                                        ? "Check browser permission, then try again."
+                                        : recordedUrl
+                                          ? "Replay the video or record another attempt."
+                                          : isFinalizingRecording
+                                            ? "Your video will be ready to review shortly."
+                                          : isRecording
+                                            ? "Move naturally and follow the live guidance."
+                                            : countdown !== null
+                                              ? "Recording begins automatically after the countdown."
+                                              : stream
+                                                ? "Make sure your body is visible, then start recording."
+                                                : "Turn on your camera to see yourself first."}
+                                </span>
+                            </div>
+                            <div className="recorder-action-buttons">
                             {error ? (
-                                <button className="btn btn-secondary" onClick={startCamera}>
-                                    Try Again
-                                </button>
+                                <Button variant="outline" onClick={handleCameraRecovery} disabled={isCameraStarting}>
+                                    {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
+                                    {cameraAccessIssue === "consent" ? "Allow Camera" : "Reconnect"}
+                                </Button>
                             ) : evaluationScore !== null ? (
-                                <button
-                                    className="btn btn-primary"
+                                <Button
                                     onClick={() => {
                                         handleClose();
                                         window.location.reload();
                                     }}
-                                    style={{ minWidth: "140px" }}
                                 >
                                     Done
-                                </button>
+                                </Button>
                             ) : recordedUrl ? (
                                 <>
                                     <button
@@ -1075,67 +1261,41 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         }}
                                         disabled={isEvaluating}
                                     >
+                                        <RotateCcw />
                                         Record Again
-                                    </button>
-                                    <button
-                                        className="btn btn-primary"
+                                    </Button>
+                                    <Button
                                         onClick={handleEvaluate}
                                         disabled={isEvaluating}
-                                        style={{ minWidth: "140px" }}
                                     >
-                                        {isEvaluating ? "Evaluating..." : "Evaluate"}
-                                    </button>
+                                        {isEvaluating ? <LoaderCircle className="recorder-spin" /> : <Sparkles />}
+                                        {isEvaluating ? "Evaluating..." : "Evaluate Session"}
+                                    </Button>
                                 </>
+                            ) : isFinalizingRecording ? (
+                                <Button disabled>
+                                    <LoaderCircle className="recorder-spin" />
+                                    Finishing...
+                                </Button>
                             ) : countdown !== null ? (
-                                <button className="btn btn-primary" disabled style={{ minWidth: "140px" }}>
+                                <Button disabled>
                                     Starting in {countdown}s...
-                                </button>
+                                </Button>
                             ) : isRecording ? (
-                                <button
-                                    className="btn btn-danger"
+                                <Button
                                     onClick={stopRecording}
-                                    style={{
-                                        minWidth: "140px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                    }}
+                                    className="recorder-stop-button"
                                 >
-                                    <span
-                                        style={{
-                                            width: "10px",
-                                            height: "10px",
-                                            backgroundColor: "#FFF",
-                                            borderRadius: "2px",
-                                            display: "inline-block",
-                                        }}
-                                    />
+                                    <CircleStop />
                                     Stop Recording
-                                </button>
-                            ) : (
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={initiateCountdown}
-                                    disabled={!stream}
-                                    style={{
-                                        minWidth: "140px",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        gap: "8px",
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            width: "12px",
-                                            height: "12px",
-                                            backgroundColor: "#FFF",
-                                            borderRadius: "50%",
-                                            display: "inline-block",
-                                        }}
-                                    />
+                                </Button>
+                            ) : stream ? (
+                                <Button onClick={handleStartRecording}>
+                                    <Video />
                                     Start Recording
-                                </button>
-                            )}
+                                </Button>
+                            ) : null}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1287,11 +1447,43 @@ function getErrorMessage(error: unknown, fallback: string): string {
     return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function formatRecordingTime(totalSeconds: number): string {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.max(0, Math.floor(totalSeconds % 60));
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
 function speakLiveCoaching(message: string): void {
     if (!("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(message));
+    const speech = window.speechSynthesis;
+    const utterance = createCoachingUtterance(message);
+    speech.cancel();
+    speech.resume();
+    speech.speak(utterance);
+}
+
+function primeLiveCoachingVoice(): void {
+    if (!("speechSynthesis" in window)) return;
+
+    const speech = window.speechSynthesis;
+    speech.cancel();
+    speech.resume();
+    speech.speak(createCoachingUtterance("Voice coaching is ready."));
+}
+
+function createCoachingUtterance(message: string): SpeechSynthesisUtterance {
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = "en-US";
+    utterance.rate = 1.02;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    return utterance;
+}
+
+function isLiveCoachingPlaybackActive(): boolean {
+    return "speechSynthesis" in window
+        && (window.speechSynthesis.speaking || window.speechSynthesis.pending);
 }
 
 function stopLiveCoachingPlayback(): void {

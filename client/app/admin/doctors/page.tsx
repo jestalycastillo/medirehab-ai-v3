@@ -16,15 +16,6 @@ function PlusIcon() {
   );
 }
 
-function EditIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </svg>
-  );
-}
-
 function ArchiveIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,41 +26,12 @@ function ArchiveIcon() {
   );
 }
 
-function TrashIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-    </svg>
-  );
-}
-
-function RestoreIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 1 0 3-6.7" />
-      <path d="M3 3v6h6" />
-    </svg>
-  );
-}
-
 function ActiveAccountsIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
       <circle cx="9" cy="7" r="4" />
       <polyline points="16 11 18 13 22 9" />
-    </svg>
-  );
-}
-
-function KeyIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
     </svg>
   );
 }
@@ -296,29 +258,29 @@ export default function DoctorsPage() {
 
       <div className="card" style={{ padding: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <div className="account-tabs" role="tablist" aria-label="Doctor account status">
+          <div className="account-tabs" role="group" aria-label="Doctor account status">
             <button
               type="button"
               className={`account-tab ${accountTab === "ACTIVE" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ACTIVE")}
-              role="tab"
-              aria-selected={accountTab === "ACTIVE"}
-              aria-label={`Active accounts, ${activeAccountCount}`}
-              title="Active accounts"
+              aria-pressed={accountTab === "ACTIVE"}
+              aria-label={`Current accounts, ${activeAccountCount}`}
+              title="Current accounts"
             >
               <ActiveAccountsIcon />
+              <span>Current</span>
               <span className="account-tab-count">{activeAccountCount}</span>
             </button>
             <button
               type="button"
               className={`account-tab ${accountTab === "ARCHIVED" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ARCHIVED")}
-              role="tab"
-              aria-selected={accountTab === "ARCHIVED"}
+              aria-pressed={accountTab === "ARCHIVED"}
               aria-label={`Archived accounts, ${archivedAccountCount}`}
               title="Archived accounts"
             >
               <ArchiveIcon />
+              <span>Archived</span>
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
@@ -398,49 +360,16 @@ export default function DoctorsPage() {
                         <StatusBadge isActive={doctor.isActive} archivedAt={doctor.archivedAt} />
                       </td>
                       <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                          <button
-                            title="Edit"
-                            style={{ background: "none", border: "none", color: "var(--color-text-secondary)", cursor: "pointer", padding: "4px" }}
-                            onClick={() => { setEditingDoctor(doctor); setIsFormOpen(true); }}
-                          >
-                            <EditIcon />
-                          </button>
-                          <button
-                            title="Reset password"
-                            style={{ background: "none", border: "none", color: "var(--color-text-secondary)", cursor: "pointer", padding: "4px" }}
-                            onClick={() => handleResetPassword(doctor)}
-                          >
-                            <KeyIcon />
-                          </button>
-                          {!doctor.archivedAt && (
-                            <button
-                              title="Archive"
-                              style={{ background: "none", border: "none", color: "var(--color-danger)", cursor: "pointer", padding: "4px" }}
-                              onClick={() => handleArchive(doctor)}
-                            >
-                              <ArchiveIcon />
-                            </button>
-                          )}
-                          {doctor.archivedAt && (
-                            <button
-                              title="Restore"
-                              style={{ background: "none", border: "none", color: "var(--color-text-secondary)", cursor: "pointer", padding: "4px" }}
-                              onClick={() => handleRestore(doctor)}
-                            >
-                              <RestoreIcon />
-                            </button>
-                          )}
-                          {doctor.archivedAt && (
-                            <button
-                              title="Delete permanently"
-                              style={{ background: "none", border: "none", color: "var(--color-danger)", cursor: "pointer", padding: "4px" }}
-                              onClick={() => handlePermanentDelete(doctor)}
-                            >
-                              <TrashIcon />
-                            </button>
-                          )}
-                        </div>
+                        <details className="list-row-actions">
+                          <summary>More</summary>
+                          <div>
+                            <button onClick={() => { setEditingDoctor(doctor); setIsFormOpen(true); }}>Edit profile</button>
+                            <button onClick={() => handleResetPassword(doctor)}>Reset password</button>
+                            {!doctor.archivedAt && <button onClick={() => handleArchive(doctor)}>Archive</button>}
+                            {doctor.archivedAt && <button onClick={() => handleRestore(doctor)}>Restore</button>}
+                            {doctor.archivedAt && <button className="list-row-action-danger" onClick={() => handlePermanentDelete(doctor)}>Delete permanently</button>}
+                          </div>
+                        </details>
                       </td>
                     </tr>
                   ))

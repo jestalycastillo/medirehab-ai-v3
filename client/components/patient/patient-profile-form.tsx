@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { type PatientProfile } from "@/lib/api";
+import { LoaderCircle, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function PatientProfileForm({
   initialData,
@@ -39,25 +41,25 @@ export function PatientProfileForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <div className="doctor-form-grid">
+    <form onSubmit={handleSubmit} className="patient-profile-form">
+      <div className="patient-profile-form-grid">
         <div>
-          <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>First Name</label>
+          <label>First name</label>
           <input className="input" name="firstName" value={formData.firstName || ""} onChange={handleChange} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Last Name</label>
+          <label>Last name</label>
           <input className="input" name="lastName" value={formData.lastName || ""} onChange={handleChange} />
         </div>
       </div>
 
-      <div className="doctor-form-grid">
+      <div className="patient-profile-form-grid">
         <div>
-          <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Birth Date</label>
+          <label>Birth date</label>
           <input type="date" className="input" name="birthDate" value={formData.birthDate || ""} onChange={handleChange} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Gender</label>
+          <label>Gender</label>
           <select className="input" name="gender" value={formData.gender || ""} onChange={handleChange}>
             <option value="">Select gender</option>
             <option value="female">Female</option>
@@ -68,23 +70,23 @@ export function PatientProfileForm({
       </div>
 
       <div>
-        <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Contact Number</label>
+        <label>Contact number</label>
         <input className="input" name="contactNumber" value={formData.contactNumber || ""} onChange={handleChange} />
       </div>
 
       <div>
-        <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Address</label>
+        <label>Address</label>
         <textarea className="input" name="address" value={formData.address || ""} onChange={handleChange} style={{ minHeight: "84px", paddingTop: "10px", resize: "vertical" }} />
       </div>
 
       <div>
-        <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Medical Condition</label>
+        <label>Medical condition</label>
         <textarea className="input" name="medicalCondition" value={formData.medicalCondition || ""} onChange={handleChange} style={{ minHeight: "96px", paddingTop: "10px", resize: "vertical" }} />
       </div>
 
-      <button type="submit" className="btn btn-primary" disabled={isLoading} style={{ alignSelf: "flex-start", minWidth: "130px" }}>
-        {isLoading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Save Profile"}
-      </button>
+      <Button type="submit" disabled={isLoading} className="patient-profile-save">
+        {isLoading ? <LoaderCircle className="recorder-spin" /> : <Save />} Save information
+      </Button>
     </form>
   );
 }
