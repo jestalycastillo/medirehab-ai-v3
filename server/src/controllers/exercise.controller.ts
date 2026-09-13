@@ -93,7 +93,8 @@ export const createLiveCoaching = async (
             patientUserId,
             exerciseId,
             assignmentId,
-            input.event
+            input.event,
+            input.side
         );
 
         res.status(200).json({ success: true, ...coaching });
@@ -107,14 +108,7 @@ export const createExerciseCatalogItem = async (
     res: Response
 ): Promise<void> => {
     try {
-        const input = validateCreateExerciseInput(req.body);
-        const exercise = await createExercise(input);
-
-        res.status(201).json({
-            success: true,
-            message: "Exercise created successfully.",
-            exercise
-        });
+        throw new HttpError(403, "Exercises and AI analysis models are built-in and cannot be manually created.");
     } catch (error) {
         handleExerciseError(error, res, "Unable to create exercise.");
     }
@@ -370,13 +364,17 @@ export const evaluateExerciseAssignment = async (
             chunks.push(bufferChunk);
         }
 
+        const selectedSideHeader = req.headers["x-selected-side"];
+        const selectedSide = typeof selectedSideHeader === "string" && selectedSideHeader.toLowerCase() === "right" ? "right" : "left";
+
         const videoBuffer = Buffer.concat(chunks);
         const result = await evaluateExercise(
             authenticatedUserId,
             exerciseId,
             assignmentId,
             videoBuffer,
-            contentType
+            contentType,
+            selectedSide
         );
         const session = await recordExerciseSession(
             authenticatedUserId,
