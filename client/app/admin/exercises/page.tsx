@@ -213,29 +213,29 @@ export default function ExercisesPage() {
 
       <div className="card" style={{ padding: "20px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <div className="account-tabs" role="group" aria-label="Exercise status">
+          <div className="account-tabs" role="tablist" aria-label="Exercise account status">
             <button
               type="button"
               className={`account-tab ${accountTab === "ACTIVE" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ACTIVE")}
-              aria-pressed={accountTab === "ACTIVE"}
-              aria-label={`Available exercises, ${activeAccountCount}`}
-              title="Available exercises"
+              role="tab"
+              aria-selected={accountTab === "ACTIVE"}
+              aria-label={`Active exercises, ${activeAccountCount}`}
+              title="Active exercises"
             >
               <ActiveExercisesIcon />
-              <span>Available</span>
               <span className="account-tab-count">{activeAccountCount}</span>
             </button>
             <button
               type="button"
               className={`account-tab ${accountTab === "ARCHIVED" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ARCHIVED")}
-              aria-pressed={accountTab === "ARCHIVED"}
+              role="tab"
+              aria-selected={accountTab === "ARCHIVED"}
               aria-label={`Archived exercises, ${archivedAccountCount}`}
               title="Archived exercises"
             >
               <ArchiveIcon />
-              <span>Archived</span>
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>

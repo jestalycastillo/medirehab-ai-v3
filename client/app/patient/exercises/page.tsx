@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, CircleAlert, History, LoaderCircle, Search } from "lucide-react";
-import { api, ApiError, type CareSession, type ExerciseAssignment } from "@/lib/api";
+import { api, ApiError, type CareNotification, type CareSession, type ExerciseAssignment } from "@/lib/api";
 import { MyExerciseList } from "@/components/patient/my-exercise-list";
 import { CareTimeline } from "@/components/care/care-timeline";
+import { NotificationsPanel } from "@/components/care/notifications-panel";
 import { ScoreSummary } from "@/components/care/score-summary";
 import { HelpRequestPanel } from "@/components/care/help-request-panel";
 import { ProgressReport } from "@/components/care/progress-report";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 
 export default function PatientExercisesPage() {
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
+  const [notifications, setNotifications] = useState<CareNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,11 +22,16 @@ export default function PatientExercisesPage() {
 
     async function loadExercises() {
       try {
-        const [assignedRes, sessionsRes] = await Promise.all([api.getMyAssignedExercises(), api.getMySessions()]);
+        const [assignedRes, sessionsRes, notificationsRes] = await Promise.all([
+          api.getMyAssignedExercises(),
+          api.getMySessions(),
+          api.getMyNotifications(),
+        ]);
         if (mounted) {
           setAssignments(assignedRes.assignments);
-          setSessions(sessionsRes.sessions);
           void api.markExercisesViewed(assignedRes.assignments.map((assignment) => assignment.id)).catch(() => undefined);
+          setSessions(sessionsRes.sessions);
+          setNotifications(notificationsRes.notifications);
         }
       } catch (err) {
         if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load assigned exercises.");
@@ -36,42 +41,78 @@ export default function PatientExercisesPage() {
     }
 
     loadExercises();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filteredAssignments = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) return assignments;
-    return assignments.filter((assignment) => assignment.exercise?.name?.toLowerCase().includes(query) || assignment.exercise?.description?.toLowerCase().includes(query));
+    return assignments.filter((assignment) => {
+      return (
+        assignment.exercise?.name?.toLowerCase().includes(query) ||
+        assignment.exercise?.description?.toLowerCase().includes(query)
+      );
+    });
   }, [assignments, searchTerm]);
 
   return (
-    <div className="patient-page patient-exercises-page animate-fade-in">
-      <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Your care plan</span><h1>My exercises</h1><p>Choose an exercise, then press Start Exercise.</p></div>
-        {assignments.length > 3 && (
-          <label className="patient-search"><Search /><span className="sr-only">Search exercises</span><input type="search" placeholder="Find an exercise" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label>
-        )}
-      </header>
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div>
+        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>My Exercises</h1>
+        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
+          View rehabilitation exercises assigned by your doctor.
+        </p>
+      </div>
 
-      {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
+      <div className="card" style={{ padding: "20px" }}>
+        <div className="doctor-toolbar" style={{ marginBottom: "20px" }}>
+          <input
+            className="input"
+            type="text"
+            placeholder="Search exercises"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            style={{ maxWidth: "340px" }}
+          />
+        </div>
 
-      {loading ? (
-        <div className="patient-page-loading"><LoaderCircle className="recorder-spin" /><span>Loading your exercises…</span></div>
-      ) : <MyExerciseList assignments={filteredAssignments} />}
-
-      {!loading && assignments.length > 0 && (
-        <details className="patient-page-disclosure">
-          <summary><span><History /><span><strong>Progress & history</strong><small>Scores, reports, and past sessions</small></span></span><ChevronDown /></summary>
-          <div className="patient-page-disclosure-content">
-            <ScoreSummary sessions={sessions} />
-            <ProgressReport sessions={sessions} assignments={assignments} subjectName="My rehabilitation progress" />
-            <Card><CardContent className="patient-history-content"><CardTitle>Past sessions</CardTitle><CardDescription>{sessions.length} session{sessions.length === 1 ? "" : "s"} recorded</CardDescription><CareTimeline sessions={sessions} role="patient" /></CardContent></Card>
+        {error && (
+          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
+            {error}
           </div>
-        </details>
-      )}
+        )}
 
-      {!loading && <div className="patient-help-wrap"><HelpRequestPanel assignments={assignments} /></div>}
+        {loading ? (
+          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+        ) : (
+          <MyExerciseList assignments={filteredAssignments}/>
+        )}
+      </div>
+
+      <section className="doctor-two-column">
+        <div className="card" style={{ padding: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
+            <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
+          </div>
+          <CareTimeline sessions={sessions} role="patient" />
+        </div>
+
+        <div className="card" style={{ padding: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Notifications</h2>
+            <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{notifications.filter((notification) => !notification.isRead).length} unread</span>
+          </div>
+          <NotificationsPanel notifications={notifications.slice(0, 5)} />
+        </div>
+      </section>
+
+      <ScoreSummary sessions={sessions} />
+      <ProgressReport sessions={sessions} assignments={assignments} subjectName="My rehabilitation progress" />
+
+      <HelpRequestPanel assignments={assignments} />
     </div>
   );
 }

@@ -1,19 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronRight, CircleAlert, ClipboardPlus, LoaderCircle, UsersRound } from "lucide-react";
 import { api, ApiError, type ApiPatient, type CareNotification, type DoctorProfile, type ExerciseAssignment } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { NotificationsPanel } from "@/components/care/notifications-panel";
+import { DoctorAdherenceOverview } from "@/components/care/doctor-adherence-overview";
+
+function UsersIcon() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /></svg>;
+}
+
+function ActivityIcon() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
+}
 
 function patientName(patient: ApiPatient) {
   return [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ") || "Unnamed patient";
-}
-
-function patientInitials(patient: ApiPatient) {
-  const name = patientName(patient);
-  return name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 }
 
 export default function DoctorDashboardPage() {
@@ -42,7 +46,7 @@ export default function DoctorDashboardPage() {
             } catch {
               return [patient.id, []] as const;
             }
-          }),
+          })
         );
 
         if (mounted) {
@@ -59,109 +63,98 @@ export default function DoctorDashboardPage() {
     }
 
     loadDashboard();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const dashboard = useMemo(() => {
-    const activePatients = patients.filter((patient) => patient.isActive && !patient.archivedAt);
-    const attention = activePatients.map((patient) => {
-      const assignments = assignmentsByPatient[patient.id] ?? [];
-      const missed = assignments.filter((assignment) => {
-        const primary = assignment.adherence?.today ?? assignment.adherence?.currentWeek;
-        return primary?.status === "MISSED";
-      }).length;
-      return { patient, missed, needsPlan: assignments.length === 0 };
-    }).filter((item) => item.missed > 0 || item.needsPlan)
-      .sort((left, right) => right.missed - left.missed || Number(right.needsPlan) - Number(left.needsPlan));
-
-    const weeklyCompleted = Object.values(assignmentsByPatient).flat().reduce(
-      (sum, assignment) => sum + (assignment.adherence?.currentWeek.completed ?? 0), 0,
-    );
-    const weeklyTarget = Object.values(assignmentsByPatient).flat().reduce(
-      (sum, assignment) => sum + (assignment.adherence?.currentWeek.target ?? assignment.targetSessionsPerWeek ?? 0), 0,
-    );
-    const unreadNotifications = notifications.filter((notification) => !notification.isRead);
-
-    return { activePatients, attention, weeklyCompleted, weeklyTarget, unreadNotifications };
-  }, [assignmentsByPatient, notifications, patients]);
-
   if (loading) {
-    return (
-      <div className="role-dashboard-loading" aria-label="Loading doctor dashboard">
-        <LoaderCircle className="recorder-spin" />
-        <span>Loading your patients…</span>
-      </div>
-    );
+    return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
   }
 
   if (error) {
     return (
-      <Card className="role-dashboard-error">
-        <CardContent className="role-dashboard-error-content">
-          <CircleAlert aria-hidden="true" />
-          <div><CardTitle>We could not load your dashboard</CardTitle><CardDescription>{error}</CardDescription></div>
-          <Button onClick={() => window.location.reload()}>Try again</Button>
-        </CardContent>
-      </Card>
+      <div className="card" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "#FEF2F2" }}>
+        <h2 style={{ margin: "0 0 8px 0", color: "var(--color-danger)", fontSize: "18px" }}>Error loading dashboard</h2>
+        <p style={{ margin: 0, color: "var(--color-text-secondary)" }}>{error}</p>
+      </div>
     );
   }
 
+  const activePatients = patients.filter((patient) => patient.isActive && !patient.archivedAt).length;
+  const inactivePatients = patients.length - activePatients;
+  const assignmentTotal = Object.values(assignmentsByPatient).reduce((sum, assignments) => sum + assignments.length, 0);
+  const recentPatients = patients.slice(0, 5);
   const doctorName = [profile?.firstName, profile?.lastName].filter(Boolean).join(" ");
-  const latestUpdate = dashboard.unreadNotifications[0] ?? notifications[0];
 
   return (
-    <div className="role-dashboard animate-fade-in">
-      <header className="role-dashboard-header">
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+      <section className="card" style={{ padding: "28px", display: "flex", justifyContent: "space-between", gap: "20px", alignItems: "center", flexWrap: "wrap" }}>
         <div>
-          <span className="role-dashboard-eyebrow">Doctor dashboard</span>
-          <h1>{doctorName ? `Hello, Dr. ${doctorName}` : "Hello, Doctor"}</h1>
-          <p>Start with the patients who need you most.</p>
+          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>
+            Welcome{doctorName ? `, Dr. ${doctorName}` : ""}
+          </h1>
+          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
+            Manage assigned patients and rehabilitation exercise plans.
+          </p>
         </div>
-        <Button nativeButton={false} render={<Link href="/doctor/exercise-assignments" />}>
-          <ClipboardPlus aria-hidden="true" /> Assign exercise
-        </Button>
-      </header>
+        <div className="responsive-actions">
+          <Link href="/doctor/patients" className="btn btn-primary">Create Patient</Link>
+          <Link href="/doctor/exercise-assignments" className="btn btn-secondary">Assign Exercise</Link>
+        </div>
+      </section>
 
-      <Card className="doctor-attention-card">
-        <CardHeader className="doctor-attention-header">
-          <div>
-            <span className="role-dashboard-eyebrow">Start here</span>
-            <CardTitle>Patients needing attention</CardTitle>
-            <CardDescription>
-              {dashboard.attention.length > 0
-                ? `${dashboard.attention.length} patient${dashboard.attention.length === 1 ? "" : "s"} may need follow-up`
-                : "No missed goals or unfinished care plans"}
-            </CardDescription>
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
+        <StatCard title="Total Patients" value={patients.length} icon={<UsersIcon />} />
+        <StatCard title="Active Patients" value={activePatients} icon={<UsersIcon />} />
+        <StatCard title="Inactive/Archived" value={inactivePatients} icon={<UsersIcon />} />
+        <StatCard title="Assigned Exercises" value={assignmentTotal} icon={<ActivityIcon />} />
+      </section>
+
+      <section className="doctor-two-column">
+        <div className="card" style={{ overflow: "hidden" }}>
+          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+            <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Recent Patients</h2>
+            <Link href="/doctor/patients" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600, fontSize: "14px" }}>View all</Link>
           </div>
-          <Button variant="ghost" nativeButton={false} render={<Link href="/doctor/patients" />}>All patients <ChevronRight /></Button>
-        </CardHeader>
-        <CardContent className="doctor-attention-list">
-          {dashboard.attention.length === 0 ? (
-            <div className="doctor-all-clear">
-              <span><UsersRound /></span>
-              <div><strong>Everyone is on track</strong><p>There is nothing urgent to review right now.</p></div>
+          {recentPatients.length === 0 ? (
+            <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--color-text-muted)" }}>No patients assigned yet.</div>
+          ) : (
+            <div>
+              {recentPatients.map((patient) => (
+                <div key={patient.id} style={{ padding: "16px 24px", borderBottom: "1px solid var(--color-page-bg)", display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+                  <div>
+                    <Link href={`/doctor/patients/${patient.id}`} style={{ color: "var(--color-text-primary)", fontWeight: 600, textDecoration: "none" }}>
+                      {patientName(patient)}
+                    </Link>
+                    <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{patient.email}</div>
+                  </div>
+                  <StatusBadge isActive={patient.isActive} archivedAt={patient.archivedAt} />
+                </div>
+              ))}
             </div>
-          ) : dashboard.attention.slice(0, 4).map(({ patient, missed, needsPlan }) => (
-            <Link className="doctor-attention-row" href={`/doctor/patients/${patient.id}`} key={patient.id}>
-              <span className="doctor-patient-avatar">{patientInitials(patient)}</span>
-              <span className="doctor-patient-copy">
-                <strong>{patientName(patient)}</strong>
-                <small>{needsPlan ? "Exercise plan not set up" : `${missed} missed exercise goal${missed === 1 ? "" : "s"}`}</small>
-              </span>
-              <span className={needsPlan ? "doctor-attention-plan" : "doctor-attention-missed"}>
-                {needsPlan ? "Set up plan" : "Review"}
-              </span>
-              <ChevronRight aria-hidden="true" />
-            </Link>
-          ))}
-        </CardContent>
-      </Card>
+          )}
+        </div>
 
-      <nav className="role-dashboard-quick-links" aria-label="Doctor overview">
-        <Link href="/doctor/patients"><UsersRound aria-hidden="true" /><span>Patients</span><strong>{dashboard.activePatients.length} active</strong><ChevronRight aria-hidden="true" /></Link>
-        <Link href="/doctor/patients"><ClipboardPlus aria-hidden="true" /><span>Sessions this week</span><strong>{dashboard.weeklyCompleted} of {dashboard.weeklyTarget} planned</strong><ChevronRight aria-hidden="true" /></Link>
-        <Link href="/doctor/notifications"><Bell aria-hidden="true" /><span>Updates</span><strong>{dashboard.unreadNotifications.length > 0 ? `${dashboard.unreadNotifications.length} unread` : latestUpdate?.title ?? "No new updates"}</strong><ChevronRight aria-hidden="true" /></Link>
-      </nav>
+        <div className="card" style={{ padding: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Quick Actions</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <Link className="btn btn-primary btn-full" href="/doctor/patients">Create patient account</Link>
+            <Link className="btn btn-secondary btn-full" href="/doctor/exercise-assignments">Assign rehabilitation exercise</Link>
+            <Link className="btn btn-secondary btn-full" href="/doctor/profile">Update profile</Link>
+          </div>
+        </div>
+      </section>
+
+      <DoctorAdherenceOverview patients={patients} assignmentsByPatient={assignmentsByPatient} />
+
+      <section className="card" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Notifications</h2>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{notifications.filter((notification) => !notification.isRead).length} unread</span>
+        </div>
+        <NotificationsPanel notifications={notifications.slice(0, 4)} />
+      </section>
     </div>
   );
 }

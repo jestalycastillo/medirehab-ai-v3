@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type HelpRequest, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { StatCard } from "@/components/ui/stat-card";
 import { PatientForm } from "@/components/doctor/patient-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
@@ -13,6 +14,10 @@ import { ScoreSummary } from "@/components/care/score-summary";
 import { formatScore } from "@/lib/score";
 import { DoctorAlerts } from "@/components/care/doctor-alerts";
 import { ProgressReport } from "@/components/care/progress-report";
+
+function ActivityIcon() {
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
+}
 
 function buildGeneratedPassword() {
   return `Temp${Math.random().toString(36).slice(2, 8)}!9A`;
@@ -217,56 +222,25 @@ export default function PatientDetailPage() {
           <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
             <StatusBadge isActive={patient.isActive} archivedAt={patient.archivedAt} />
             <span style={{ color: "var(--color-text-muted)", fontSize: "14px" }}>{patient.email}</span>
-            <span style={{ color: "var(--color-text-muted)", fontSize: "14px" }}>Last online: {formatTimestamp(patient.lastSeenAt)}</span>
-            {activeAssignment && <span className="badge badge-blue" style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Taking {activeAssignment.exercise.name}</span>}
           </div>
         </div>
-        <div className="doctor-patient-header-actions">
+        <div className="responsive-actions">
+          <button className="btn btn-secondary" onClick={() => setIsFormOpen(true)}>Edit Profile</button>
           <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`}>Assign Exercise</Link>
-          <details className="doctor-account-actions">
-            <summary>Account options</summary>
-            <div>
-              <button className="btn btn-secondary" onClick={() => setIsFormOpen(true)}>Edit profile</button>
-              <button className="btn btn-secondary" onClick={resetPassword}>Reset password</button>
-              <button className="btn btn-secondary" onClick={toggleStatus}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-              {!patient.archivedAt && <button className="btn btn-danger" onClick={archivePatient}>Archive</button>}
-            </div>
-          </details>
+          <button className="btn btn-secondary" onClick={resetPassword}>Reset Password</button>
+          <button className="btn btn-secondary" onClick={toggleStatus}>{patient.isActive ? "Deactivate" : "Activate"}</button>
+          {!patient.archivedAt && <button className="btn btn-danger" onClick={archivePatient}>Archive</button>}
         </div>
       </div>
 
-      <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} referenceTime={lastLoadedAt} onResolve={handleResolveHelp} />
-
-      <section className="card" style={{ padding: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Assigned exercises ({assignments.length})</h2>
-          {assignments.length === 0 ? (
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>No exercises assigned yet.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {assignments.slice(0, 5).map((assignment) => (
-                <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
-                  <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
-                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {formatScore(assignment.result?.score)}</div>
-                </div>
-              ))}
-              <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
-            </div>
-          )}
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
+        <StatCard title="Assigned Exercises" value={assignments.length} icon={<ActivityIcon />} />
+        <StatCard title="Latest Score" value={formatScore(sessions[0]?.score)} icon={<ActivityIcon />} />
       </section>
 
-      <section className="card" style={{ padding: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
-          <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
-        </div>
-        <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
-      </section>
-
-      <ScoreSummary sessions={sessions} />
-
-      <details className="care-disclosure">
-        <summary>Patient profile</summary>
-        <div className="care-disclosure-content">
+      <section className="doctor-two-column">
+        <div className="card" style={{ padding: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 20px 0" }}>Patient Profile</h2>
           <div className="doctor-form-grid">
             <DetailField label="First Name" value={patient.profile?.firstName} />
             <DetailField label="Last Name" value={patient.profile?.lastName} />
@@ -280,12 +254,28 @@ export default function PatientDetailPage() {
             <DetailField label="Medical Condition" value={patient.profile?.medicalCondition} />
           </div>
         </div>
-      </details>
 
-      <details className="care-disclosure">
-        <summary>Patient activity</summary>
-        <div className="care-disclosure-content">
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "18px" }}>
+        <div className="card" style={{ padding: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Assigned Exercise Summary</h2>
+          {assignments.length === 0 ? (
+            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>No exercises assigned yet.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {assignments.slice(0, 5).map((assignment) => (
+                <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
+                  <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
+                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {formatScore(assignment.result?.score)}</div>
+                </div>
+              ))}
+              <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="card" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "18px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Patient Activity</h2>
           {activeAssignment ? <span className="badge badge-blue" style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Taking {activeAssignment.exercise.name}</span> : <span className="badge badge-blue">Not currently exercising</span>}
         </div>
         <div className="doctor-form-grid">
@@ -300,13 +290,21 @@ export default function PatientDetailPage() {
             <span style={{ color: "var(--color-text-secondary)" }}>Finished: {formatTimestamp(assignment.completedAt)}</span>
           </div>)}
         </div>}
-        </div>
-      </details>
+      </section>
 
-      <details className="care-disclosure">
-        <summary>Detailed progress report</summary>
-        <div className="care-disclosure-content"><ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} /></div>
-      </details>
+      <section className="card" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
+        </div>
+        <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
+      </section>
+
+      <ScoreSummary sessions={sessions} />
+
+      <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} onResolve={handleResolveHelp} />
+
+      <ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} />
 
       <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} />
       <ConfirmDialog

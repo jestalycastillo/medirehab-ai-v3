@@ -70,7 +70,7 @@ const NAV_ITEMS = [
   { name: "Doctors", href: "/admin/doctors", icon: <UsersIcon /> },
   { name: "Patients", href: "/admin/patients", icon: <UsersIcon /> },
   { name: "Exercises", href: "/admin/exercises", icon: <ActivityIcon /> },
-  { name: "Profile", href: "/admin/profile", icon: <SettingsIcon /> },
+  { name: "Settings", href: "/admin/profile", icon: <SettingsIcon /> },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -220,10 +220,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Admin Portal</span>
           </div>
           <button
-            type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={isMobileMenuOpen}
             style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
           >
             <MenuIcon />

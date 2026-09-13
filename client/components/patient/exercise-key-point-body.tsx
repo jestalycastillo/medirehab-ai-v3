@@ -4,16 +4,17 @@ interface ExerciseKeyPointBodyProps {
     points: ExerciseKeyPointVisibility[];
 }
 
-const ACTIVE_POINT_COLOR = "#0F9F79";
-const MISSING_POINT_COLOR = "#E05252";
-const INACTIVE_POINT_COLOR = "#B9CDC8";
+const ACTIVE_POINT_COLOR = "#22C55E";
+const MISSING_POINT_COLOR = "#EF4444";
+const BODY_FILL = "rgba(226, 232, 240, 0.14)";
+const BODY_STROKE = "rgba(255, 255, 255, 0.52)";
 
 function getPointColor(
     points: ExerciseKeyPointVisibility[],
     id: ExerciseKeyPointVisibility["id"],
 ): string {
     const point = points.find((candidate) => candidate.id === id);
-    if (!point?.isRequired) return INACTIVE_POINT_COLOR;
+    if (!point?.isRequired) return BODY_FILL;
     return point.isVisible ? ACTIVE_POINT_COLOR : MISSING_POINT_COLOR;
 }
 
@@ -31,94 +32,82 @@ export function ExerciseKeyPointBody({ points }: ExerciseKeyPointBodyProps) {
         fill: getPointColor(points, id),
         label: getPointLabel(points, id),
     });
-    const marker = (
-        id: ExerciseKeyPointVisibility["id"],
-        cx: number,
-        cy: number,
-        radius = 5.5,
-    ) => {
-        const current = point(id);
-
-        return (
-            <g>
-                <circle
-                    cx={cx}
-                    cy={cy}
-                    r={radius + 3}
-                    fill={current.fill}
-                    opacity="0.16"
-                />
-                <circle
-                    cx={cx}
-                    cy={cy}
-                    r={radius}
-                    fill={current.fill}
-                    stroke="#FFFFFF"
-                    strokeWidth="2"
-                >
-                    {current.label && <title>{current.label}</title>}
-                </circle>
-            </g>
-        );
-    };
+    const leftShoulder = point("leftShoulder");
+    const rightShoulder = point("rightShoulder");
+    const leftElbow = point("leftElbow");
+    const rightElbow = point("rightElbow");
+    const nose = point("nose");
+    const leftWrist = point("leftWrist");
+    const rightWrist = point("rightWrist");
+    const leftHip = point("leftHip");
+    const rightHip = point("rightHip");
+    const leftKnee = point("leftKnee");
+    const rightKnee = point("rightKnee");
+    const leftAnkle = point("leftAnkle");
+    const rightAnkle = point("rightAnkle");
 
     return (
         <svg
-            viewBox="0 0 140 226"
+            viewBox="0 0 140 220"
             role="img"
             aria-label="Front body figure showing required visible points"
-            className="key-point-body"
+            style={{ width: "100%", height: "190px", display: "block" }}
         >
-            <defs>
-                <linearGradient id="body-fill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#E4F3EF" />
-                    <stop offset="1" stopColor="#C4DED8" />
-                </linearGradient>
-            </defs>
-
-            <g
-                fill="url(#body-fill)"
-                stroke="#5D817A"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            >
-                <circle cx="70" cy="25" r="17" />
-                <path d="M63 42 L62 49 Q52 51 47 58 Q45 78 49 103 Q52 116 58 125 L82 125 Q88 116 91 103 Q95 78 93 58 Q88 51 78 49 L77 42 Z" />
-                <path d="M49 58 Q41 60 38 70 L29 100 Q27 106 31 109 Q35 112 38 106 L49 79" />
-                <path d="M91 58 Q99 60 102 70 L111 100 Q113 106 109 109 Q105 112 102 106 L91 79" />
-                <path d="M31 109 L27 139 Q27 148 33 149 Q39 149 40 141 L40 109" />
-                <path d="M109 109 L113 139 Q113 148 107 149 Q101 149 100 141 L100 109" />
-                <path d="M58 125 Q51 135 52 148 L56 180 L64 180 L70 145 L76 180 L84 180 L88 148 Q89 135 82 125 Z" />
-                <path d="M56 180 L54 207 Q54 214 59 214 Q64 214 65 207 L64 180 Z" />
-                <path d="M84 180 L86 207 Q86 214 81 214 Q76 214 75 207 L76 180 Z" />
-                <path d="M54 207 Q45 211 44 217 L61 217 Q62 213 59 208" />
-                <path d="M86 207 Q95 211 96 217 L79 217 Q78 213 81 208" />
+            <g stroke={BODY_STROKE} strokeWidth="1.6" strokeLinejoin="round">
+                <ellipse cx="70" cy="25" rx="16" ry="19" fill={BODY_FILL} />
+                <path d="M59 43 L53 54 L43 59 L47 106 L59 119 L81 119 L93 106 L97 59 L87 54 L81 43 Z" fill={BODY_FILL} />
+                <path d="M53 54 C47 52 41 55 37 62 L29 91 L35 96 L45 79 L50 65 Z" fill={BODY_FILL} />
+                <path d="M87 54 C93 52 99 55 103 62 L111 91 L105 96 L95 79 L90 65 Z" fill={BODY_FILL} />
+                <path d="M35 96 L29 125 L35 151 L43 151 L45 119 L45 79 Z" fill={BODY_FILL} />
+                <path d="M105 96 L111 125 L105 151 L97 151 L95 119 L95 79 Z" fill={BODY_FILL} />
+                <path d="M59 119 L48 130 L51 180 L61 180 L70 142 L79 180 L89 180 L92 130 L81 119 Z" fill={BODY_FILL} />
+                <path d="M51 180 L49 207 L59 207 L65 180 Z" fill={BODY_FILL} />
+                <path d="M89 180 L91 207 L81 207 L75 180 Z" fill={BODY_FILL} />
+                <path d="M49 207 L42 212 L60 212 L59 207 Z" fill={BODY_FILL} />
+                <path d="M91 207 L98 212 L80 212 L81 207 Z" fill={BODY_FILL} />
             </g>
 
-            <g fill="none" stroke="#7FA49C" strokeWidth="1.4" strokeLinecap="round" opacity="0.75">
-                <path d="M70 49 L70 124" />
-                <path d="M52 61 L88 61" />
-                <path d="M52 61 L36 104 L33 141" />
-                <path d="M88 61 L104 104 L107 141" />
-                <path d="M59 125 L70 145 L81 125" />
-                <path d="M59 127 L60 179 L59 208" />
-                <path d="M81 127 L80 179 L81 208" />
+            <g stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round">
+                <ellipse cx="70" cy="25" rx="16" ry="19" fill={nose.fill}>
+                    {nose.label && <title>{nose.label}</title>}
+                </ellipse>
+                <path d="M53 54 C47 52 41 55 37 62 L42 72 L51 68 L57 59 Z" fill={leftShoulder.fill}>
+                    {leftShoulder.label && <title>{leftShoulder.label}</title>}
+                </path>
+                <path d="M87 54 C93 52 99 55 103 62 L98 72 L89 68 L83 59 Z" fill={rightShoulder.fill}>
+                    {rightShoulder.label && <title>{rightShoulder.label}</title>}
+                </path>
+                <path d="M29 91 L35 96 L40 108 L34 116 L28 108 Z" fill={leftElbow.fill}>
+                    {leftElbow.label && <title>{leftElbow.label}</title>}
+                </path>
+                <path d="M111 91 L105 96 L100 108 L106 116 L112 108 Z" fill={rightElbow.fill}>
+                    {rightElbow.label && <title>{rightElbow.label}</title>}
+                </path>
+                <ellipse cx="34" cy="125" rx="6" ry="8" fill={leftWrist.fill}>
+                    {leftWrist.label && <title>{leftWrist.label}</title>}
+                </ellipse>
+                <ellipse cx="106" cy="125" rx="6" ry="8" fill={rightWrist.fill}>
+                    {rightWrist.label && <title>{rightWrist.label}</title>}
+                </ellipse>
+                <path d="M59 119 L48 130 L57 143 L70 142 L70 119 Z" fill={leftHip.fill}>
+                    {leftHip.label && <title>{leftHip.label}</title>}
+                </path>
+                <path d="M81 119 L92 130 L83 143 L70 142 L70 119 Z" fill={rightHip.fill}>
+                    {rightHip.label && <title>{rightHip.label}</title>}
+                </path>
+                <ellipse cx="56" cy="180" rx="8" ry="7" fill={leftKnee.fill}>
+                    {leftKnee.label && <title>{leftKnee.label}</title>}
+                </ellipse>
+                <ellipse cx="84" cy="180" rx="8" ry="7" fill={rightKnee.fill}>
+                    {rightKnee.label && <title>{rightKnee.label}</title>}
+                </ellipse>
+                <ellipse cx="54" cy="207" rx="7" ry="5" fill={leftAnkle.fill}>
+                    {leftAnkle.label && <title>{leftAnkle.label}</title>}
+                </ellipse>
+                <ellipse cx="86" cy="207" rx="7" ry="5" fill={rightAnkle.fill}>
+                    {rightAnkle.label && <title>{rightAnkle.label}</title>}
+                </ellipse>
             </g>
-
-            {marker("nose", 70, 25, 4.5)}
-            {marker("leftShoulder", 52, 61)}
-            {marker("rightShoulder", 88, 61)}
-            {marker("leftElbow", 36, 104)}
-            {marker("rightElbow", 104, 104)}
-            {marker("leftWrist", 33, 141)}
-            {marker("rightWrist", 107, 141)}
-            {marker("leftHip", 59, 126)}
-            {marker("rightHip", 81, 126)}
-            {marker("leftKnee", 60, 179)}
-            {marker("rightKnee", 80, 179)}
-            {marker("leftAnkle", 59, 208)}
-            {marker("rightAnkle", 81, 208)}
         </svg>
     );
 }
