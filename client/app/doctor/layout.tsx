@@ -79,7 +79,7 @@ function ActivityIcon() {
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/doctor/dashboard", icon: <LayoutDashboardIcon /> },
   { name: "Patients", href: "/doctor/patients", icon: <UsersIcon /> },
-  { name: "Exercise Assignments", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
+  { name: "Exercises", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
   { name: "Notifications", href: "/doctor/notifications", icon: <BellIcon /> },
   { name: "Profile", href: "/doctor/profile", icon: <SettingsIcon /> },
 ];
@@ -231,7 +231,10 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Doctor Portal</span>
           </div>
           <button
+            type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isMobileMenuOpen}
             style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
           >
             <MenuIcon />
