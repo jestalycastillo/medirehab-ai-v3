@@ -11,7 +11,13 @@ from app.model_registry import (
     UnsupportedAnalysisModelError,
     get_loaded_model,
 )
-from app.utils.evaluate import compute_similarity_score, get_reconstruction_error
+from app.utils.evaluate import (
+    calculate_clinical_score,
+    compute_arm_motion_stats,
+    compute_similarity_score,
+    get_reconstruction_error,
+    get_score_feedback,
+)
 from app.utils.preprocess import TracePreprocessingError, preprocess
 from app.utils.process_video import (
     TraceSummary,
@@ -83,7 +89,8 @@ def _validate_trace_summary(summary: TraceSummary) -> None:
 def _score_trace(
     loaded_model: LoadedAnalysisModel,
     trace_path: Path,
-) -> tuple[float, float]:
+    model_key: str,
+) -> tuple[float, float, list[str]]:
     data, input_dim = preprocess(
         trace_path,
         target_frames=loaded_model.definition.input_frames,
@@ -98,12 +105,21 @@ def _score_trace(
     with loaded_model.inference_lock:
         error = get_reconstruction_error(loaded_model.model, data)
 
-    score = compute_similarity_score(
-        error,
-        loaded_model.mean_val_loss,
-        loaded_model.beta,
+    min_angle, max_angle, rom = compute_arm_motion_stats(trace_path, model_key)
+    score = calculate_clinical_score(
+        error=error,
+        min_angle=min_angle,
+        max_angle=max_angle,
+        rom=rom,
+        beta=loaded_model.beta,
     )
-    return error, score
+    feedback = get_score_feedback(
+        score=score,
+        model_key=model_key,
+        max_angle=max_angle,
+        rom=rom,
+    )
+    return error, score, feedback
 
 
 @router.post("/{model_key}")
@@ -162,10 +178,11 @@ async def evaluate(model_key: str, video: UploadFile = File(...)):
                 str(trace_path),
             )
             _validate_trace_summary(trace_summary)
-            error, score = await run_in_threadpool(
+            error, score, feedback = await run_in_threadpool(
                 _score_trace,
                 loaded_model,
                 trace_path,
+                model_key,
             )
     except HTTPException:
         raise
@@ -183,4 +200,5 @@ async def evaluate(model_key: str, video: UploadFile = File(...)):
         "evaluationId": evaluation_id,
         "error": error,
         "score": score,
+        "feedback": feedback,
     }

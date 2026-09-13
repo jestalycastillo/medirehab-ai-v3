@@ -215,7 +215,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     const startCamera = async () => {
         setError(null);
-        setRecordedUrl(null);
+        setRecordedUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -284,7 +287,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsRecording(false);
         setIsOpen(false);
         setError(null);
-        setRecordedUrl(null);
+        setRecordedUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         setIsEvaluating(false);
         setEvaluationScore(null);
         setSessionId(null);
@@ -350,28 +356,42 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
             recorder.onerror = (e) => {
                 console.error("MediaRecorder error:", e);
+                setIsRecording(false);
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
+                if (elapsedIntervalRef.current) {
+                    clearInterval(elapsedIntervalRef.current);
+                    elapsedIntervalRef.current = null;
+                }
+                setError("Recording error occurred. Please try again.");
             };
 
             recorder.onstop = () => {
+                setIsRecording(false);
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
+                if (elapsedIntervalRef.current) {
+                    clearInterval(elapsedIntervalRef.current);
+                    elapsedIntervalRef.current = null;
+                }
                 try {
                     if (assignmentId) {
                         void api.stopExerciseActivity(assignmentId).catch(() => undefined);
                     }
-                    if (recordingTimeoutRef.current) {
-                        clearTimeout(recordingTimeoutRef.current);
-                        recordingTimeoutRef.current = null;
-                    }
-                    if (elapsedIntervalRef.current) {
-                        clearInterval(elapsedIntervalRef.current);
-                        elapsedIntervalRef.current = null;
-                    }
-                    setIsRecording(false);
-                    const mimeType = recorder.mimeType || "video/webm";
+                    const rawMimeType = recorder.mimeType || preferredMimeType || "video/webm";
+                    const cleanMimeType = rawMimeType.split(";")[0]?.trim() || "video/webm";
                     recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
-                    const blob = new Blob(chunksRef.current, { type: mimeType });
+                    const blob = new Blob(chunksRef.current, { type: cleanMimeType });
                     blobRef.current = blob;
                     const url = URL.createObjectURL(blob);
-                    setRecordedUrl(url);
+                    setRecordedUrl((prev) => {
+                        if (prev) URL.revokeObjectURL(prev);
+                        return url;
+                    });
                     stopCamera();
                     if (onSave) {
                         onSave(blob);
@@ -393,7 +413,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             }, 250);
 
             clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            recorder.start(1000); // 1000ms timeslice to flush chunks periodically
+            recorder.start();
             setIsRecording(true);
             if (assignmentId) {
                 void api.startExerciseActivity(assignmentId).catch(() => undefined);
@@ -401,10 +421,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
             if (selectedTimerSeconds !== null && selectedTimerSeconds > 0) {
                 recordingTimeoutRef.current = setTimeout(() => {
-                    if (recorder.state === "recording") {
-                        liveCoachingRequestIdRef.current += 1;
-                        recorder.stop();
-                    }
+                    stopRecording();
                 }, selectedTimerSeconds * 1000);
             } else {
                 recordingTimeoutRef.current = null;
@@ -431,7 +448,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 mediaRecorderRef.current.stop();
             } catch (err) {
                 console.error("Error stopping media recorder:", err);
+                setIsRecording(false);
             }
+        } else {
+            setIsRecording(false);
         }
     };
 
@@ -771,8 +791,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 /* Post-Recording Preview */
                                 <div style={{ position: "relative", width: "100%", height: "100%" }}>
                                     <video
+                                        key={recordedUrl}
                                         src={recordedUrl}
                                         controls
+                                        playsInline
+                                        preload="auto"
                                         style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
                                     />
                                     {isEvaluating && (
@@ -1044,7 +1067,10 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     <button
                                         className="btn btn-secondary"
                                         onClick={() => {
-                                            setRecordedUrl(null);
+                                            setRecordedUrl((prev) => {
+                                                if (prev) URL.revokeObjectURL(prev);
+                                                return null;
+                                            });
                                             startCamera();
                                         }}
                                         disabled={isEvaluating}
@@ -1283,10 +1309,10 @@ function formatTime(totalSeconds: number): string {
 function getPreferredMimeType(): string | undefined {
     if (typeof MediaRecorder === "undefined") return undefined;
     const candidates = [
+        "video/mp4",
         "video/webm;codecs=vp8",
         "video/webm;codecs=vp9",
         "video/webm",
-        "video/mp4",
     ];
     for (const candidate of candidates) {
         if (MediaRecorder.isTypeSupported(candidate)) {
