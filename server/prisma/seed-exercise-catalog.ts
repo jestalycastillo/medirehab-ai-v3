@@ -11,13 +11,13 @@ const CATALOG = [
         name: "Shoulder Flexion",
         description: "Stand upright with your arms at your sides. Select your target arm (left or right). Keeping your elbow straight, raise your arm forward and upward to shoulder height, then lower it slowly with control.",
         analysisModelKey: "shoulder_flexion",
-        image: { imageName: "Shoulder Flexion illustration", filepath: "/exercises/shoulder_flexion.svg" }
+        image: { imageName: "Shoulder Flexion illustration", filepath: "/exercises/shoulder_flexion.png" }
     },
     {
         name: "Shoulder Abduction",
         description: "Stand upright with your arms at your sides. Select your target arm (left or right). Keeping your elbow straight, raise your arm outward to the side up to shoulder height, then lower it slowly with control.",
         analysisModelKey: "shoulder_abduction",
-        image: { imageName: "Shoulder Abduction", filepath: "/exercises/arms_raise.jpg" }
+        image: { imageName: "Shoulder Abduction", filepath: "/exercises/shoulder_abduction.png" }
     }
 ] as const;
 
@@ -63,6 +63,23 @@ export async function seedExerciseCatalog(prisma: PrismaClient): Promise<void> {
                     ...(!existing.analysisModelKey ? { analysisModelKey: item.analysisModelKey } : {}),
                     ...(existing.images.length === 0 ? { images: { create: item.image } } : {})
                 }
+            });
+        }
+
+        // Replace only the catalog's old default images; preserve clinician-supplied images.
+        const oldDefaultPath = item.analysisModelKey === "shoulder_flexion"
+            ? "/exercises/shoulder_flexion.svg"
+            : item.analysisModelKey === "shoulder_abduction"
+                ? "/exercises/arms_raise.jpg"
+                : null;
+        if (oldDefaultPath) {
+            await prisma.exerciseImage.updateMany({
+                where: {
+                    exerciseId: existing.id,
+                    imageName: item.image.imageName,
+                    filepath: oldDefaultPath
+                },
+                data: { filepath: item.image.filepath }
             });
         }
         console.log(`Exercise ready: ${item.name} (${item.analysisModelKey})`);
