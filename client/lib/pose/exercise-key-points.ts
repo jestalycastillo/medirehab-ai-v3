@@ -39,16 +39,49 @@ const KEY_POINT_DETAILS: Record<
 
 const EXERCISE_REQUIRED_KEY_POINTS: Record<string, PoseLandmarkKey[]> = {
     "side arms raise": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "left shoulder flexion": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "right shoulder flexion": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "shoulder flexion": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "shoulder abduction": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
 };
 
 export function getExerciseKeyPointVisibility(
     exerciseName: string,
     landmarks: PoseLandmarkMap | null,
     requiredVisibility = REQUIRED_VISIBILITY,
+    selectedSide?: "left" | "right"
 ): ExerciseKeyPointVisibility[] {
-    const requiredIds = new Set(
-        EXERCISE_REQUIRED_KEY_POINTS[normalizeExerciseName(exerciseName)] ?? [],
-    );
+    const normalized = normalizeExerciseName(exerciseName);
+    let requiredList: PoseLandmarkKey[] | undefined;
+
+    if (
+        normalized.includes("flexion") ||
+        normalized.includes("abduction") ||
+        normalized === "shoulder flexion" ||
+        normalized === "shoulder abduction"
+    ) {
+        if (selectedSide === "left" || normalized.includes("left")) {
+            requiredList = ["leftShoulder", "rightShoulder", "leftElbow"];
+        } else if (selectedSide === "right" || normalized.includes("right")) {
+            requiredList = ["leftShoulder", "rightShoulder", "rightElbow"];
+        } else {
+            requiredList = ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
+        }
+    } else {
+        requiredList = EXERCISE_REQUIRED_KEY_POINTS[normalized];
+    }
+
+    if (!requiredList) {
+        if (normalized.includes("arm") || normalized.includes("shoulder")) {
+            requiredList = ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
+        } else if (normalized.includes("squat") || normalized.includes("knee") || normalized.includes("leg")) {
+            requiredList = ["leftHip", "rightHip", "leftKnee", "rightKnee"];
+        } else {
+            requiredList = ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
+        }
+    }
+
+    const requiredIds = new Set(requiredList);
 
     return Object.values(KEY_POINT_DETAILS).map((point) => ({
         ...point,
@@ -61,18 +94,21 @@ export function getRequiredExerciseKeyPointVisibility(
     exerciseName: string,
     landmarks: PoseLandmarkMap | null,
     requiredVisibility = REQUIRED_VISIBILITY,
+    selectedSide?: "left" | "right"
 ): ExerciseKeyPointVisibility[] {
     return getExerciseKeyPointVisibility(
         exerciseName,
         landmarks,
         requiredVisibility,
+        selectedSide,
     ).filter((point) => point.isRequired);
 }
 
 export function exerciseSupportsKeyPointVisibility(exerciseName: string): boolean {
-    return normalizeExerciseName(exerciseName) in EXERCISE_REQUIRED_KEY_POINTS;
+    const normalized = normalizeExerciseName(exerciseName);
+    return normalized in EXERCISE_REQUIRED_KEY_POINTS || normalized.length > 0;
 }
 
-function normalizeExerciseName(exerciseName: string): string {
+export function normalizeExerciseName(exerciseName: string): string {
     return exerciseName.trim().toLowerCase().replaceAll(/[-_]+/g, " ");
 }
