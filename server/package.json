@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test:adherence && npm run test:exercise-models && npm run test:integration",
+    "test": "npm run test:adherence && npm run test:exercise-models && npm run test:pose-guidance && npm run test:integration",
     "test:adherence": "tsx tests/adherence.test.ts",
     "test:exercise-models": "tsx tests/exercise-models.test.ts",
+    "test:pose-guidance": "tsx ../client/lib/pose/shoulder-movement-direction.test.ts",
     "test:integration": "tsx tests/care-workflow.integration.ts",
     "build": "tsc --build",
     "start": "node ./dist/server.js",
