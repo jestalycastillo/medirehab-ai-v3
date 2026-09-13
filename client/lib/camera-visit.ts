@@ -6,7 +6,7 @@ export function resolveRecordingSide(
   config: ExerciseModelGuidanceConfig | null,
   selectedSide: ArmSide | null,
 ): ArmSide | null | undefined {
-  return config?.fixedSide ?? (config?.selectableSide ? selectedSide : undefined);
+  return config?.fixedSide ?? (config?.selectableSide ? selectedSide ?? "left" : undefined);
 }
 
 export function canRecordArm(

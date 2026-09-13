@@ -492,10 +492,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const handleStartRecording = () => {
         const activeStream = streamRef.current ?? stream;
         if (!activeStream || isCameraStarting || countdown !== null || isRecording) return;
-        if (isSideSelectable && !targetSide) {
-            setError("Choose the left or right arm before recording.");
-            return;
-        }
         if (!canRecordArm(modelGuidance, selectedSide, recordedClips.map((clip) => clip.side))) {
             setError("This arm is already recorded. Review or retake its clip first.");
             return;
@@ -852,64 +848,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                                {isSideSelectable && (
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            backgroundColor: "rgba(15, 23, 42, 0.06)",
-                                            padding: "3px",
-                                            borderRadius: "8px",
-                                            border: "1px solid var(--color-border)",
-                                            gap: "2px",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-text-muted)", padding: "0 6px" }}>
-                                            Arm:
-                                        </span>
-                                        <button
-                                            type="button"
-                                            aria-pressed={selectedSide === "left"}
-                                            disabled={isRecording || isEvaluating || isFinalizingRecording || countdown !== null || Boolean(recordedUrl) || recordedClips.some((clip) => clip.side === "left")}
-                                            onClick={() => setSelectedSide("left")}
-                                            style={{
-                                                padding: "5px 12px",
-                                                fontSize: "12px",
-                                                fontWeight: 600,
-                                                borderRadius: "6px",
-                                                border: "none",
-                                                cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
-                                                backgroundColor: selectedSide === "left" ? "var(--color-primary, #0D9488)" : "transparent",
-                                                color: selectedSide === "left" ? "#FFF" : "var(--color-text-secondary, #475569)",
-                                                transition: "all 0.15s ease",
-                                                boxShadow: selectedSide === "left" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
-                                            }}
-                                        >
-                                            Left Arm
-                                        </button>
-                                        <button
-                                            type="button"
-                                            aria-pressed={selectedSide === "right"}
-                                            disabled={isRecording || isEvaluating || isFinalizingRecording || countdown !== null || Boolean(recordedUrl) || recordedClips.some((clip) => clip.side === "right")}
-                                            onClick={() => setSelectedSide("right")}
-                                            style={{
-                                                padding: "5px 12px",
-                                                fontSize: "12px",
-                                                fontWeight: 600,
-                                                borderRadius: "6px",
-                                                border: "none",
-                                                cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
-                                                backgroundColor: selectedSide === "right" ? "var(--color-primary, #0D9488)" : "transparent",
-                                                color: selectedSide === "right" ? "#FFF" : "var(--color-text-secondary, #475569)",
-                                                transition: "all 0.15s ease",
-                                                boxShadow: selectedSide === "right" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
-                                            }}
-                                        >
-                                            Right Arm
-                                        </button>
-                                    </div>
-                                )}
-
                                 <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
                                     {targetDurationSeconds ? `Time goal: ${formatTime(targetDurationSeconds)}${isSideSelectable ? " per arm" : ""}` : "No prescribed time goal"}
                                     {minimumDurationSeconds ? ` · Minimum to count: ${formatTime(minimumDurationSeconds)}` : ""}
@@ -940,18 +878,8 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         </div>
 
                         {/* Video Feed Workspace */}
-                        <div
-                            style={{
-                                position: "relative",
-                                backgroundColor: "#000",
-                                width: "100%",
-                                flex: "1 1 0",
-                                minHeight: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }}
-                        >
+                        <div className={`recorder-workspace${liveGuidanceEnabled ? " recorder-workspace-with-guidance" : ""}`}>
+                            <div className="recorder-video-stage">
                             {error && cameraAccessIssue ? (
                                 <div className="recorder-empty-state" role="alert">
                                     <button
@@ -1192,13 +1120,14 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     )}
                                 </>
                             )}
-                        </div>
+                            </div>
 
                             {liveGuidanceEnabled && (
                                 <aside className="recorder-guidance-sidebar" aria-label="Live body position guidance">
                                     <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
                                 </aside>
                             )}
+                        </div>
 
                         {/* Action Footer */}
                         {recordedUrl && recordedClips.length > 1 && (
@@ -1234,7 +1163,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                             : countdown !== null
                                               ? "Move into position"
                                               : stream
-                                                ? isSideSelectable && !targetSide ? "Choose an arm" : recordedClips.length > 0 && targetSide ? `${targetSide === "left" ? "Left" : "Right"} arm is next` : "Check your position"
+                                                 ? recordedClips.length > 0 && targetSide ? `${targetSide === "left" ? "Left" : "Right"} arm is next` : "Check your position"
                                               : "Ready when you are"}
                                 </strong>
                                 <span>
@@ -1253,7 +1182,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                             : countdown !== null
                                               ? "Recording begins automatically after the countdown."
                                               : stream
-                                                ? isSideSelectable && !targetSide ? "Select Left arm or Right arm above before recording." : recordedClips.length > 0 && targetSide ? "The other arm is saved. Reposition, then tap Start recording—or review the saved arm." : "Make sure your body is visible, then start recording."
+                                                 ? recordedClips.length > 0 && targetSide ? "The other arm is saved. Reposition, then tap Start recording—or review the saved arm." : "Make sure your body is visible, then start recording."
                                                 : "Turn on your camera to see yourself first."}
                                 </span>
                             </div>
@@ -1322,7 +1251,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                             Review saved arm
                                         </Button>
                                     )}
-                                    <Button onClick={handleStartRecording} disabled={isSideSelectable && !targetSide}>
+                                    <Button onClick={handleStartRecording}>
                                         <Video />
                                         Start Recording
                                     </Button>

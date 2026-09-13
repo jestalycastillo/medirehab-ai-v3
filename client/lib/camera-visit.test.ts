@@ -5,11 +5,11 @@ import { getExerciseModelGuidanceConfig } from "./pose/exercise-model-config";
 import { formatAssignmentScoreSummary } from "./score";
 import type { ExerciseAssignment } from "./api";
 
-test("generic shoulder exercises require an explicit side and can switch only to an unrecorded arm", () => {
+test("generic shoulder exercises start on the left and can switch only to an unrecorded arm", () => {
   const config = getExerciseModelGuidanceConfig("shoulder_flexion");
   assert(config);
-  assert.equal(resolveRecordingSide(config, null), null);
-  assert.equal(canRecordArm(config, null, []), false);
+  assert.equal(resolveRecordingSide(config, null), "left");
+  assert.equal(canRecordArm(config, null, []), true);
   assert.equal(canRecordArm(config, "left", []), true);
   assert.equal(canSwitchArm(config, "left", []), true);
   assert.equal(canRecordArm(config, "left", ["left"]), false);
