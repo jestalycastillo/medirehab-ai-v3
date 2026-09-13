@@ -9,6 +9,7 @@ import {
     ValidatedCreateExerciseInput,
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
+import { resolveExerciseAnalysisModel } from "../utils/exerciseAnalysisModel";
 
 const exerciseSelect = {
     id: true,
@@ -539,7 +540,7 @@ export const evaluateExercise = async (
     assignmentId: string,
     videoBuffer: Buffer,
     videoContentType: string,
-    selectedSide?: "left" | "right" | string
+    selectedSide?: "left" | "right"
 ) => {
     const assignment = await prisma.exerciseAssignment.findFirst({
         where: {
@@ -578,12 +579,7 @@ export const evaluateExercise = async (
         throw new HttpError(400, "Exercise recording is empty.");
     }
 
-    let targetModelKey = modelKey;
-    if (modelKey === "shoulder_flexion") {
-        targetModelKey = selectedSide?.toLowerCase() === "right" ? "right_flexion" : "left_flexion";
-    } else if (modelKey === "shoulder_abduction") {
-        targetModelKey = selectedSide?.toLowerCase() === "right" ? "right_abduction" : "left_abduction";
-    }
+    const resolvedModel = resolveExerciseAnalysisModel(modelKey, selectedSide);
 
     const uint8Array = new Uint8Array(videoBuffer);
     const formData = new FormData();
@@ -594,7 +590,7 @@ export const evaluateExercise = async (
     );
 
     const aiServiceBaseUrl = getAiServiceBaseUrl();
-    const encodedModelKey = encodeURIComponent(targetModelKey);
+    const encodedModelKey = encodeURIComponent(resolvedModel.evaluatedModelKey);
     const evaluationResponse = await fetchAiService(
         `${aiServiceBaseUrl}/evaluate/${encodedModelKey}`,
         {
@@ -639,5 +635,5 @@ export const evaluateExercise = async (
         ? evaluationResult.feedback.filter((item): item is string => typeof item === "string")
         : [];
 
-    return { score: result.score, feedback };
+    return { score: result.score, feedback, ...resolvedModel };
 };

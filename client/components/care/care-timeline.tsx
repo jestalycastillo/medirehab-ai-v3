@@ -62,7 +62,7 @@ export function CareTimeline({
             <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "flex-start" }}>
               <div>
                 <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 4px 0" }}>
-                  {session.assignment.exercise.name}
+                  {session.assignment.exercise.name}{session.selectedSide ? ` · ${session.selectedSide === "left" ? "Left" : "Right"} arm` : ""}
                 </h3>
                 <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "13px" }}>
                   Performed {formatDate(session.performedAt)}

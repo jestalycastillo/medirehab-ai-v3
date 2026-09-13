@@ -11,7 +11,7 @@ from app.model_registry import (
     UnsupportedAnalysisModelError,
     get_loaded_model,
 )
-from app.utils.evaluate import compute_similarity_score, get_reconstruction_error
+from app.utils.evaluate import compute_similarity_score, get_reconstruction_error, get_score_feedback
 from app.utils.preprocess import TracePreprocessingError, preprocess
 from app.utils.process_video import (
     TraceSummary,
@@ -183,4 +183,5 @@ async def evaluate(model_key: str, video: UploadFile = File(...)):
         "evaluationId": evaluation_id,
         "error": error,
         "score": score,
+        "feedback": get_score_feedback(score, model_key),
     }

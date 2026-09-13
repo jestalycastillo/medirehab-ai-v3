@@ -18,18 +18,44 @@ from app.model_registry import (
     get_loaded_model,
     get_model_definition,
 )
-from app.utils.evaluate import compute_similarity_score, get_reconstruction_error
+from app.utils.evaluate import compute_similarity_score, get_reconstruction_error, get_score_feedback
 from app.utils.preprocess import preprocess
 from app.utils.process_video import TraceSummary
 from app.utils import process_video as process_video_module
 
 
 class ModelRegistryTests(unittest.TestCase):
+    def test_all_catalog_model_variants_load(self):
+        for model_key in (
+            "side_arms_raise_v1",
+            "left_flexion",
+            "right_flexion",
+            "left_abduction",
+            "right_abduction",
+        ):
+            with self.subTest(model_key=model_key):
+                loaded = get_loaded_model(model_key)
+                self.assertEqual(loaded.definition.input_frames, 200)
+                self.assertEqual(len(loaded.definition.features), 8)
+
     def test_registered_model_is_cached(self):
         first = get_loaded_model("side_arms_raise_v1")
         second = get_loaded_model("side_arms_raise_v1")
 
         self.assertIs(first, second)
+
+    def test_side_specific_models_return_matching_feedback(self):
+        for key, direction in (
+            ("left_flexion", "forward"),
+            ("right_flexion", "forward"),
+            ("left_abduction", "sideways"),
+            ("right_abduction", "sideways"),
+        ):
+            with self.subTest(model_key=key):
+                feedback = get_score_feedback(80.0, key)
+                self.assertEqual(len(feedback), 1)
+                self.assertIn(direction, feedback[0].lower())
+                self.assertNotIn("both arms", feedback[0].lower())
 
     def test_unknown_model_is_rejected(self):
         with self.assertRaises(UnsupportedAnalysisModelError):
@@ -241,6 +267,7 @@ class EvaluationRouteTests(unittest.TestCase):
         evaluation_ids = [response.json()["evaluationId"] for response in responses]
 
         self.assertTrue(all(response.status_code == 200 for response in responses))
+        self.assertTrue(all(response.json()["feedback"] for response in responses))
         self.assertNotEqual(evaluation_ids[0], evaluation_ids[1])
         self.assertTrue(all(str(UUID(evaluation_id)) == evaluation_id for evaluation_id in evaluation_ids))
         self.assertEqual(set(evaluate_route.EVALUATION_TEMP_ROOT.glob("*")), before)

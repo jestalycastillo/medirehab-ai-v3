@@ -70,6 +70,7 @@ export function MyExerciseList({ assignments, compact = false }: { assignments: 
               <div className="patient-exercise-card-action">
                 <CameraRecorder
                   exerciseName={assignment.exercise?.name}
+                  analysisModelKey={assignment.exercise?.analysisModelKey}
                   exerciseId={assignment.exercise?.id}
                   assignmentId={assignment.id}
                   targetDurationSeconds={assignment.targetDurationSeconds}

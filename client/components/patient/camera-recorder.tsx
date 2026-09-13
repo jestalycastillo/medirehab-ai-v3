@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { useSideArmsRaiseGuidance, supportsExerciseLiveGuidance } from "@/hooks/use-side-arms-raise-guidance";
+import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
+import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 
 interface CameraRecorderProps {
     exerciseName?: string;
+    analysisModelKey?: string | null;
     exerciseId: string;
     assignmentId?: string;
     targetDurationSeconds?: number | null;
@@ -55,7 +57,7 @@ type CameraAccessIssue =
     | "verification"
     | null;
 
-export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, onSave}: CameraRecorderProps) {
+export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, exerciseId, assignmentId, onSave}: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -84,9 +86,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [selectedTimerSeconds, setSelectedTimerSeconds] = useState<number | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-    const isSideSelectable =
-        exerciseName.toLowerCase().includes("flexion") ||
-        exerciseName.toLowerCase().includes("abduction");
+    const modelGuidance = getExerciseModelGuidanceConfig(analysisModelKey);
+    const isSideSelectable = modelGuidance?.selectableSide ?? false;
+    const targetSide = modelGuidance?.fixedSide ?? (isSideSelectable ? selectedSide : undefined);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -111,12 +113,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         isOpen &&
         Boolean(stream) &&
         !recordedUrl &&
-        supportsExerciseLiveGuidance(exerciseName);
+        Boolean(modelGuidance);
     const liveGuidance = useSideArmsRaiseGuidance(
         liveGuidanceEnabled,
         videoRef,
-        exerciseName,
-        selectedSide,
+        modelGuidance?.guidanceName ?? exerciseName,
+        targetSide ?? "left",
         isRecording ? "exercise" : "framing",
     );
 
@@ -198,7 +200,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         const requestedAt = Date.now();
 
         if (assignmentId) {
-            api.requestLiveCoaching(exerciseId, assignmentId, event, isSideSelectable ? selectedSide : undefined)
+            api.requestLiveCoaching(exerciseId, assignmentId, event, targetSide)
                 .then((response) => {
                     if (
                         liveCoachingRequestIdRef.current !== requestId
@@ -227,7 +229,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 .catch(() => {
                     if (liveCoachingRequestIdRef.current !== requestId || !isRecordingRef.current) return;
                     const fallbackMsg = event === "repetition_completed"
-                        ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
+                        ? (targetSide ? `Great control on that repetition on your ${targetSide} arm.` : "Great control on that repetition.")
                         : "Nice adjustment. Keep moving with steady control.";
                     setLiveCoachingMessage(fallbackMsg);
                     if (isVoiceEnabledRef.current) {
@@ -238,7 +240,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 });
         } else {
             const fallbackMsg = event === "repetition_completed"
-                ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
+                ? (targetSide ? `Great control on that repetition on your ${targetSide} arm.` : "Great control on that repetition.")
                 : "Nice adjustment. Keep moving with steady control.";
             queueMicrotask(() => {
                 if (!isRecordingRef.current) return;
@@ -254,8 +256,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         assignmentId,
         exerciseId,
         isRecording,
-        isSideSelectable,
-        selectedSide,
+        targetSide,
         liveGuidance.justCompletedRepetition,
         liveGuidance.resolvedIssues,
         liveGuidance.status,
@@ -460,7 +461,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
         }
-        if (supportsExerciseLiveGuidance(exerciseName) && isVoiceEnabledRef.current) {
+        if (modelGuidance && isVoiceEnabledRef.current) {
             primeLiveCoachingVoice();
         }
         let remaining = 5;
@@ -626,7 +627,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 blobRef.current,
                 recordingDurationSecondsRef.current,
                 clientSessionIdRef.current,
-                isSideSelectable ? selectedSide : undefined
+                targetSide
             );
             if (res.success) {
                 setEvaluationScore(res.score);
@@ -734,10 +735,15 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
     return (
         <>
-            <Button onClick={handleOpen} size="lg" className="camera-launch-button">
+            <Button onClick={handleOpen} size="lg" className="camera-launch-button" disabled={!modelGuidance}>
                 <Video data-icon="inline-start" />
                 Start Exercise
             </Button>
+            {!modelGuidance && (
+                <span role="status" className="camera-model-unavailable">
+                    Video evaluation is not available for this exercise. Ask your doctor for help.
+                </span>
+            )}
 
             {isOpen && (
                 <div
@@ -1131,7 +1137,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     )}
 
                                     {/* Arm selection indicator on video feed */}
-                                    {isSideSelectable && (
+                                    {targetSide && (
                                         <div
                                             style={{
                                                 position: "absolute",
@@ -1160,7 +1166,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                     display: "inline-block",
                                                 }}
                                             />
-                                            Target: {selectedSide === "left" ? "Left Arm" : "Right Arm"}
+                                            Target: {targetSide === "left" ? "Left Arm" : "Right Arm"}
                                         </div>
                                     )}
 

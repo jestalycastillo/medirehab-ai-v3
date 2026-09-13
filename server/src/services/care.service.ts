@@ -12,6 +12,7 @@ const exerciseSelect = {
     id: true,
     name: true,
     description: true,
+    analysisModelKey: true,
     isActive: true,
     archivedAt: true,
     images: {
@@ -67,6 +68,8 @@ const sessionCommentSelect = {
 const sessionSelect = {
     id: true,
     score: true,
+    evaluatedModelKey: true,
+    selectedSide: true,
     aiFeedback: true,
     painLevel: true,
     difficultyLevel: true,
@@ -331,7 +334,12 @@ export const recordExerciseSession = async (
     exerciseId: string,
     score: number,
     aiFeedback: string[] = [],
-    options: { durationSeconds?: number; clientSessionId?: string } = {}
+    options: {
+        durationSeconds?: number;
+        clientSessionId?: string;
+        evaluatedModelKey?: string;
+        selectedSide?: "left" | "right";
+    } = {}
 ) => {
     const roundedScore = roundScore(score);
     if (options.clientSessionId) {
@@ -365,6 +373,8 @@ export const recordExerciseSession = async (
                 assignmentId: assignment.id,
                 patientUserId,
                 score: roundedScore,
+                evaluatedModelKey: options.evaluatedModelKey ?? null,
+                selectedSide: options.selectedSide ?? null,
                 aiFeedback,
                 ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
                 ...(options.clientSessionId !== undefined ? { clientSessionId: options.clientSessionId } : {}),
@@ -402,7 +412,7 @@ export const recordExerciseSession = async (
                 firstName: patientProfile.firstName,
                 lastName: patientProfile.lastName
             }
-        })} completed ${assignment.exercise.name} with a score of ${roundedScore.toFixed(2)}.${adherenceQualified ? " The session counted toward adherence." : ` The session did not count: ${qualificationReasons.join(" ")}`}`,
+        })} completed ${assignment.exercise.name}${options.selectedSide ? ` (${options.selectedSide} arm)` : ""} with a score of ${roundedScore.toFixed(2)}.${adherenceQualified ? " The session counted toward adherence." : ` The session did not count: ${qualificationReasons.join(" ")}`}`,
         link: `/doctor/patients/${patientUserId}`,
         meta: {
             assignmentId: assignment.id,
@@ -414,11 +424,20 @@ export const recordExerciseSession = async (
     return { ...mapSession(session), duplicate: false };
 };
 
-export const findRecordedExerciseSession = async (patientUserId: string, assignmentId: string, exerciseId: string, clientSessionId: string) => {
+export const findRecordedExerciseSession = async (
+    patientUserId: string,
+    assignmentId: string,
+    exerciseId: string,
+    clientSessionId: string,
+    selectedSide?: "left" | "right"
+) => {
     const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId }, select: sessionSelect });
     if (!existing) return null;
     if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId) {
         throw new HttpError(409, "Session identifier is already in use.");
+    }
+    if ((existing.selectedSide ?? null) !== (selectedSide ?? null)) {
+        throw new HttpError(409, "This session was recorded for a different arm.");
     }
     return mapSession(existing);
 };

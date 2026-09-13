@@ -31,29 +31,27 @@ def get_score_feedback(score: float, exercise_id: str) -> list[str]:
     Classifies the score into levels and returns fixed feedback sentences,
     personalized to the exercise being performed.
     """
-    from app.utils.exercise_config import get_exercise_config
-    config = get_exercise_config(exercise_id)
     normalized_id = exercise_id.lower().replace(" ", "_")
 
-    if normalized_id == "shoulder_flexion":
+    if normalized_id in {"shoulder_flexion", "left_flexion", "right_flexion"}:
         if score >= 90.0:
-            return ["Excellent execution of the Shoulder Flexion. You maintained steady control and reached the correct peak height."]
+            return ["Excellent shoulder flexion. You lifted the target arm with steady control."]
         elif score >= 75.0:
-            return ["Good form. Try to ensure you raise your arms straight forward exactly to shoulder level without rushing."]
+            return ["Good form. Raise the target arm forward to shoulder level without rushing."]
         elif score >= 50.0:
-            return ["Ensure you are lifting your arms straight forward to shoulder level. Try to keep both arms synchronized."]
+            return ["Lift the target arm forward to shoulder level and keep your torso steady."]
         else:
-            return ["Focus on raising your arms straight forward to shoulder height, hold for a moment, and lower them slowly."]
+            return ["Raise the target arm forward to shoulder height, then lower it slowly."]
 
-    elif normalized_id == "shoulder_abduction":
+    elif normalized_id in {"shoulder_abduction", "left_abduction", "right_abduction"}:
         if score >= 90.0:
-            return ["Excellent execution of the Shoulder Abduction. You maintained steady control and reached the correct lateral height."]
+            return ["Excellent shoulder abduction. You lifted the target arm sideways with steady control."]
         elif score >= 75.0:
-            return ["Good form. Focus on keeping your arms straight as you raise them sideways to shoulder level."]
+            return ["Good form. Keep the target arm straight as you lift it sideways."]
         elif score >= 50.0:
-            return ["Make sure you raise your arms sideways to shoulder level. Check that your left and right arms are moving at the same pace."]
+            return ["Lift the target arm sideways to shoulder level without shrugging."]
         else:
-            return ["Focus on lifting your arms sideways to shoulder height, avoiding any shrugging, and lower them slowly."]
+            return ["Raise the target arm sideways to shoulder height, then lower it slowly."]
 
     else:
         if score >= 90.0:

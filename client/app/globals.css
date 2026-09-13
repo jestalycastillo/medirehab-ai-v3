@@ -398,6 +398,13 @@ body {
   box-shadow: 0 8px 18px rgba(15, 118, 110, 0.18);
 }
 
+.camera-model-unavailable {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 .recorder-header-icon {
   display: grid;
   width: 42px;

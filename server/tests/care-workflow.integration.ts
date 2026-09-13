@@ -115,6 +115,7 @@ async function main() {
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.completed, 1);
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.remaining, 1);
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.status, "IN_PROGRESS");
+        assert.equal(assignedWithAdherence.payload.assignments[0].exercise.analysisModelKey, "side_arms_raise_v1");
         assert.deepEqual(assignedWithAdherence.payload.assignments[0].scheduledDays, [scheduledDay]);
         assert.equal(assignedWithAdherence.payload.assignments[0].targetSets, 3);
         const sessionCount = await prisma.exerciseSession.count({ where: { patientUserId: patientId } });
@@ -142,7 +143,21 @@ async function main() {
         const audit = await request("/audit", { cookie: adminCookie });
         assert(audit.payload.logs.some((item: Json) => item.path.includes("/chat/messages")));
 
-        console.log("Integration workflow passed: schedule, prescription, qualification, deduplication, adherence, alerts, chat, score, check-in, comments, and authorization.");
+        const flexion = available.payload.exercises.find((item: Json) => item.analysisModelKey === "shoulder_flexion");
+        assert(flexion, "Shoulder Flexion must be available from the seeded catalog");
+        const flexionAssignment = await request(`/exercises/patients/${patientId}/assignments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { exerciseId: flexion.id } });
+        await recordExerciseSession(patientId, flexionAssignment.payload.assignment.id, flexion.id, 91, ["Controlled flexion"], {
+            durationSeconds: 15,
+            clientSessionId: `flexion-${suffix}`,
+            evaluatedModelKey: "left_flexion",
+            selectedSide: "left"
+        });
+        const doctorModelSessions = await request(`/care/patients/${patientId}/sessions`, { cookie: doctor.cookie });
+        const flexionSession = doctorModelSessions.payload.sessions.find((item: Json) => item.assignment.exercise.id === flexion.id);
+        assert.equal(flexionSession.evaluatedModelKey, "left_flexion");
+        assert.equal(flexionSession.selectedSide, "left");
+
+        console.log("Integration workflow passed: schedule, prescription, qualification, deduplication, adherence, alerts, chat, score, model history, check-in, comments, and authorization.");
     } finally {
         for (const id of createdUserIds.reverse()) {
             try {

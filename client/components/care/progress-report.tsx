@@ -16,7 +16,7 @@ export function ProgressReport({ sessions, assignments, subjectName }: { session
   const metThisWeek = assignments.filter((assignment) => assignment.adherence?.currentWeek.status === "MET").length;
 
   const downloadCsv = () => {
-    const rows = [["Patient", "Exercise", "Performed", "Score", "Pain", "Difficulty", "Confidence", "Note"], ...recent.map((session) => [subjectName, session.assignment.exercise.name, session.performedAt, formatScore(session.score), session.painLevel ?? "", session.difficultyLevel ?? "", session.confidenceLevel ?? "", session.patientNote ?? ""] )];
+    const rows = [["Patient", "Exercise", "Arm", "Performed", "Score", "Pain", "Difficulty", "Confidence", "Note"], ...recent.map((session) => [subjectName, session.assignment.exercise.name, session.selectedSide ?? "", session.performedAt, formatScore(session.score), session.painLevel ?? "", session.difficultyLevel ?? "", session.confidenceLevel ?? "", session.patientNote ?? ""] )];
     const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a"); link.href = url; link.download = `${subjectName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-progress.csv`; link.click(); URL.revokeObjectURL(url);

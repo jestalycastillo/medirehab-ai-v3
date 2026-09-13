@@ -89,6 +89,8 @@ export interface SessionComment {
 export interface CareSession {
   id: string;
   score: number | null;
+  evaluatedModelKey?: string | null;
+  selectedSide?: "left" | "right" | null;
   aiFeedback: string[];
   painLevel: number | null;
   difficultyLevel: number | null;
@@ -518,7 +520,7 @@ export const api = {
   },
 
   evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string, selectedSide?: "left" | "right") {
-    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
+    return request<{ success: boolean; score: number; feedback?: string[]; evaluatedModelKey?: string; selectedSide?: "left" | "right" | null; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
