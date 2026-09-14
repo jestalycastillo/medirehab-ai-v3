@@ -254,7 +254,7 @@ class EvaluationRouteTests(unittest.TestCase):
                 "process_video_to_csv",
                 return_value=valid_summary,
             ),
-            patch.object(evaluate_route, "_score_trace", return_value=(0.01, 92.5)),
+            patch.object(evaluate_route, "_score_trace", return_value=(0.01, 92.5, ["Good form."])),
         ):
             responses = [
                 self.client.post(

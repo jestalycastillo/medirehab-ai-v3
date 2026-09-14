@@ -292,11 +292,10 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
-        setCameraAccessIssue(null);
-        setReviewClipKey(null);
-        setLiveCoachingMessage(null);
-        setIsFinalizingRecording(false);
-        setIsCameraStarting(true);
+        setRecordedUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         try {
             if (!navigator.mediaDevices?.getUserMedia) {
                 setCameraAccessIssue("unavailable");
@@ -433,12 +432,10 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         setIsCameraStarting(false);
         setIsOpen(false);
         setError(null);
-        setCameraAccessIssue(null);
-        for (const url of clipUrlsRef.current) URL.revokeObjectURL(url);
-        clipUrlsRef.current.clear();
-        setRecordedClips([]);
-        setReviewClipKey(null);
-        setClipResults([]);
+        setRecordedUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         setIsEvaluating(false);
         setEvaluationScore(null);
         setSessionIds([]);
@@ -532,9 +529,28 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             recorder.onerror = (e) => {
                 console.error("MediaRecorder error:", e);
+                setIsRecording(false);
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
+                if (elapsedIntervalRef.current) {
+                    clearInterval(elapsedIntervalRef.current);
+                    elapsedIntervalRef.current = null;
+                }
+                setError("Recording error occurred. Please try again.");
             };
 
             recorder.onstop = () => {
+                setIsRecording(false);
+                if (recordingTimeoutRef.current) {
+                    clearTimeout(recordingTimeoutRef.current);
+                    recordingTimeoutRef.current = null;
+                }
+                if (elapsedIntervalRef.current) {
+                    clearInterval(elapsedIntervalRef.current);
+                    elapsedIntervalRef.current = null;
+                }
                 try {
                     isRecordingRef.current = false;
                     liveCoachingRequestIdRef.current += 1;
@@ -542,38 +558,17 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     if (assignmentId) {
                         void api.stopExerciseActivity(assignmentId).catch(() => undefined);
                     }
-                    if (elapsedIntervalRef.current) {
-                        clearInterval(elapsedIntervalRef.current);
-                        elapsedIntervalRef.current = null;
-                    }
-                    setIsRecording(false);
-                    if (discardRecordingRef.current) return;
-                    const mimeType = recorder.mimeType || "video/webm";
+                    const rawMimeType = recorder.mimeType || preferredMimeType || "video/webm";
+                    const cleanMimeType = rawMimeType.split(";")[0]?.trim() || "video/webm";
                     recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
-                    setElapsedSeconds(recordingDurationSecondsRef.current);
-                    const blob = new Blob(chunksRef.current, { type: mimeType });
+                    const blob = new Blob(chunksRef.current, { type: cleanMimeType });
+                    blobRef.current = blob;
                     const url = URL.createObjectURL(blob);
-                    clipUrlsRef.current.add(url);
-                    const clip: RecordedClip = {
-                        side: recordingSideRef.current,
-                        blob,
-                        url,
-                        durationSeconds: recordingDurationSecondsRef.current,
-                        clientSessionId: clientSessionIdRef.current,
-                        guidanceFeedback: [...liveGuidanceFeedbackRef.current],
-                    };
-                    setRecordedClips((current) => [...current, clip]);
-                    setIsFinalizingRecording(false);
-                    if (stopDispositionRef.current === "switch" && clip.side) {
-                        setSelectedSide(clip.side === "left" ? "right" : "left");
-                        setElapsedSeconds(0);
-                        setLiveCoachingMessage(null);
-                        lastSpokenMessageRef.current = "";
-                        lastSpokenAtRef.current = 0;
-                    } else {
-                        setReviewClipKey(clip.side ?? "both");
-                        stopCamera();
-                    }
+                    setRecordedUrl((prev) => {
+                        if (prev) URL.revokeObjectURL(prev);
+                        return url;
+                    });
+                    stopCamera();
                     if (onSave) {
                         onSave(blob);
                     }
@@ -594,13 +589,20 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 setElapsedSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)));
             }, 250);
 
-            clientSessionIdRef.current = crypto.randomUUID();
-            recorder.start(1000); // 1000ms timeslice to flush chunks periodically
+            clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            recorder.start();
             setIsRecording(true);
             if (assignmentId) {
                 void api.startExerciseActivity(assignmentId).catch(() => undefined);
             }
 
+            if (selectedTimerSeconds !== null && selectedTimerSeconds > 0) {
+                recordingTimeoutRef.current = setTimeout(() => {
+                    stopRecording();
+                }, selectedTimerSeconds * 1000);
+            } else {
+                recordingTimeoutRef.current = null;
+            }
         } catch (err) {
             console.error("Failed to start recording:", err);
             if (elapsedIntervalRef.current) {
@@ -624,8 +626,10 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 mediaRecorderRef.current.stop();
             } catch (err) {
                 console.error("Error stopping media recorder:", err);
-                setIsFinalizingRecording(false);
+                setIsRecording(false);
             }
+        } else {
+            setIsRecording(false);
         }
     };
 
@@ -937,9 +941,12 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 /* Post-Recording Preview */
                                 <div className="recorder-preview">
                                     <video
+                                        key={recordedUrl}
                                         src={recordedUrl}
                                         controls
-                                        className="recorder-video"
+                                        playsInline
+                                        preload="auto"
+                                        style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
                                     />
                                     <div className="recorder-preview-label">
                                         <CheckCircle2 size={15} />
@@ -1171,8 +1178,14 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 <>
                                     <Button
                                         variant="outline"
-                                        onClick={handleRetakeClip}
-                                        disabled={isEvaluating || clipResults.some((result) => result.clientSessionId === selectedReviewClip?.clientSessionId)}
+                                        onClick={() => {
+                                            setRecordedUrl((prev) => {
+                                                if (prev) URL.revokeObjectURL(prev);
+                                                return null;
+                                            });
+                                            startCamera();
+                                        }}
+                                        disabled={isEvaluating}
                                     >
                                         <RotateCcw />
                                         Retake This Arm
@@ -1428,10 +1441,10 @@ function formatTime(totalSeconds: number): string {
 function getPreferredMimeType(): string | undefined {
     if (typeof MediaRecorder === "undefined") return undefined;
     const candidates = [
+        "video/mp4",
         "video/webm;codecs=vp8",
         "video/webm;codecs=vp9",
         "video/webm",
-        "video/mp4",
     ];
     for (const candidate of candidates) {
         if (MediaRecorder.isTypeSupported(candidate)) {
