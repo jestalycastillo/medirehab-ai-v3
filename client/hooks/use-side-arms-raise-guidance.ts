@@ -264,6 +264,7 @@ export function useSideArmsRaiseGuidance(
                     flexionStateRef.current,
                     event.data.landmarks,
                     selectedSide,
+                    event.data.worldLandmarks,
                 );
                 flexionStateRef.current = snapshot.state;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
@@ -290,6 +291,7 @@ export function useSideArmsRaiseGuidance(
                     abductionStateRef.current,
                     event.data.landmarks,
                     selectedSide,
+                    event.data.worldLandmarks,
                 );
                 abductionStateRef.current = snapshot.state;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(

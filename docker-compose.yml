@@ -22,7 +22,7 @@ services:
         condition: service_healthy
       ai-service:
         condition: service_started
-    command: ["sh", "-c", "npx prisma migrate deploy && npm start"]
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed:exercises && npm start"]
 
   ai-service:
     build: ./ai-service

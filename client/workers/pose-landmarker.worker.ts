@@ -3,6 +3,8 @@ import type {
     PoseLandmarkKey,
     PoseLandmarkMap,
     PosePoint,
+    PoseWorldLandmarkMap,
+    PoseWorldPoint,
     PoseWorkerRequest,
     PoseWorkerResponse,
 } from "@/lib/pose/pose-landmarker.types";
@@ -75,9 +77,11 @@ workerScope.onmessage = async (event) => {
     try {
         const result = poseLandmarker.detectForVideo(request.bitmap, request.timestamp);
         const pose = result.landmarks[0];
+        const worldPose = result.worldLandmarks[0];
         workerScope.postMessage({
             type: "result",
             landmarks: pose ? selectBodyLandmarks(pose) : null,
+            worldLandmarks: worldPose ? selectWorldLandmarks(worldPose) : null,
         });
     } catch (error) {
         workerScope.postMessage({
@@ -104,6 +108,26 @@ function toPosePoint(landmark?: { x: number; y: number; visibility?: number }): 
     return {
         x: landmark?.x ?? 0,
         y: landmark?.y ?? 0,
+        visibility: landmark?.visibility ?? 0,
+    };
+}
+
+function selectWorldLandmarks(
+    landmarks: Array<{ x: number; y: number; z: number; visibility?: number }>,
+): PoseWorldLandmarkMap {
+    return Object.fromEntries(
+        Object.entries(LANDMARK_INDEXES).map(([key, index]) => [
+            key,
+            toWorldPoint(landmarks[index]),
+        ]),
+    ) as PoseWorldLandmarkMap;
+}
+
+function toWorldPoint(landmark?: { x: number; y: number; z: number; visibility?: number }): PoseWorldPoint {
+    return {
+        x: landmark?.x ?? 0,
+        y: landmark?.y ?? 0,
+        z: landmark?.z ?? 0,
         visibility: landmark?.visibility ?? 0,
     };
 }

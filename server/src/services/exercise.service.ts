@@ -9,6 +9,7 @@ import {
     ValidatedCreateExerciseInput,
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
+import { resolveExerciseAnalysisModel } from "../utils/exerciseAnalysisModel";
 
 const exerciseSelect = {
     id: true,
@@ -57,7 +58,7 @@ const assignmentSelect = {
         }
     },
     sessions: {
-        select: { performedAt: true, score: true, adherenceQualified: true },
+        select: { id: true, visitId: true, selectedSide: true, performedAt: true, score: true, adherenceQualified: true },
         orderBy: { performedAt: "desc" as const },
         take: 500
     }
@@ -68,11 +69,17 @@ const withAdherence = <T extends {
     targetSessionsPerWeek: number;
     targetSessionsPerDay: number | null;
     scheduledDays: number[];
-    sessions: { performedAt: Date; adherenceQualified: boolean }[];
-}>(assignment: T) => ({
-    ...assignment,
-    adherence: calculateAssignmentAdherence(assignment)
-});
+    sessions: { id: string; visitId: string | null; selectedSide: string | null; performedAt: Date; score: number | null; adherenceQualified: boolean }[];
+}>(assignment: T) => {
+    const latestScoresBySide: { left?: number; right?: number } = {};
+    for (const session of assignment.sessions) {
+        if ((session.selectedSide === "left" || session.selectedSide === "right")
+            && session.score !== null && latestScoresBySide[session.selectedSide] === undefined) {
+            latestScoresBySide[session.selectedSide] = session.score;
+        }
+    }
+    return { ...assignment, latestScoresBySide, adherence: calculateAssignmentAdherence(assignment) };
+};
 
 const getDoctorProfileIdForUser = async (doctorUserId: string): Promise<string> => {
     const doctorProfile = await prisma.doctorProfile.findUnique({
@@ -539,7 +546,7 @@ export const evaluateExercise = async (
     assignmentId: string,
     videoBuffer: Buffer,
     videoContentType: string,
-    selectedSide?: "left" | "right" | string
+    selectedSide?: "left" | "right"
 ) => {
     const assignment = await prisma.exerciseAssignment.findFirst({
         where: {
@@ -578,12 +585,7 @@ export const evaluateExercise = async (
         throw new HttpError(400, "Exercise recording is empty.");
     }
 
-    let targetModelKey = modelKey;
-    if (modelKey === "shoulder_flexion") {
-        targetModelKey = selectedSide?.toLowerCase() === "right" ? "right_flexion" : "left_flexion";
-    } else if (modelKey === "shoulder_abduction") {
-        targetModelKey = selectedSide?.toLowerCase() === "right" ? "right_abduction" : "left_abduction";
-    }
+    const resolvedModel = resolveExerciseAnalysisModel(modelKey, selectedSide);
 
     const uint8Array = new Uint8Array(videoBuffer);
     const formData = new FormData();
@@ -594,7 +596,7 @@ export const evaluateExercise = async (
     );
 
     const aiServiceBaseUrl = getAiServiceBaseUrl();
-    const encodedModelKey = encodeURIComponent(targetModelKey);
+    const encodedModelKey = encodeURIComponent(resolvedModel.evaluatedModelKey);
     const evaluationResponse = await fetchAiService(
         `${aiServiceBaseUrl}/evaluate/${encodedModelKey}`,
         {
@@ -639,5 +641,5 @@ export const evaluateExercise = async (
         ? evaluationResult.feedback.filter((item): item is string => typeof item === "string")
         : [];
 
-    return { score: result.score, feedback };
+    return { score: result.score, feedback, ...resolvedModel };
 };

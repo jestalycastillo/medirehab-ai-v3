@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { CareTimeline } from "@/components/care/care-timeline";
 import { ScoreSummary } from "@/components/care/score-summary";
-import { formatScore } from "@/lib/score";
+import { formatAssignmentScoreSummary } from "@/lib/score";
 import { DoctorAlerts } from "@/components/care/doctor-alerts";
 import { ProgressReport } from "@/components/care/progress-report";
 
@@ -246,7 +246,7 @@ export default function PatientDetailPage() {
               {assignments.slice(0, 5).map((assignment) => (
                 <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
                   <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
-                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {formatScore(assignment.result?.score)}</div>
+                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{formatAssignmentScoreSummary(assignment)}</div>
                 </div>
               ))}
               <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>

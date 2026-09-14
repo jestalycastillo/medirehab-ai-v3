@@ -18,6 +18,30 @@ finish before testing coaching. The AI service reaches Ollama at
 `127.0.0.1`. For a no-camera verification request and host-only instructions,
 see [the live-coaching setup guide](ai-service/ollama/README.md).
 
+## Model-backed exercises
+
+The built-in catalog has Side Arms Raise (`side_arms_raise_v1`), Shoulder Flexion
+(`shoulder_flexion`), and Shoulder Abduction (`shoulder_abduction`). For flexion
+and abduction, the patient selects an arm before recording; the backend routes
+evaluation to the corresponding `left_*` or `right_*` checkpoint. Each session
+stores the actual checkpoint key and arm, which are returned in care history.
+
+Docker startup runs migrations and the exercise-only catalog seed automatically.
+For a host-only backend, run these from `server` after setting `DATABASE_URL`:
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+npm run db:seed:exercises
+```
+
+The exercise seed is safe to rerun: it adds missing built-ins and model keys
+without resetting admin credentials, deleting assignments, or replacing edited
+descriptions and images. Run `npm run db:seed` only when you also intend to
+create the initial admin account. Checkpoints are packaged under
+`ai-service/app/models`; an unavailable checkpoint makes evaluation fail rather
+than recording a fabricated score.
+
 Deployment, retention, consent, and backup guidance is documented in
 [Operations and Privacy](docs/operations-and-privacy.md).
 
@@ -69,6 +93,7 @@ cp .env.example .env # configure the env variables
 ```bash
 npx prisma migrate dev
 npx prisma generate
+npm run db:seed:exercises
 ```
 ### 9. Run backend server.
 ```bash

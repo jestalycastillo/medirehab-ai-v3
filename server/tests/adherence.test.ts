@@ -61,4 +61,19 @@ assert.equal(scheduled.currentWeek.target, 2);
 assert.equal(scheduled.currentWeek.completed, 2);
 assert.equal(scheduled.today?.status, "MET");
 
-console.log("Adherence calculations passed: calendar weeks, daily caps, remaining counts, and historical missed status.");
+const sharedVisit = calculateAssignmentAdherence({
+    assignedAt,
+    targetSessionsPerWeek: 4,
+    targetSessionsPerDay: null,
+    sessions: [
+        { id: "left", visitId: "visit-1", performedAt: atManila("2026-09-10T09:00:00"), adherenceQualified: false },
+        { id: "right", visitId: "visit-1", performedAt: atManila("2026-09-10T09:05:00"), adherenceQualified: true },
+        { id: "legacy-1", visitId: null, performedAt: atManila("2026-09-09T09:00:00"), adherenceQualified: true },
+        { id: "legacy-2", visitId: null, performedAt: atManila("2026-09-09T10:00:00"), adherenceQualified: true },
+        { id: "unqualified", visitId: "visit-2", performedAt: atManila("2026-09-10T11:00:00"), adherenceQualified: false }
+    ]
+}, now, "Asia/Manila");
+assert.equal(sharedVisit.currentWeek.completed, 3, "Two arms share one credit; ungrouped legacy sessions retain separate credits");
+assert.equal(sharedVisit.today?.completed, undefined);
+
+console.log("Adherence calculations passed: calendar weeks, daily caps, shared visits, and historical missed status.");

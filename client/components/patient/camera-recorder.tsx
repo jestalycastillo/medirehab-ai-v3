@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { useSideArmsRaiseGuidance, supportsExerciseLiveGuidance } from "@/hooks/use-side-arms-raise-guidance";
+import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
+import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config";
+import { canRecordArm, canSwitchArm, getRecordingTimeState, resolveRecordingSide, type ArmSide } from "@/lib/camera-visit";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,7 @@ import {
 
 interface CameraRecorderProps {
     exerciseName?: string;
+    analysisModelKey?: string | null;
     exerciseId: string;
     assignmentId?: string;
     targetDurationSeconds?: number | null;
@@ -27,17 +30,15 @@ interface CameraRecorderProps {
     onSave?: (blob: Blob) => void;
 }
 
-type TimerOption = {
-    label: string;
-    seconds: number | null;
+type RecordedClip = {
+    side?: ArmSide;
+    blob: Blob;
+    url: string;
+    durationSeconds: number;
+    clientSessionId: string;
+    guidanceFeedback: string[];
 };
-
-const TIMER_OPTIONS: TimerOption[] = [
-    { label: "No Timer", seconds: null },
-    { label: "20s", seconds: 20 },
-    { label: "30s", seconds: 30 },
-    { label: "1 min", seconds: 60 },
-];
+type ClipResult = { clientSessionId: string; side?: ArmSide; sessionId: string; score: number; adherenceQualified: boolean; qualificationReason?: string | null };
 
 const LIVE_COACHING_COOLDOWN_MS = 7_000;
 const LIVE_GUIDANCE_SPEECH_COOLDOWN_MS = 2_500;
@@ -48,6 +49,8 @@ const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance…",
 ]);
 
+const currentTimeMs = () => Date.now();
+
 type CameraAccessIssue =
     | "consent"
     | "permission"
@@ -55,7 +58,7 @@ type CameraAccessIssue =
     | "verification"
     | null;
 
-export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignmentId, onSave}: CameraRecorderProps) {
+export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave}: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
@@ -63,12 +66,14 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isCameraStarting, setIsCameraStarting] = useState(false);
     const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
     const [countdown, setCountdown] = useState<number | null>(null);
-    const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+    const [recordedClips, setRecordedClips] = useState<RecordedClip[]>([]);
+    const [reviewClipKey, setReviewClipKey] = useState<string | null>(null);
+    const [clipResults, setClipResults] = useState<ClipResult[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [cameraAccessIssue, setCameraAccessIssue] = useState<CameraAccessIssue>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [evaluationScore, setEvaluationScore] = useState<number | null>(null);
-    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [sessionIds, setSessionIds] = useState<string[]>([]);
     const [qualificationReason, setQualificationReason] = useState<string | null>(null);
     const [isCheckInOpen, setIsCheckInOpen] = useState(false);
     const [checkIn, setCheckIn] = useState({
@@ -80,22 +85,26 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const [isSubmittingCheckIn, setIsSubmittingCheckIn] = useState(false);
     const [checkInMessage, setCheckInMessage] = useState<string | null>(null);
     const [liveCoachingMessage, setLiveCoachingMessage] = useState<string | null>(null);
-    const [selectedSide, setSelectedSide] = useState<"left" | "right">("left");
-    const [selectedTimerSeconds, setSelectedTimerSeconds] = useState<number | null>(null);
+    const [selectedSide, setSelectedSide] = useState<ArmSide | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
-    const isSideSelectable =
-        exerciseName.toLowerCase().includes("flexion") ||
-        exerciseName.toLowerCase().includes("abduction");
+    const modelGuidance = getExerciseModelGuidanceConfig(analysisModelKey);
+    const isSideSelectable = modelGuidance?.selectableSide ?? false;
+    const targetSide = resolveRecordingSide(modelGuidance, selectedSide);
+    const recordedUrl = recordedClips.find((clip) => (clip.side ?? "both") === reviewClipKey)?.url ?? null;
+    const selectedReviewClip = recordedClips.find((clip) => (clip.side ?? "both") === reviewClipKey);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const recordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const elapsedIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const blobRef = useRef<Blob | null>(null);
+    const clipUrlsRef = useRef<Set<string>>(new Set());
+    const stopDispositionRef = useRef<"review" | "switch">("review");
+    const discardRecordingRef = useRef(false);
+    const recordingSideRef = useRef<ArmSide | undefined>(undefined);
+    const visitIdRef = useRef<string | null>(null);
     const recordingStartedAtRef = useRef(0);
     const recordingDurationSecondsRef = useRef(0);
     const clientSessionIdRef = useRef("");
@@ -111,12 +120,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         isOpen &&
         Boolean(stream) &&
         !recordedUrl &&
-        supportsExerciseLiveGuidance(exerciseName);
+        Boolean(modelGuidance) &&
+        (!isSideSelectable || targetSide !== null);
     const liveGuidance = useSideArmsRaiseGuidance(
         liveGuidanceEnabled,
         videoRef,
-        exerciseName,
-        selectedSide,
+        modelGuidance?.guidanceName ?? exerciseName,
+        targetSide ?? "left",
         isRecording ? "exercise" : "framing",
     );
 
@@ -139,12 +149,6 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
 
         return () => window.cancelAnimationFrame(frameId);
     }, []);
-
-    useEffect(() => {
-        return () => {
-            if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-        };
-    }, [recordedUrl]);
 
     useEffect(() => {
         if (
@@ -198,7 +202,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         const requestedAt = Date.now();
 
         if (assignmentId) {
-            api.requestLiveCoaching(exerciseId, assignmentId, event, isSideSelectable ? selectedSide : undefined)
+            api.requestLiveCoaching(exerciseId, assignmentId, event, targetSide ?? undefined)
                 .then((response) => {
                     if (
                         liveCoachingRequestIdRef.current !== requestId
@@ -227,7 +231,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 .catch(() => {
                     if (liveCoachingRequestIdRef.current !== requestId || !isRecordingRef.current) return;
                     const fallbackMsg = event === "repetition_completed"
-                        ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
+                        ? (targetSide ? `Great control on that repetition on your ${targetSide} arm.` : "Great control on that repetition.")
                         : "Nice adjustment. Keep moving with steady control.";
                     setLiveCoachingMessage(fallbackMsg);
                     if (isVoiceEnabledRef.current) {
@@ -238,7 +242,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                 });
         } else {
             const fallbackMsg = event === "repetition_completed"
-                ? (isSideSelectable ? `Great control on that repetition on your ${selectedSide} arm.` : "Great control on that repetition.")
+                ? (targetSide ? `Great control on that repetition on your ${targetSide} arm.` : "Great control on that repetition.")
                 : "Nice adjustment. Keep moving with steady control.";
             queueMicrotask(() => {
                 if (!isRecordingRef.current) return;
@@ -254,8 +258,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         assignmentId,
         exerciseId,
         isRecording,
-        isSideSelectable,
-        selectedSide,
+        targetSide,
         liveGuidance.justCompletedRepetition,
         liveGuidance.resolvedIssues,
         liveGuidance.status,
@@ -264,6 +267,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     // Clean up resources only when the recorder unmounts. Tying this cleanup to
     // stream changes clears a newly started countdown as soon as the camera connects.
     useEffect(() => {
+        const clipUrls = clipUrlsRef.current;
         return () => {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach((track) => track.stop());
@@ -272,12 +276,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             if (countdownIntervalRef.current) {
                 clearInterval(countdownIntervalRef.current);
             }
-            if (recordingTimeoutRef.current) {
-                clearTimeout(recordingTimeoutRef.current);
-            }
             if (elapsedIntervalRef.current) {
                 clearInterval(elapsedIntervalRef.current);
             }
+            for (const url of clipUrls) URL.revokeObjectURL(url);
+            clipUrls.clear();
         };
     }, []);
 
@@ -404,18 +407,19 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const handleOpen = () => {
         setError(null);
         setCameraAccessIssue(null);
+        discardRecordingRef.current = false;
+        visitIdRef.current = crypto.randomUUID();
+        setSelectedSide(null);
         setIsOpen(true);
     };
 
     const handleClose = () => {
+        discardRecordingRef.current = true;
+        if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
         isRecordingRef.current = false;
         stopCamera();
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
-        }
-        if (recordingTimeoutRef.current) {
-            clearTimeout(recordingTimeoutRef.current);
-            recordingTimeoutRef.current = null;
         }
         if (elapsedIntervalRef.current) {
             clearInterval(elapsedIntervalRef.current);
@@ -434,7 +438,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         });
         setIsEvaluating(false);
         setEvaluationScore(null);
-        setSessionId(null);
+        setSessionIds([]);
         setQualificationReason(null);
         setIsCheckInOpen(false);
         setCheckIn({
@@ -452,7 +456,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         lastSpokenAtRef.current = 0;
         stopLiveCoachingPlayback();
         liveGuidanceFeedbackRef.current = [];
-        blobRef.current = null;
+        visitIdRef.current = null;
     };
 
     const initiateCountdown = (cameraStream: MediaStream | null = stream) => {
@@ -461,7 +465,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
         }
-        if (supportsExerciseLiveGuidance(exerciseName) && isVoiceEnabledRef.current) {
+        if (modelGuidance && isVoiceEnabledRef.current) {
             primeLiveCoachingVoice();
         }
         let remaining = 5;
@@ -485,6 +489,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     const handleStartRecording = () => {
         const activeStream = streamRef.current ?? stream;
         if (!activeStream || isCameraStarting || countdown !== null || isRecording) return;
+        if (!canRecordArm(modelGuidance, selectedSide, recordedClips.map((clip) => clip.side))) {
+            setError("This arm is already recorded. Review or retake its clip first.");
+            return;
+        }
+        setError(null);
         initiateCountdown(activeStream);
     };
 
@@ -495,6 +504,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsFinalizingRecording(false);
         liveGuidanceFeedbackRef.current = [];
         setLiveCoachingMessage(null);
+        stopDispositionRef.current = "review";
+        recordingSideRef.current = targetSide ?? undefined;
         liveCoachingRequestIdRef.current += 1;
         lastLiveCoachingAtRef.current = 0;
         lastSpokenMessageRef.current = "";
@@ -569,7 +580,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             };
 
             mediaRecorderRef.current = recorder;
-            recordingStartedAtRef.current = Date.now();
+            recordingStartedAtRef.current = currentTimeMs();
             setElapsedSeconds(0);
             if (elapsedIntervalRef.current) {
                 clearInterval(elapsedIntervalRef.current);
@@ -594,15 +605,15 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
             }
         } catch (err) {
             console.error("Failed to start recording:", err);
+            if (elapsedIntervalRef.current) {
+                clearInterval(elapsedIntervalRef.current);
+                elapsedIntervalRef.current = null;
+            }
             setError("Failed to initialize video recording.");
         }
     };
 
     const stopRecording = () => {
-        if (recordingTimeoutRef.current) {
-            clearTimeout(recordingTimeoutRef.current);
-            recordingTimeoutRef.current = null;
-        }
         if (elapsedIntervalRef.current) {
             clearInterval(elapsedIntervalRef.current);
             elapsedIntervalRef.current = null;
@@ -622,8 +633,31 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
     };
 
+    const handleSwitchArm = () => {
+        if (!isRecording || isFinalizingRecording || !canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side))) return;
+        stopDispositionRef.current = "switch";
+        stopRecording();
+    };
+
+    const handleRetakeClip = async () => {
+        if (!selectedReviewClip || clipResults.some((result) => result.clientSessionId === selectedReviewClip.clientSessionId)) return;
+        URL.revokeObjectURL(selectedReviewClip.url);
+        clipUrlsRef.current.delete(selectedReviewClip.url);
+        setRecordedClips((current) => current.filter((clip) => clip.clientSessionId !== selectedReviewClip.clientSessionId));
+        setSelectedSide(selectedReviewClip.side ?? null);
+        setReviewClipKey(null);
+        await handleStartCamera();
+    };
+
+    const handleReviewSavedClips = () => {
+        const clip = recordedClips[0];
+        if (!clip || isRecording || isFinalizingRecording) return;
+        stopCamera();
+        setReviewClipKey(clip.side ?? "both");
+    };
+
     const handleEvaluate = async () => {
-        if (!blobRef.current) return;
+        if (recordedClips.length === 0) return;
         if (!assignmentId) {
             setError("No assignment ID provided to evaluate.");
             return;
@@ -631,29 +665,36 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setIsEvaluating(true);
         setError(null);
         try {
-            const res = await api.evaluateExercise(
-                exerciseId,
-                assignmentId,
-                blobRef.current,
-                recordingDurationSecondsRef.current,
-                clientSessionIdRef.current,
-                isSideSelectable ? selectedSide : undefined
-            );
-            if (res.success) {
-                setEvaluationScore(res.score);
-                setSessionId(res.sessionId);
-                setQualificationReason(res.adherenceQualified ? null : res.qualificationReason || "This session did not meet the prescribed qualification rules.");
+            const results = [...clipResults];
+            for (const clip of recordedClips) {
+                if (results.some((result) => result.clientSessionId === clip.clientSessionId)) continue;
+                const res = await api.evaluateExercise(
+                    exerciseId,
+                    assignmentId,
+                    clip.blob,
+                    clip.durationSeconds,
+                    clip.clientSessionId,
+                    clip.side,
+                    isSideSelectable ? visitIdRef.current ?? undefined : undefined,
+                );
+                if (!res.success) throw new Error(res.message || "Unable to evaluate this arm.");
+                results.push({
+                    clientSessionId: clip.clientSessionId,
+                    side: clip.side,
+                    sessionId: res.sessionId,
+                    score: res.score,
+                    adherenceQualified: res.adherenceQualified,
+                    qualificationReason: res.qualificationReason,
+                });
+                setClipResults([...results]);
                 const sessionFeedback = [
                     ...(res.feedback ?? []),
-                    ...liveGuidanceFeedbackRef.current,
+                    ...clip.guidanceFeedback,
                 ].filter((message, index, messages) => messages.indexOf(message) === index);
 
                 if (sessionFeedback.length > 0) {
                     try {
-                        await api.updateSessionFeedback(
-                            res.sessionId,
-                            sessionFeedback,
-                        );
+                        await api.updateSessionFeedback(res.sessionId, sessionFeedback);
                     } catch (feedbackError: unknown) {
                         console.warn(
                             "Failed to save live guidance feedback:",
@@ -661,13 +702,16 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         );
                     }
                 }
-                setIsOpen(false);
-                setIsCheckInOpen(true);
-            } else {
-                setError(res.message || "Failed to evaluate exercise.");
             }
+            setSessionIds(results.map((result) => result.sessionId));
+            setEvaluationScore(results[0]?.score ?? null);
+            setQualificationReason(results.some((result) => result.adherenceQualified)
+                ? null
+                : results.map((result) => result.qualificationReason).filter(Boolean).join(" ") || "This visit did not meet the prescribed qualification rules.");
+            setIsOpen(false);
+            setIsCheckInOpen(true);
         } catch (err: unknown) {
-            const message = getErrorMessage(err, "An error occurred during evaluation.");
+            const message = getErrorMessage(err, "An error occurred during evaluation. Saved arm results will not be sent again; please retry.");
             console.warn("Evaluation request failed:", message);
             setError(message);
         } finally {
@@ -676,7 +720,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     };
 
     const handleSubmitCheckIn = async () => {
-        if (!sessionId) {
+        if (sessionIds.length === 0) {
             setError("No session was created for this exercise.");
             return;
         }
@@ -685,7 +729,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         setError(null);
 
         try {
-            await api.submitCheckIn(sessionId, checkIn);
+            for (const id of sessionIds) await api.submitCheckIn(id, checkIn);
             setCheckInMessage("Check-in saved for your doctor.");
         } catch (err: unknown) {
             const message = getErrorMessage(err, "Unable to submit your check-in.");
@@ -697,18 +741,8 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
     };
 
     const handleCloseCheckIn = () => {
-        setIsCheckInOpen(false);
-        setEvaluationScore(null);
-        setSessionId(null);
-        setQualificationReason(null);
-        setCheckInMessage(null);
-        setCheckIn({
-            painLevel: 0,
-            difficultyLevel: 0,
-            confidenceLevel: 10,
-            note: "",
-        });
-        liveGuidanceFeedbackRef.current = [];
+        handleClose();
+        window.location.reload();
     };
 
     const updateCheckInField = (
@@ -739,16 +773,20 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
         }
     };
 
-    const recordingProgress = selectedTimerSeconds
-        ? Math.min(100, (elapsedSeconds / selectedTimerSeconds) * 100)
-        : 0;
+    const recordingTime = getRecordingTimeState(elapsedSeconds, targetDurationSeconds, minimumDurationSeconds);
+    const recordingProgress = recordingTime.progress;
 
     return (
         <>
-            <Button onClick={handleOpen} size="lg" className="camera-launch-button">
+            <Button onClick={handleOpen} size="lg" className="camera-launch-button" disabled={!modelGuidance}>
                 <Video data-icon="inline-start" />
                 Start Exercise
             </Button>
+            {!modelGuidance && (
+                <span role="status" className="camera-model-unavailable">
+                    Video evaluation is not available for this exercise. Ask your doctor for help.
+                </span>
+            )}
 
             {isOpen && (
                 <div
@@ -814,103 +852,15 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                 </div>
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                                {isSideSelectable && (
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            backgroundColor: "rgba(15, 23, 42, 0.06)",
-                                            padding: "3px",
-                                            borderRadius: "8px",
-                                            border: "1px solid var(--color-border)",
-                                            gap: "2px",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-text-muted)", padding: "0 6px" }}>
-                                            Arm:
-                                        </span>
-                                        <button
-                                            type="button"
-                                            disabled={isRecording || isEvaluating || countdown !== null}
-                                            onClick={() => setSelectedSide("left")}
-                                            style={{
-                                                padding: "5px 12px",
-                                                fontSize: "12px",
-                                                fontWeight: 600,
-                                                borderRadius: "6px",
-                                                border: "none",
-                                                cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
-                                                backgroundColor: selectedSide === "left" ? "var(--color-primary, #0D9488)" : "transparent",
-                                                color: selectedSide === "left" ? "#FFF" : "var(--color-text-secondary, #475569)",
-                                                transition: "all 0.15s ease",
-                                                boxShadow: selectedSide === "left" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
-                                            }}
-                                        >
-                                            Left Arm
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled={isRecording || isEvaluating || countdown !== null}
-                                            onClick={() => setSelectedSide("right")}
-                                            style={{
-                                                padding: "5px 12px",
-                                                fontSize: "12px",
-                                                fontWeight: 600,
-                                                borderRadius: "6px",
-                                                border: "none",
-                                                cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
-                                                backgroundColor: selectedSide === "right" ? "var(--color-primary, #0D9488)" : "transparent",
-                                                color: selectedSide === "right" ? "#FFF" : "var(--color-text-secondary, #475569)",
-                                                transition: "all 0.15s ease",
-                                                boxShadow: selectedSide === "right" ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
-                                            }}
-                                        >
-                                            Right Arm
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Timer Mode Selector */}
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        backgroundColor: "rgba(15, 23, 42, 0.06)",
-                                        padding: "3px",
-                                        borderRadius: "8px",
-                                        border: "1px solid var(--color-border)",
-                                        gap: "2px",
-                                    }}
-                                >
-                                    <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-text-muted)", padding: "0 6px" }}>
-                                        Timer:
+                                {targetSide && !recordedUrl && (
+                                    <span className="recorder-active-arm" aria-live="polite">
+                                        {isRecording ? "Recording" : recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
                                     </span>
-                                    {TIMER_OPTIONS.map((opt) => {
-                                        const isSelected = selectedTimerSeconds === opt.seconds;
-                                        return (
-                                            <button
-                                                key={opt.label}
-                                                type="button"
-                                                disabled={isRecording || isEvaluating || countdown !== null}
-                                                onClick={() => setSelectedTimerSeconds(opt.seconds)}
-                                                style={{
-                                                    padding: "5px 10px",
-                                                    fontSize: "12px",
-                                                    fontWeight: 600,
-                                                    borderRadius: "6px",
-                                                    border: "none",
-                                                    cursor: isRecording || countdown !== null ? "not-allowed" : "pointer",
-                                                    backgroundColor: isSelected ? "var(--color-primary, #0D9488)" : "transparent",
-                                                    color: isSelected ? "#FFF" : "var(--color-text-secondary, #475569)",
-                                                    transition: "all 0.15s ease",
-                                                    boxShadow: isSelected ? "0 1px 3px rgba(0,0,0,0.15)" : "none",
-                                                }}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                )}
+                                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
+                                    {targetDurationSeconds ? `Time goal: ${formatTime(targetDurationSeconds)}${isSideSelectable ? " per arm" : ""}` : "No prescribed time goal"}
+                                    {minimumDurationSeconds ? ` · Minimum to count: ${formatTime(minimumDurationSeconds)}` : ""}
+                                </span>
 
                                 <button
                                     onClick={handleClose}
@@ -937,19 +887,9 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         </div>
 
                         {/* Video Feed Workspace */}
-                        <div
-                            style={{
-                                position: "relative",
-                                backgroundColor: "#000",
-                                width: "100%",
-                                flex: "1 1 0",
-                                minHeight: 0,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }}
-                        >
-                            {error ? (
+                        <div className={`recorder-workspace${liveGuidanceEnabled ? " recorder-workspace-with-guidance" : ""}`}>
+                            <div className="recorder-video-stage">
+                            {error && cameraAccessIssue ? (
                                 <div className="recorder-empty-state" role="alert">
                                     <button
                                         type="button"
@@ -1010,8 +950,13 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     />
                                     <div className="recorder-preview-label">
                                         <CheckCircle2 size={15} />
-                                        Captured · {formatRecordingTime(elapsedSeconds)}
+                                        {selectedReviewClip?.side ? `${selectedReviewClip.side === "left" ? "Left" : "Right"} arm · ` : ""}Captured · {formatRecordingTime(selectedReviewClip?.durationSeconds ?? 0)}
                                     </div>
+                                    {minimumDurationSeconds && selectedReviewClip && selectedReviewClip.durationSeconds < minimumDurationSeconds && (
+                                        <div className="recorder-review-warning" role="status">
+                                            Shorter than the {formatTime(minimumDurationSeconds)} minimum; this arm may not count.
+                                        </div>
+                                    )}
                                     {isEvaluating && (
                                         <div className="recorder-analyzing-overlay">
                                             <LoaderCircle className="recorder-spin" size={38} />
@@ -1032,12 +977,6 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         muted
                                         className="recorder-video"
                                     />
-                                    <div className="recorder-frame-guide" aria-hidden="true">
-                                        <span />
-                                        <span />
-                                        <span />
-                                        <span />
-                                    </div>
 
                                     {!stream && !isRecording && countdown === null && !isCameraStarting && (
                                         <button
@@ -1136,45 +1075,11 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                                     display: "inline-block",
                                                 }}
                                             />
-                                            {selectedTimerSeconds !== null ? (
-                                                <span>REC · {formatTime(elapsedSeconds)} / {formatTime(selectedTimerSeconds)}</span>
+                                            {targetDurationSeconds ? (
+                                                <span>REC · {formatTime(elapsedSeconds)} / {formatTime(targetDurationSeconds)}</span>
                                             ) : (
                                                 <span>REC · {formatTime(elapsedSeconds)}</span>
                                             )}
-                                        </div>
-                                    )}
-
-                                    {/* Arm selection indicator on video feed */}
-                                    {isSideSelectable && (
-                                        <div
-                                            style={{
-                                                position: "absolute",
-                                                top: isRecording ? "52px" : "16px",
-                                                left: "16px",
-                                                backgroundColor: "rgba(15, 23, 42, 0.75)",
-                                                backdropFilter: "blur(4px)",
-                                                padding: "5px 11px",
-                                                borderRadius: "9999px",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "6px",
-                                                fontSize: "11px",
-                                                fontWeight: 700,
-                                                color: "#FFF",
-                                                zIndex: 10,
-                                                border: "1px solid rgba(255, 255, 255, 0.15)",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    width: "6px",
-                                                    height: "6px",
-                                                    borderRadius: "50%",
-                                                    backgroundColor: "#2DD4BF",
-                                                    display: "inline-block",
-                                                }}
-                                            />
-                                            Target: {selectedSide === "left" ? "Left Arm" : "Right Arm"}
                                         </div>
                                     )}
 
@@ -1187,15 +1092,31 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     )}
                                 </>
                             )}
-                        </div>
+                            </div>
 
                             {liveGuidanceEnabled && (
                                 <aside className="recorder-guidance-sidebar" aria-label="Live body position guidance">
                                     <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
                                 </aside>
                             )}
+                        </div>
 
                         {/* Action Footer */}
+                        {recordedUrl && recordedClips.length > 1 && (
+                            <div className="recorder-clip-tabs" aria-label="Recorded arm clips">
+                                {recordedClips.map((clip) => (
+                                    <button
+                                        type="button"
+                                        key={clip.clientSessionId}
+                                        className={(clip.side ?? "both") === reviewClipKey ? "recorder-clip-tab-active" : ""}
+                                        onClick={() => setReviewClipKey(clip.side ?? "both")}
+                                    >
+                                        {clip.side === "left" ? "Left arm" : clip.side === "right" ? "Right arm" : "Exercise"} · {formatTime(clip.durationSeconds)}
+                                        {clipResults.some((result) => result.clientSessionId === clip.clientSessionId) ? " · Saved" : ""}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         <div className="recorder-progress" aria-hidden={!isRecording}>
                             <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
                         </div>
@@ -1203,38 +1124,43 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                         <div className="recorder-actions">
                             <div className="recorder-action-copy">
                                 <strong>
-                                    {error
+                                    {error && cameraAccessIssue
                                         ? "Camera access is needed"
                                         : recordedUrl
                                           ? "Review before sending"
                                           : isFinalizingRecording
                                             ? "Finishing your recording"
-                                          : isRecording
+                                            : isRecording
                                             ? "Your session is recording"
                                             : countdown !== null
                                               ? "Move into position"
                                               : stream
-                                                ? "Check your position"
+                                                 ? recordedClips.length > 0 && targetSide ? `${targetSide === "left" ? "Left" : "Right"} arm is next` : "Check your position"
                                               : "Ready when you are"}
                                 </strong>
                                 <span>
-                                    {error
+                                    {error && cameraAccessIssue
                                         ? "Check browser permission, then try again."
                                         : recordedUrl
-                                          ? "Replay the video or record another attempt."
+                                          ? "Review each arm before sending. You can retake an unsent clip."
                                           : isFinalizingRecording
                                             ? "Your video will be ready to review shortly."
                                           : isRecording
-                                            ? "Move naturally and follow the live guidance."
+                                            ? recordingTime.belowMinimum
+                                                ? `Minimum to count: ${formatTime(minimumDurationSeconds ?? 0)}. You may stop earlier, but this arm may not count.`
+                                                : recordingTime.goalReached
+                                                    ? "Time goal reached. Stop when you are ready."
+                                                    : "Move naturally and follow the live guidance."
                                             : countdown !== null
                                               ? "Recording begins automatically after the countdown."
                                               : stream
-                                                ? "Make sure your body is visible, then start recording."
+                                                 ? recordedClips.length > 0 && targetSide ? "The other arm is saved. Reposition, then tap Start recording—or review the saved arm." : "Make sure your body is visible, then start recording."
                                                 : "Turn on your camera to see yourself first."}
                                 </span>
                             </div>
+                            {error && !cameraAccessIssue && <div role="alert" className="recorder-inline-error">{error}</div>}
                             <div className="recorder-action-buttons">
-                            {error ? (
+                            {error && cameraAccessIssue ? (
                                 <Button variant="outline" onClick={handleCameraRecovery} disabled={isCameraStarting}>
                                     {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
                                     {cameraAccessIssue === "consent" ? "Allow Camera" : "Reconnect"}
@@ -1262,14 +1188,14 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         disabled={isEvaluating}
                                     >
                                         <RotateCcw />
-                                        Record Again
+                                        Retake This Arm
                                     </Button>
                                     <Button
                                         onClick={handleEvaluate}
                                         disabled={isEvaluating}
                                     >
                                         {isEvaluating ? <LoaderCircle className="recorder-spin" /> : <Sparkles />}
-                                        {isEvaluating ? "Evaluating..." : "Evaluate Session"}
+                                        {isEvaluating ? "Evaluating..." : recordedClips.length > 1 ? "Evaluate Both Arms" : "Evaluate Session"}
                                     </Button>
                                 </>
                             ) : isFinalizingRecording ? (
@@ -1282,6 +1208,12 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     Starting in {countdown}s...
                                 </Button>
                             ) : isRecording ? (
+                                <>
+                                {canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side)) && (
+                                    <Button variant="outline" onClick={handleSwitchArm} disabled={isFinalizingRecording}>
+                                        Switch arm
+                                    </Button>
+                                )}
                                 <Button
                                     onClick={stopRecording}
                                     className="recorder-stop-button"
@@ -1289,11 +1221,19 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                     <CircleStop />
                                     Stop Recording
                                 </Button>
+                                </>
                             ) : stream ? (
-                                <Button onClick={handleStartRecording}>
-                                    <Video />
-                                    Start Recording
-                                </Button>
+                                <>
+                                    {recordedClips.length > 0 && (
+                                        <Button variant="outline" onClick={handleReviewSavedClips}>
+                                            Review saved arm
+                                        </Button>
+                                    )}
+                                    <Button onClick={handleStartRecording}>
+                                        <Video />
+                                        Start Recording
+                                    </Button>
+                                </>
                             ) : null}
                             </div>
                         </div>
@@ -1339,7 +1279,7 @@ export function CameraRecorder({ exerciseName = "Exercise", exerciseId, assignme
                                         How did that session feel?
                                     </h3>
                                     <p style={{ margin: "8px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-                                        Share a quick self-report for your doctor after scoring {formatScore(evaluationScore)}/100.
+                                        Share a quick self-report for your doctor. {clipResults.map((result) => `${result.side ? `${result.side === "left" ? "Left" : "Right"} arm` : "Exercise"}: ${formatScore(result.score)}/100`).join(" · ")}
                                     </p>
                                     {qualificationReason && <div style={{ marginTop: "10px", padding: "10px 12px", borderRadius: "10px", background: "#FEF3C7", color: "#92400E", fontSize: "13px" }}>Recorded for your doctor, but not counted toward adherence: {qualificationReason}</div>}
                                 </div>

@@ -89,6 +89,9 @@ export interface SessionComment {
 export interface CareSession {
   id: string;
   score: number | null;
+  evaluatedModelKey?: string | null;
+  selectedSide?: "left" | "right" | null;
+  visitId?: string | null;
   aiFeedback: string[];
   painLevel: number | null;
   difficultyLevel: number | null;
@@ -182,7 +185,8 @@ export interface ExerciseAssignment {
   dueDate?: string | null;
   reviewDate?: string | null;
   doctorInstructions?: string | null;
-  sessions?: { performedAt: string; score?: number | null; adherenceQualified?: boolean }[];
+  sessions?: { performedAt: string; score?: number | null; selectedSide?: "left" | "right" | null; visitId?: string | null; adherenceQualified?: boolean }[];
+  latestScoresBySide?: { left?: number; right?: number };
   adherence?: AssignmentAdherence;
   exercise: ApiExercise;
   result?: ExerciseResult;
@@ -517,14 +521,15 @@ export const api = {
     return request<{ success: boolean; assignments: ExerciseAssignment[], patientUserId: string }>("/exercises/me/assigned");
   },
 
-  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string, selectedSide?: "left" | "right") {
-    return request<{ success: boolean; score: number; feedback?: string[]; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
+  evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string, selectedSide?: "left" | "right", visitId?: string) {
+    return request<{ success: boolean; score: number; feedback?: string[]; evaluatedModelKey?: string; selectedSide?: "left" | "right" | null; visitId?: string | null; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
         "X-Recording-Duration-Seconds": String(durationSeconds),
         "X-Client-Session-Id": clientSessionId,
         ...(selectedSide ? { "X-Selected-Side": selectedSide } : {}),
+        ...(visitId ? { "X-Exercise-Visit-Id": visitId } : {}),
       },
       body: videoBlob,
     });

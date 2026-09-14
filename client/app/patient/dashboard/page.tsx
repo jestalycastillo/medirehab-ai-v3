@@ -232,6 +232,7 @@ export default function PatientDashboardPage() {
               <div className="patient-dashboard-primary-action">
                 <CameraRecorder
                   exerciseName={dashboard.nextAssignment.exercise?.name}
+                  analysisModelKey={dashboard.nextAssignment.exercise?.analysisModelKey}
                   exerciseId={dashboard.nextAssignment.exercise?.id}
                   assignmentId={dashboard.nextAssignment.id}
                   targetDurationSeconds={dashboard.nextAssignment.targetDurationSeconds}

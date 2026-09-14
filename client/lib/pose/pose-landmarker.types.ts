@@ -21,6 +21,15 @@ export type PoseLandmarkKey =
 
 export type PoseLandmarkMap = Partial<Record<PoseLandmarkKey, PosePoint>>;
 
+export interface PoseWorldPoint {
+    x: number;
+    y: number;
+    z: number;
+    visibility: number;
+}
+
+export type PoseWorldLandmarkMap = Partial<Record<PoseLandmarkKey, PoseWorldPoint>>;
+
 export interface UpperBodyLandmarks extends PoseLandmarkMap {
     leftShoulder: PosePoint;
     rightShoulder: PosePoint;
@@ -43,5 +52,9 @@ export type PoseWorkerRequest =
 
 export type PoseWorkerResponse =
     | { type: "ready" }
-    | { type: "result"; landmarks: PoseLandmarkMap | null }
+    | {
+          type: "result";
+          landmarks: PoseLandmarkMap | null;
+          worldLandmarks: PoseWorldLandmarkMap | null;
+      }
     | { type: "error"; message: string };

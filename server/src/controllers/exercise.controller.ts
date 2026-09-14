@@ -327,13 +327,31 @@ export const evaluateExerciseAssignment = async (
         if (!/^[A-Za-z0-9-]{8,100}$/.test(clientSessionId)) {
             throw new HttpError(400, "A valid client session identifier is required.");
         }
-        const existingSession = await findRecordedExerciseSession(authenticatedUserId, assignmentId, exerciseId, clientSessionId);
+        const selectedSideHeader = req.headers["x-selected-side"];
+        if (
+            selectedSideHeader !== undefined
+            && (typeof selectedSideHeader !== "string" || !["left", "right"].includes(selectedSideHeader.toLowerCase()))
+        ) {
+            throw new HttpError(400, "Selected arm must be left or right.");
+        }
+        const selectedSide = typeof selectedSideHeader === "string"
+            ? selectedSideHeader.toLowerCase() as "left" | "right"
+            : undefined;
+        const visitHeader = req.headers["x-exercise-visit-id"];
+        if (visitHeader !== undefined && (typeof visitHeader !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(visitHeader))) {
+            throw new HttpError(400, "A valid exercise visit identifier is required.");
+        }
+        const visitId = typeof visitHeader === "string" ? visitHeader.toLowerCase() : undefined;
+        const existingSession = await findRecordedExerciseSession(authenticatedUserId, assignmentId, exerciseId, clientSessionId, selectedSide, visitId);
         if (existingSession) {
             res.status(200).json({
                 success: true,
                 message: "Exercise session was already recorded.",
                 score: existingSession.score,
                 feedback: existingSession.aiFeedback,
+                evaluatedModelKey: existingSession.evaluatedModelKey,
+                selectedSide: existingSession.selectedSide,
+                visitId: existingSession.visitId,
                 sessionId: existingSession.id,
                 adherenceQualified: existingSession.adherenceQualified,
                 qualificationReason: existingSession.qualificationReason,
@@ -364,9 +382,6 @@ export const evaluateExerciseAssignment = async (
             chunks.push(bufferChunk);
         }
 
-        const selectedSideHeader = req.headers["x-selected-side"];
-        const selectedSide = typeof selectedSideHeader === "string" && selectedSideHeader.toLowerCase() === "right" ? "right" : "left";
-
         const videoBuffer = Buffer.concat(chunks);
         const result = await evaluateExercise(
             authenticatedUserId,
@@ -382,7 +397,13 @@ export const evaluateExerciseAssignment = async (
             exerciseId,
             result.score,
             result.feedback,
-            { durationSeconds, clientSessionId }
+            {
+                durationSeconds,
+                clientSessionId,
+                evaluatedModelKey: result.evaluatedModelKey,
+                ...(visitId ? { visitId } : {}),
+                ...(result.selectedSide ? { selectedSide: result.selectedSide } : {})
+            }
         );
         await completeExerciseActivity(authenticatedUserId, assignmentId);
 
@@ -391,6 +412,7 @@ export const evaluateExerciseAssignment = async (
             message: "Exercise evaluated successfully.",
             ...result,
             sessionId: session.id,
+            visitId: session.visitId,
             adherenceQualified: session.adherenceQualified,
             qualificationReason: session.qualificationReason,
             duplicate: session.duplicate

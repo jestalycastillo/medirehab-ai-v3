@@ -3,7 +3,8 @@ import {
     REQUIRED_VISIBILITY,
     type ExerciseKeyPointVisibility,
 } from "./exercise-key-points";
-import type { PoseLandmarkMap, PosePoint, UpperBodyLandmarks } from "./pose-landmarker.types";
+import type { PoseLandmarkMap, PosePoint, PoseWorldLandmarkMap, UpperBodyLandmarks } from "./pose-landmarker.types";
+import { classifyShoulderMovementDirection, type ShoulderMovementDirection } from "./shoulder-movement-direction";
 
 export type ShoulderAbductionPhase =
     | "positioning"
@@ -28,7 +29,8 @@ export type ShoulderAbductionGuidanceIssueId =
     | "target-arm-low"
     | "target-arm-high"
     | "other-arm-moving"
-    | "target-arm-alignment";
+    | "target-arm-direction"
+    | "direction-uncertain";
 
 export interface ShoulderAbductionGuidanceIssue {
     id: ShoulderAbductionGuidanceIssueId;
@@ -80,6 +82,7 @@ export function updateShoulderAbductionGuidance(
     previous: ShoulderAbductionGuidanceState,
     landmarks: PoseLandmarkMap | null,
     side: "left" | "right" = "left",
+    worldLandmarks: PoseWorldLandmarkMap | null = null,
 ): ShoulderAbductionGuidanceSnapshot {
     const upperBodyLandmarks = toUpperBodyLandmarks(landmarks);
     const sideLabel = side === "left" ? "left" : "right";
@@ -140,12 +143,13 @@ export function updateShoulderAbductionGuidance(
 
     const targetArmDown = targetDrop > 0.42;
     const targetArmAtShoulderHeight = Math.abs(targetDrop) < 0.32;
-    const otherArmQuiet = otherDrop > 0.38;
+    const otherArmQuiet = otherElbow.visibility < REQUIRED_VISIBILITY || otherDrop > 0.38;
+    const direction = classifyShoulderMovementDirection(worldLandmarks, side);
 
     const consecutiveDownFrames = (targetArmDown && otherArmQuiet)
         ? Math.min(previous.consecutiveDownFrames + 1, REQUIRED_CONSECUTIVE_FRAMES)
         : 0;
-    const consecutiveTopFrames = targetArmAtShoulderHeight
+    const consecutiveTopFrames = targetArmAtShoulderHeight && direction === "sideways"
         ? Math.min(previous.consecutiveTopFrames + 1, REQUIRED_CONSECUTIVE_FRAMES)
         : 0;
     const confirmedDown = consecutiveDownFrames === REQUIRED_CONSECUTIVE_FRAMES;
@@ -155,7 +159,12 @@ export function updateShoulderAbductionGuidance(
     let repetitions = previous.repetitions;
     let justCompletedRepetition = false;
 
-    switch (previous.phase) {
+    if (targetArmAtShoulderHeight && direction !== "sideways"
+        && (phase === "top" || phase === "lowering")) {
+        phase = "raising";
+    }
+
+    switch (phase) {
         case "positioning":
             if (confirmedDown) phase = "ready";
             break;
@@ -188,6 +197,7 @@ export function updateShoulderAbductionGuidance(
     const candidateIssue = detectCandidateIssue(
         upperBodyLandmarks,
         shoulderWidth,
+        targetArmAtShoulderHeight ? direction : null,
         phase,
         side,
         sideLabel,
@@ -258,9 +268,9 @@ export function updateShoulderAbductionGuidance(
 
 function toUpperBodyLandmarks(landmarks: PoseLandmarkMap | null): UpperBodyLandmarks | null {
     if (!landmarks) return null;
-    const { nose, leftShoulder, rightShoulder, leftElbow, rightElbow } = landmarks;
-    if (!nose || !leftShoulder || !rightShoulder || !leftElbow || !rightElbow) return null;
-    return { nose, leftShoulder, rightShoulder, leftElbow, rightElbow };
+    const { leftShoulder, rightShoulder, leftElbow, rightElbow } = landmarks;
+    if (!leftShoulder || !rightShoulder || !leftElbow || !rightElbow) return null;
+    return { leftShoulder, rightShoulder, leftElbow, rightElbow };
 }
 
 function hasReliableUpperBodyLandmarks(
@@ -311,6 +321,7 @@ function deriveMessage(
 function detectCandidateIssue(
     landmarks: UpperBodyLandmarks,
     shoulderWidth: number,
+    direction: ShoulderMovementDirection | null,
     phase: ShoulderAbductionPhase,
     side: "left" | "right",
     sideLabel: string,
@@ -322,7 +333,19 @@ function detectCandidateIssue(
     const otherShoulder = side === "left" ? landmarks.rightShoulder : landmarks.leftShoulder;
 
     const otherDrop = (otherElbow.y - otherShoulder.y) / shoulderWidth;
-    if (otherDrop < 0.25) {
+    if (direction === "forward") {
+        return {
+            id: "target-arm-direction",
+            instruction: `Move your ${sideLabel} arm out to the side, not forward.`,
+        };
+    }
+    if (direction === "uncertain") {
+        return {
+            id: "direction-uncertain",
+            instruction: `Keep facing the camera so we can check your ${sideLabel} arm moves sideways.`,
+        };
+    }
+    if (otherElbow.visibility >= REQUIRED_VISIBILITY && otherDrop < 0.25) {
         return {
             id: "other-arm-moving",
             instruction: `Keep your ${otherLabel} arm relaxed while moving your ${sideLabel} arm.`,
