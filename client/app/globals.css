@@ -1027,6 +1027,372 @@ body {
   color: #38bdf8;
 }
 
+/* Follow Along Demo Video Player */
+.follow-along-card {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 15;
+  width: 200px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(3, 15, 14, 0.86);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 240, 255, 0.12);
+  backdrop-filter: blur(14px);
+  transition: width 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+
+.follow-along-card:hover {
+  border-color: rgba(0, 240, 255, 0.6);
+}
+
+.follow-along-minimized {
+  width: 140px;
+}
+
+.follow-along-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 9px;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 6px;
+}
+
+.follow-along-title-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.follow-along-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f0ff;
+  box-shadow: 0 0 8px #00f0ff;
+  flex-shrink: 0;
+  animation: pulse-subtle 1.8s infinite;
+}
+
+.follow-along-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.follow-along-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.follow-along-mode-switch {
+  display: flex;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1.5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-right: 2px;
+}
+
+.follow-along-mode-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  border-radius: 3px;
+  padding: 1.5px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 120ms ease;
+}
+
+.follow-along-mode-btn-active {
+  background: #00f0ff;
+  color: #030f14;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+}
+
+.follow-along-mini-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 140ms ease;
+}
+
+.follow-along-mini-btn:hover {
+  background: rgba(0, 240, 255, 0.25);
+  color: #00f0ff;
+}
+
+.follow-along-btn-active {
+  background: rgba(0, 240, 255, 0.2);
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+}
+
+.follow-along-video-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  overflow: hidden;
+}
+
+.follow-along-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.follow-along-controls-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.follow-along-control-btn {
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.follow-along-control-btn:hover {
+  background: rgba(0, 240, 255, 0.35);
+  color: #00f0ff;
+}
+
+.follow-along-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  color: #00f0ff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(0, 240, 255, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.follow-along-reopen-btn {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(3, 15, 14, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: #00f0ff;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  transition: all 160ms ease;
+}
+
+.follow-along-reopen-btn:hover {
+  background: rgba(8, 30, 42, 0.95);
+  border-color: #00f0ff;
+  transform: translateY(-1px);
+}
+
+/* Animated Exercise Avatar & Biomechanical Keyframes */
+.animated-exercise-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: radial-gradient(circle at 50% 35%, #0e2a36 0%, #030f14 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0 0 13px 13px;
+}
+
+.animated-exercise-svg {
+  width: 100%;
+  height: 82%;
+  filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.2));
+}
+
+.animated-exercise-footer {
+  width: 100%;
+  padding: 4px 8px;
+  background: rgba(3, 15, 14, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.exercise-phase-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #00f0ff;
+  letter-spacing: -0.01em;
+}
+
+.exercise-angle-badge {
+  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  color: #00ff9d;
+  background: rgba(0, 255, 157, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.trajectory-arc {
+  animation: arc-pulse 2s ease-in-out infinite;
+}
+
+@keyframes arc-pulse {
+  0%, 100% { opacity: 0.3; stroke-width: 1.5; }
+  50% { opacity: 0.8; stroke-width: 2.5; stroke: #00ff9d; }
+}
+
+/* 1. Side Arms Raise (Bilateral Abduction) */
+@keyframes anim-left-side-raise-kf {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  38%, 52% {
+    transform: rotate(-95deg);
+  }
+  90% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes anim-right-side-raise-kf {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  38%, 52% {
+    transform: rotate(95deg);
+  }
+  90% {
+    transform: rotate(0deg);
+  }
+}
+
+.anim-left-side-raise {
+  animation: anim-left-side-raise-kf 4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+.anim-right-side-raise {
+  animation: anim-right-side-raise-kf 4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+/* 2. Shoulder Flexion (Forward Sagittal Raise) */
+@keyframes anim-left-flexion-kf {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  38%, 52% {
+    transform: rotate(-155deg) scale(0.92);
+  }
+  90% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes anim-right-flexion-kf {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  38%, 52% {
+    transform: rotate(155deg) scale(0.92);
+  }
+  90% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.anim-left-flexion {
+  animation: anim-left-flexion-kf 4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+.anim-right-flexion {
+  animation: anim-right-flexion-kf 4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+/* 3. Shoulder Abduction (Lateral Coronal Raise) */
+@keyframes anim-left-abduction-kf {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  38%, 52% {
+    transform: rotate(-125deg);
+  }
+  90% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes anim-right-abduction-kf {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  38%, 52% {
+    transform: rotate(125deg);
+  }
+  90% {
+    transform: rotate(0deg);
+  }
+}
+
+.anim-left-abduction {
+  animation: anim-left-abduction-kf 4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
+.anim-right-abduction {
+  animation: anim-right-abduction-kf 4s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+
 .live-guidance-status {
   width: 8px;
   height: 8px;

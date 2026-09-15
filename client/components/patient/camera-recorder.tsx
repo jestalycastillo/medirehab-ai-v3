@@ -7,6 +7,7 @@ import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config
 import { canRecordArm, canSwitchArm, getRecordingTimeState, resolveRecordingSide, type ArmSide } from "@/lib/camera-visit";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { RoboticSkeletonOverlay } from "./robotic-skeleton-overlay";
+import { FollowAlongVideo } from "./follow-along-video";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
 import {
@@ -990,6 +991,15 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                             exerciseName={exerciseName}
                                             enabled={isSkeletonVisible && !recordedUrl}
                                             hasReliablePose={liveGuidance.hasReliablePose}
+                                        />
+                                    )}
+
+                                    {stream && !recordedUrl && (
+                                        <FollowAlongVideo
+                                            exerciseName={exerciseName}
+                                            selectedSide={targetSide}
+                                            analysisModelKey={analysisModelKey}
+                                            isRecording={isRecording}
                                         />
                                     )}
 
