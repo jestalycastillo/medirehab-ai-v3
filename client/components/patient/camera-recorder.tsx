@@ -1109,9 +1109,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         </div>
                     </header>
 
-                    {/* Floating Top Controls (Skeleton HUD & Voice) */}
+                    {/* Floating Bottom-Right Controls (Skeleton HUD & Voice) */}
                     {liveGuidanceEnabled && (
-                        <div className="recorder-top-pills">
+                        <div className="recorder-bottom-right-pills">
                             <button
                                 type="button"
                                 className={`live-guidance-pill ${isSkeletonVisible ? "" : "live-guidance-pill-muted"}`}

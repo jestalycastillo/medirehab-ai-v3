@@ -769,14 +769,21 @@ body {
   transform: scale(1.05);
 }
 
-/* Floating Top HUD Pills */
-.recorder-top-pills {
+/* Floating Bottom-Right HUD Controls (Skeleton HUD & Voice) */
+.recorder-bottom-right-pills {
   position: absolute;
-  top: 76px;
-  left: 24px;
+  bottom: 84px;
+  right: 24px;
   z-index: 30;
   display: flex;
+  align-items: center;
   gap: 10px;
+}
+
+.recorder-bottom-right-pills .live-guidance-pill {
+  position: static;
+  top: auto;
+  right: auto;
 }
 
 /* Floating Body Visibility Panel */
@@ -1382,6 +1389,7 @@ body {
   gap: 8px;
 }
 
+.recorder-bottom-right-pills .live-guidance-pill,
 .recorder-top-pills .live-guidance-pill {
   position: static;
   top: auto;
