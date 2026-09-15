@@ -444,6 +444,7 @@ body {
 .recorder-timer-dropdown-container {
   position: relative;
   display: inline-block;
+  z-index: 70;
 }
 
 .recorder-timer-dropdown-trigger {
@@ -475,15 +476,15 @@ body {
 
 .recorder-timer-dropdown-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
   width: 240px;
   background: #ffffff;
   border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px -4px rgba(0, 0, 0, 0.35), 0 8px 16px rgba(0, 0, 0, 0.15);
   padding: 6px;
-  z-index: 60;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -706,13 +707,13 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 35;
+  z-index: 60;
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0) 100%);
+  background: transparent;
   pointer-events: none;
 }
 
@@ -724,17 +725,20 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   pointer-events: auto;
+  z-index: 60;
 }
 
-.recorder-floating-top-left .follow-along-card {
+.recorder-floating-top-left .follow-along-card,
+.recorder-floating-top-left .follow-along-reopen-btn {
   position: relative !important;
   top: auto !important;
   bottom: auto !important;
   left: auto !important;
   right: auto !important;
   margin: 0 !important;
+  z-index: 60;
 }
 
 .recorder-floating-title-badge {
@@ -759,10 +763,12 @@ body {
 }
 
 .recorder-floating-header-controls {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  z-index: 100;
 }
 
 .recorder-floating-close-btn {
@@ -786,21 +792,194 @@ body {
   transform: scale(1.05);
 }
 
-/* Floating Bottom-Right HUD Controls (Skeleton HUD & Voice) */
-.recorder-bottom-right-pills {
+/* Floating Bottom-Right Settings Menu (Skeleton HUD & Voice) */
+.recorder-settings-inline-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recorder-settings-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: none;
+  backdrop-filter: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.65));
+  transition: all 0.2s ease;
+}
+
+.recorder-settings-trigger-btn:hover {
+  background: transparent;
+  color: #2dd4bf;
+  transform: scale(1.12);
+  filter: drop-shadow(0 2px 8px rgba(45, 212, 191, 0.65));
+}
+
+.recorder-settings-trigger-active {
+  background: transparent !important;
+  color: #2dd4bf !important;
+  border: none !important;
+  box-shadow: none !important;
+  transform: scale(1.08);
+}
+
+.recorder-settings-icon-spin {
+  animation: recorder-settings-spin 0.4s ease;
+}
+
+@keyframes recorder-settings-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(90deg); }
+}
+
+.recorder-settings-popover {
   position: absolute;
-  bottom: 84px;
-  right: 24px;
-  z-index: 30;
+  top: calc(100% + 12px) !important;
+  bottom: auto !important;
+  right: 0;
+  left: auto;
+  width: 270px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -4px rgba(0, 0, 0, 0.35), 0 8px 16px rgba(0, 0, 0, 0.12);
+  padding: 12px 14px;
+  z-index: 150;
+  transform-origin: top right;
+  animation: recorder-settings-pop-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes recorder-settings-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.recorder-settings-header {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recorder-settings-header span {
+  font-size: 11px;
+  font-weight: 750;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recorder-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recorder-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+
+.recorder-settings-row:hover {
+  background: #f8fafc;
+}
+
+.recorder-settings-info {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
-.recorder-bottom-right-pills .live-guidance-pill {
-  position: static;
-  top: auto;
-  right: auto;
+.recorder-settings-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0fdfa;
+  color: #0f766e;
+  flex-shrink: 0;
+}
+
+.recorder-settings-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.recorder-settings-text strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.recorder-settings-text span {
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recorder-toggle-switch {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  padding: 2px;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.recorder-toggle-switch-on {
+  background: #10b981 !important;
+}
+
+.recorder-toggle-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(0);
+  display: block;
+}
+
+.recorder-toggle-switch-on .recorder-toggle-thumb {
+  transform: translateX(16px);
 }
 
 /* Floating Body Visibility Panel */
@@ -808,52 +987,66 @@ body {
   position: absolute;
   top: 76px;
   right: 24px;
-  z-index: 30;
-  width: 210px;
-  height: 330px;
+  z-index: 40;
+  width: 230px;
   pointer-events: auto;
 }
 
 .recorder-floating-guidance .key-point-panel {
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
-  height: 100%;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 12px 14px;
+  height: auto;
+  overflow: visible;
 }
 
-/* Center Live Coaching & Status Cues */
-.recorder-center-cue-container {
-  position: absolute;
-  top: 86px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 30;
+/* Live Coaching & Status Cues in Footer */
+.recorder-footer-cue-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   max-width: 600px;
   width: 90%;
-  pointer-events: none;
-}
-
-.recorder-center-cue-container > * {
   pointer-events: auto;
 }
 
-/* Floating Bottom Action Footer */
+.recorder-rec-timer-pill {
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 5px 14px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #FFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.recorder-rec-timer-pill span.animate-pulse-subtle {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #EF4444;
+  display: inline-block;
+}
+
+/* Floating Bottom Center Cue & Progress Footer */
 .recorder-floating-footer {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 35;
-  padding: 20px 24px 32px;
+  z-index: 60;
+  padding: 16px 24px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 12px;
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0) 100%);
   pointer-events: none;
@@ -863,12 +1056,27 @@ body {
   pointer-events: auto;
 }
 
-.recorder-floating-action-bar {
+.recorder-footer-cue-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  max-width: 600px;
+  width: 90%;
+  pointer-events: auto;
+}
+
+/* Floating Bottom-Right Corner Action Controls (Start Recording + Settings Icon) */
+.recorder-floating-bottom-right-actions {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: 16px;
+  pointer-events: auto;
 }
 
 .recorder-primary-action-btn {
@@ -1399,9 +1607,10 @@ body {
 
 .recorder-bottom-right-pills .live-guidance-pill,
 .recorder-top-pills .live-guidance-pill {
-  position: static;
-  top: auto;
-  right: auto;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: 50 !important;
 }
 
 .live-guidance-pill {
@@ -1458,7 +1667,7 @@ body {
   position: absolute;
   bottom: 16px;
   left: 16px;
-  z-index: 15;
+  z-index: 40;
   width: 260px;
   border-radius: 16px;
   overflow: hidden;
@@ -1622,29 +1831,29 @@ body {
 }
 
 .follow-along-reopen-btn {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
-  z-index: 15;
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #0f172a;
-  font-size: 11.5px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   transition: all 160ms ease;
+  z-index: 40;
 }
 
 .follow-along-reopen-btn:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: rgba(15, 118, 110, 0.9);
+  border-color: rgba(45, 212, 191, 0.6);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Animated Exercise Avatar & Biomechanical Kinematics */
@@ -1703,127 +1912,147 @@ body {
 .key-point-panel {
   position: relative;
   width: 100%;
-  height: 100%;
-  max-height: 100%;
-  padding: 13px;
-  overflow: auto;
-  border: 1px solid rgba(15, 118, 110, 0.16);
   border-radius: 16px;
-  background: #f4fcfa;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   color: var(--color-text-primary);
   box-shadow: 0 10px 26px rgba(3, 15, 14, 0.08);
-  scrollbar-width: thin;
 }
 
 .key-point-panel-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
-.key-point-panel-header > div:first-child {
-  display: grid;
-  gap: 1px;
+.key-point-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .key-point-panel-header strong {
-  color: var(--color-primary-dark);
+  color: #0f172a;
   font-size: 12px;
-  line-height: 1.35;
-}
-
-.key-point-panel-header span {
-  color: var(--color-text-muted);
-  font-size: 10px;
-  line-height: 1.35;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 
 .key-point-count {
-  min-width: 35px;
-  padding: 3px 6px;
+  min-width: 38px;
+  padding: 2.5px 8px;
   border-radius: 999px;
-  background: #feecec;
-  color: #b33a3a;
-  font-size: 10px;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 11px;
   font-weight: 800;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .key-point-count-ready {
-  background: #daf5ec;
-  color: #08775a;
+  background: #dcfce7;
+  color: #15803d;
 }
 
 .key-point-body {
   display: block;
   width: 100%;
-  height: clamp(180px, 34vh, 290px);
-  margin: 5px 0;
+  height: 160px;
+  margin: 4px auto 8px auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.04));
 }
 
 .key-point-progress {
   height: 4px;
   overflow: hidden;
   border-radius: 999px;
-  background: #dceae7;
+  background: #f1f5f9;
+  margin-bottom: 8px;
 }
 
 .key-point-progress span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--color-primary);
-  transition: width 180ms ease;
+  background: #0f766e;
+  transition: width 200ms ease, background-color 200ms ease;
+}
+
+.key-point-progress-ready {
+  background: #10b981 !important;
 }
 
 .key-point-list {
   display: grid;
-  gap: 5px;
-  margin-top: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 6px;
 }
 
 .key-point-item {
   display: flex;
   align-items: center;
-  gap: 7px;
-  color: var(--color-text-secondary);
-  font-size: 10px;
-  font-weight: 650;
-  line-height: 1.25;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s ease;
 }
 
-.key-point-item > span {
-  width: 7px;
-  height: 7px;
+.key-point-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.key-point-item-indicator {
+  width: 6px;
+  height: 6px;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #e05252;
-  box-shadow: 0 0 0 2px rgba(224, 82, 82, 0.12);
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.key-point-item-visible > span {
-  background: #0f9f79;
-  box-shadow: 0 0 0 2px rgba(15, 159, 121, 0.13);
+.key-point-item-visible {
+  color: #0f172a;
+  background: #f0fdf4;
+}
+
+.key-point-item-visible .key-point-item-indicator {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
 }
 
 .live-guidance-cue,
 .live-coaching-message {
-  position: absolute;
-  right: 16px;
-  left: 16px;
-  z-index: 12;
+  position: relative;
+  width: auto;
+  max-width: 100%;
   border: 1px solid rgba(15, 118, 110, 0.16);
   background: rgba(244, 252, 250, 0.94);
   color: var(--color-primary-dark);
-  box-shadow: 0 12px 30px rgba(3, 15, 14, 0.2);
+  box-shadow: 0 8px 24px rgba(3, 15, 14, 0.18);
   backdrop-filter: blur(12px);
+  z-index: 40;
 }
 
 .live-guidance-cue {
-  bottom: 16px;
-  padding: 11px 14px;
-  border-radius: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
@@ -1836,19 +2065,18 @@ body {
 }
 
 .live-guidance-repetitions {
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--color-text-muted);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
 }
 
 .live-coaching-message {
-  bottom: 83px;
-  padding: 9px 13px;
-  border-radius: 11px;
+  padding: 7px 16px;
+  border-radius: 999px;
   background: rgba(15, 118, 110, 0.94);
   color: #fff;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
   line-height: 1.4;
   text-align: center;

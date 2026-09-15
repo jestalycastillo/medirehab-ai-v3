@@ -4,9 +4,9 @@ interface ExerciseKeyPointBodyProps {
     points: ExerciseKeyPointVisibility[];
 }
 
-const ACTIVE_POINT_COLOR = "#0F9F79";
-const MISSING_POINT_COLOR = "#E05252";
-const INACTIVE_POINT_COLOR = "#B9CDC8";
+const ACTIVE_POINT_COLOR = "#10b981";
+const MISSING_POINT_COLOR = "#ef4444";
+const INACTIVE_POINT_COLOR = "#cbd5e1";
 
 function getPointColor(
     points: ExerciseKeyPointVisibility[],
@@ -46,7 +46,7 @@ export function ExerciseKeyPointBody({ points }: ExerciseKeyPointBodyProps) {
                     cy={cy}
                     r={radius + 3}
                     fill={current.fill}
-                    opacity="0.16"
+                    opacity="0.22"
                 />
                 <circle
                     cx={cx}
@@ -107,6 +107,7 @@ export function ExerciseKeyPointBody({ points }: ExerciseKeyPointBodyProps) {
             </g>
 
             {marker("nose", 70, 25, 4.5)}
+            {marker("chest", 70, 72, 4.5)}
             {marker("leftShoulder", 52, 61)}
             {marker("rightShoulder", 88, 61)}
             {marker("leftElbow", 36, 104)}
