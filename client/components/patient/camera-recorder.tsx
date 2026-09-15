@@ -843,461 +843,380 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             {isOpen && (
                 <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(3, 15, 14, 0.78)",
-                        backdropFilter: "blur(10px)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 9999,
-                        padding: "clamp(10px, 2vw, 24px)",
-                    }}
-                    onClick={handleClose}
+                    className="recorder-fullscreen-container animate-fade-in"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="exercise-recorder-title"
                 >
-                    <div
-                        className="card animate-slide-up"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="exercise-recorder-title"
-                        style={{
-                            width: "100%",
-                            maxWidth: "1080px",
-                            height: "min(780px, calc(100dvh - 32px))",
-                            maxHeight: "calc(100dvh - 20px)",
-                            backgroundColor: "var(--color-surface)",
-                            overflow: "hidden",
-                            position: "relative",
-                            display: "flex",
-                            flexDirection: "column",
-                            minHeight: 0,
-                            borderRadius: "20px",
-                            border: "1px solid rgba(255, 255, 255, 0.28)",
-                            boxShadow: "0 28px 90px rgba(3, 15, 14, 0.36)",
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div
-                            style={{
-                                padding: "14px 20px",
-                                borderBottom: "1px solid var(--color-border)",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                gap: "12px",
-                                flexWrap: "wrap",
-                            }}
-                        >
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
-                                <span className="recorder-header-icon" aria-hidden="true">
-                                    <Video size={20} />
-                                </span>
-                                <div style={{ minWidth: 0 }}>
-                                    <h3 id="exercise-recorder-title" style={{ fontSize: "18px", fontWeight: 750, margin: 0, color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                        {exerciseName}
-                                    </h3>
-                                </div>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                                {targetSide && !recordedUrl && (
-                                    <span className="recorder-active-arm" aria-live="polite">
-                                        {isRecording ? "Recording" : recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
-                                    </span>
-                                )}
-
-                                {!recordedUrl && (
-                                    <div className="recorder-timer-dropdown-container" ref={timerDropdownRef}>
-                                        <button
-                                            type="button"
-                                            className="recorder-timer-dropdown-trigger"
-                                            onClick={() => setIsTimerDropdownOpen((prev) => !prev)}
-                                            disabled={isRecording || isFinalizingRecording}
-                                            aria-haspopup="true"
-                                            aria-expanded={isTimerDropdownOpen}
-                                            title="Choose recording duration timer"
-                                        >
-                                            <Timer size={14} style={{ color: "var(--color-primary, #0f766e)" }} />
-                                            <span>
-                                                Timer: {selectedTargetDuration === null
-                                                    ? "No timer"
-                                                    : selectedTargetDuration === 20
-                                                        ? "20s"
-                                                        : selectedTargetDuration === 30
-                                                            ? "30s"
-                                                            : selectedTargetDuration === 60
-                                                                ? "1 min"
-                                                                : `${selectedTargetDuration}s`}
-                                            </span>
-                                            <ChevronDown size={13} style={{ color: "#64748b", marginLeft: "2px" }} />
-                                        </button>
-
-                                        {isTimerDropdownOpen && (
-                                            <div className="recorder-timer-dropdown-menu" role="menu">
-                                                <div className="recorder-timer-dropdown-header">Auto-Stop Timer</div>
-                                                <button
-                                                    type="button"
-                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === null ? "recorder-timer-dropdown-item-active" : ""}`}
-                                                    onClick={() => {
-                                                        setSelectedTargetDuration(null);
-                                                        setIsTimerDropdownOpen(false);
-                                                    }}
-                                                    role="menuitem"
-                                                >
-                                                    <span>No timer (Manual stop)</span>
-                                                    {selectedTargetDuration === null && <Check size={14} />}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === 20 ? "recorder-timer-dropdown-item-active" : ""}`}
-                                                    onClick={() => {
-                                                        setSelectedTargetDuration(20);
-                                                        setIsTimerDropdownOpen(false);
-                                                    }}
-                                                    role="menuitem"
-                                                >
-                                                    <span>20 seconds</span>
-                                                    {selectedTargetDuration === 20 && <Check size={14} />}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === 30 ? "recorder-timer-dropdown-item-active" : ""}`}
-                                                    onClick={() => {
-                                                        setSelectedTargetDuration(30);
-                                                        setIsTimerDropdownOpen(false);
-                                                    }}
-                                                    role="menuitem"
-                                                >
-                                                    <span>30 seconds</span>
-                                                    {selectedTargetDuration === 30 && <Check size={14} />}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === 60 ? "recorder-timer-dropdown-item-active" : ""}`}
-                                                    onClick={() => {
-                                                        setSelectedTargetDuration(60);
-                                                        setIsTimerDropdownOpen(false);
-                                                    }}
-                                                    role="menuitem"
-                                                >
-                                                    <span>1 minute (60s)</span>
-                                                    {selectedTargetDuration === 60 && <Check size={14} />}
-                                                </button>
-                                                <div className="recorder-timer-dropdown-custom">
-                                                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                                                        Custom seconds
-                                                    </div>
-                                                    <form
-                                                        className="recorder-timer-custom-form"
-                                                        onSubmit={(e) => {
-                                                            e.preventDefault();
-                                                            const parsed = parseInt(customDurationInput, 10);
-                                                            if (!isNaN(parsed) && parsed > 0) {
-                                                                setSelectedTargetDuration(parsed);
-                                                                setIsTimerDropdownOpen(false);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <input
-                                                            type="number"
-                                                            min="5"
-                                                            max="600"
-                                                            step="1"
-                                                            placeholder="Secs"
-                                                            value={customDurationInput}
-                                                            onChange={(e) => setCustomDurationInput(e.target.value)}
-                                                            aria-label="Custom seconds"
-                                                        />
-                                                        <button type="submit">Set</button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {minimumDurationSeconds ? (
-                                    <span className="recorder-min-duration-badge" title={`Minimum duration to count: ${formatTime(minimumDurationSeconds)}`}>
-                                        Min: {formatTime(minimumDurationSeconds)}
-                                    </span>
-                                ) : null}
-
+                    {/* Full-Screen Video Background Stage */}
+                    <div className="recorder-fullscreen-stage">
+                        {error && cameraAccessIssue ? (
+                            <div className="recorder-empty-state" role="alert">
                                 <button
-                                    onClick={handleClose}
-                                    style={{
-                                        border: "none",
-                                        background: "transparent",
-                                        cursor: "pointer",
-                                        color: "var(--color-text-muted)",
-                                        padding: "4px",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        borderRadius: "50%",
-                                    }}
-                                    className="btn-secondary"
-                                    aria-label="Close dialog"
+                                    type="button"
+                                    className="recorder-camera-reconnect"
+                                    onClick={handleCameraRecovery}
+                                    disabled={isCameraStarting}
+                                    aria-label={cameraAccessIssue === "consent" ? "Agree and allow camera access" : "Reconnect camera"}
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
+                                    <span className="recorder-empty-icon recorder-empty-icon-error">
+                                        {isCameraStarting
+                                            ? <LoaderCircle className="recorder-spin" size={28} />
+                                            : <Camera size={28} />}
+                                    </span>
+                                    <h4>{cameraAccessIssue === "consent" ? "Allow camera access" : "We could not start your camera"}</h4>
+                                    <p>{error}</p>
+                                    <span className="recorder-reconnect-label">
+                                        {cameraAccessIssue === "consent" ? "I agree — turn on camera" : "Reconnect camera"}
+                                    </span>
                                 </button>
                             </div>
-                        </div>
-
-                        {/* Video Feed Workspace */}
-                        <div className={`recorder-workspace${liveGuidanceEnabled ? " recorder-workspace-with-guidance" : ""}`}>
-                            <div className="recorder-video-stage">
-                                {error && cameraAccessIssue ? (
-                                    <div className="recorder-empty-state" role="alert">
-                                        <button
-                                            type="button"
-                                            className="recorder-camera-reconnect"
-                                            onClick={handleCameraRecovery}
-                                            disabled={isCameraStarting}
-                                            aria-label={cameraAccessIssue === "consent" ? "Agree and allow camera access" : "Reconnect camera"}
-                                        >
-                                            <span className="recorder-empty-icon recorder-empty-icon-error">
-                                                {isCameraStarting
-                                                    ? <LoaderCircle className="recorder-spin" size={28} />
-                                                    : <Camera size={28} />}
-                                            </span>
-                                            <h4>{cameraAccessIssue === "consent" ? "Allow camera access" : "We could not start your camera"}</h4>
-                                            <p>{error}</p>
-                                            <span className="recorder-reconnect-label">
-                                                {cameraAccessIssue === "consent" ? "I agree — turn on camera" : "Reconnect camera"}
-                                            </span>
-                                        </button>
+                        ) : recordedUrl ? (
+                            /* Post-Recording Preview */
+                            <div className="recorder-preview">
+                                <video
+                                    key={recordedUrl}
+                                    src={recordedUrl}
+                                    controls
+                                    playsInline
+                                    preload="auto"
+                                    style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
+                                />
+                                <div className="recorder-preview-label">
+                                    <CheckCircle2 size={15} />
+                                    {selectedReviewClip?.side ? `${selectedReviewClip.side === "left" ? "Left" : "Right"} arm · ` : ""}Captured · {formatRecordingTime(selectedReviewClip?.durationSeconds ?? 0)}
+                                </div>
+                                {minimumDurationSeconds && selectedReviewClip && selectedReviewClip.durationSeconds < minimumDurationSeconds && (
+                                    <div className="recorder-review-warning" role="status">
+                                        Shorter than the {formatTime(minimumDurationSeconds)} minimum; this arm may not count.
                                     </div>
-                                ) : evaluationScore !== null ? (
-                                    /* Evaluation Success Screen */
-                                    <div style={{ color: "#FFF", padding: "40px 24px", textAlign: "center" }}>
-                                        <div style={{
-                                            width: "80px",
-                                            height: "80px",
-                                            borderRadius: "50%",
-                                            backgroundColor: "rgba(22, 163, 74, 0.2)",
-                                            border: "3px solid #16A34A",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            margin: "0 auto 20px auto",
-                                            color: "#16A34A"
-                                        }}>
-                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                        </div>
-                                        <h4 style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 8px 0" }}>Evaluation Complete!</h4>
-                                        <p style={{ color: "rgba(255,255,255,0.7)", margin: "0 0 16px 0", fontSize: "14px" }}>
-                                            Your exercise performance has been evaluated.
-                                        </p>
-                                        <div style={{ fontSize: "48px", fontWeight: 800, color: "#16A34A", margin: "16px 0" }}>
-                                            {formatScore(evaluationScore)} <span style={{ fontSize: "20px", fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>/ 100</span>
+                                )}
+                                {isEvaluating && (
+                                    <div className="recorder-analyzing-overlay">
+                                        <LoaderCircle className="recorder-spin" size={38} />
+                                        <div>
+                                            <strong>Analyzing your movement</strong>
+                                            <span>This can take a moment. Keep this window open.</span>
                                         </div>
                                     </div>
-                                ) : recordedUrl ? (
-                                    /* Post-Recording Preview */
-                                    <div className="recorder-preview">
-                                        <video
-                                            key={recordedUrl}
-                                            src={recordedUrl}
-                                            controls
-                                            playsInline
-                                            preload="auto"
-                                            style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
-                                        />
-                                        <div className="recorder-preview-label">
-                                            <CheckCircle2 size={15} />
-                                            {selectedReviewClip?.side ? `${selectedReviewClip.side === "left" ? "Left" : "Right"} arm · ` : ""}Captured · {formatRecordingTime(selectedReviewClip?.durationSeconds ?? 0)}
-                                        </div>
-                                        {minimumDurationSeconds && selectedReviewClip && selectedReviewClip.durationSeconds < minimumDurationSeconds && (
-                                            <div className="recorder-review-warning" role="status">
-                                                Shorter than the {formatTime(minimumDurationSeconds)} minimum; this arm may not count.
-                                            </div>
-                                        )}
-                                        {isEvaluating && (
-                                            <div className="recorder-analyzing-overlay">
-                                                <LoaderCircle className="recorder-spin" size={38} />
-                                                <div>
-                                                    <strong>Analyzing your movement</strong>
-                                                    <span>This can take a moment. Keep this window open.</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    /* Live Camera Feed */
-                                    <>
-                                        <video
-                                            ref={videoRef}
-                                            autoPlay
-                                            playsInline
-                                            muted
-                                            className="recorder-video"
-                                        />
-
-                                        {stream && (
-                                            <RoboticSkeletonOverlay
-                                                videoRef={videoRef}
-                                                landmarks={liveGuidance.landmarks}
-                                                selectedSide={targetSide}
-                                                exerciseName={exerciseName}
-                                                enabled={isSkeletonVisible && !recordedUrl}
-                                                hasReliablePose={liveGuidance.hasReliablePose}
-                                            />
-                                        )}
-
-                                        {stream && !recordedUrl && (
-                                            <FollowAlongVideo
-                                                exerciseName={exerciseName}
-                                                selectedSide={targetSide}
-                                                analysisModelKey={analysisModelKey}
-                                                isRecording={isRecording}
-                                            />
-                                        )}
-
-                                        {!stream && !isRecording && countdown === null && !isCameraStarting && (
-                                            <button
-                                                type="button"
-                                                className="recorder-center-start"
-                                                onClick={handleStartCamera}
-                                                aria-label="Turn on camera to preview your position"
-                                            >
-                                                <span className="recorder-start-orb" aria-hidden="true">
-                                                    <Camera size={34} strokeWidth={1.8} />
-                                                </span>
-                                                <span className="recorder-start-label">Turn on camera</span>
-                                                <span className="recorder-start-helper">Check your position before recording</span>
-                                            </button>
-                                        )}
-
-                                        {stream && !isRecording && countdown === null && (
-                                            <div className="recorder-camera-preview-badge" role="status">
-                                                Not recording
-                                            </div>
-                                        )}
-
-                                        {isCameraStarting && (
-                                            <div className="recorder-analyzing-overlay">
-                                                <LoaderCircle className="recorder-spin" size={34} />
-                                                <div>
-                                                    <strong>Starting your camera</strong>
-                                                    <span>Approve camera access if your browser asks.</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {liveGuidanceEnabled && (
-                                            <>
-                                                <div className="recorder-top-pills">
-                                                    <button
-                                                        type="button"
-                                                        className={`live-guidance-pill ${isSkeletonVisible ? "" : "live-guidance-pill-muted"}`}
-                                                        onClick={() => setIsSkeletonVisible((prev) => !prev)}
-                                                        aria-pressed={isSkeletonVisible}
-                                                        aria-label={isSkeletonVisible ? "Disable robotic skeleton tracking" : "Enable robotic skeleton tracking"}
-                                                        title="Skeleton HUD"
-                                                    >
-                                                        <Scan size={14} aria-hidden="true" />
-                                                        {isSkeletonVisible ? "Skeleton HUD" : "HUD Off"}
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        className={`live-guidance-pill ${isVoiceEnabled ? "" : "live-guidance-pill-muted"}`}
-                                                        onClick={handleVoiceToggle}
-                                                        aria-pressed={isVoiceEnabled}
-                                                        aria-label={isVoiceEnabled ? "Mute live voice coaching" : "Enable live voice coaching"}
-                                                    >
-                                                        {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
-                                                        {isVoiceEnabled ? "Voice on" : "Voice muted"}
-                                                    </button>
-                                                </div>
-
-                                                {isRecording && liveCoachingMessage && (
-                                                    <div
-                                                        aria-live="polite"
-                                                        className="live-coaching-message"
-                                                    >
-                                                        {liveCoachingMessage}
-                                                    </div>
-                                                )}
-                                                <div
-                                                    aria-live="polite"
-                                                    className={`live-guidance-cue ${liveGuidance.justCompletedRepetition ? "live-guidance-cue-complete" : ""}`}
-                                                >
-                                                    <div>{liveGuidance.message}</div>
-                                                    {liveGuidance.status === "ready" && !isPreviewing && (
-                                                        <div className="live-guidance-repetitions">
-                                                            Detected repetitions: {liveGuidance.repetitions}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {/* Recording Status Overlay */}
-                                        {isRecording && (
-                                            <div
-                                                style={{
-                                                    position: "absolute",
-                                                    top: "16px",
-                                                    left: "16px",
-                                                    backgroundColor: "rgba(0, 0, 0, 0.6)",
-                                                    padding: "6px 12px",
-                                                    borderRadius: "9999px",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: "8px",
-                                                    fontSize: "12px",
-                                                    fontWeight: 600,
-                                                    color: "#FFF",
-                                                    zIndex: 10,
-                                                }}
-                                            >
-                                                <span
-                                                    className="animate-pulse-subtle"
-                                                    style={{
-                                                        width: "8px",
-                                                        height: "8px",
-                                                        borderRadius: "50%",
-                                                        backgroundColor: "#EF4444",
-                                                        display: "inline-block",
-                                                    }}
-                                                />
-                                                {selectedTargetDuration ? (
-                                                    <span>REC · {formatTime(elapsedSeconds)} / {formatTime(selectedTargetDuration)}</span>
-                                                ) : (
-                                                    <span>REC · {formatTime(elapsedSeconds)}</span>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Countdown Timer Overlay */}
-                                        {countdown !== null && (
-                                            <div className="recorder-countdown">
-                                                <div key={countdown}>{countdown}</div>
-                                                <span>Get ready</span>
-                                            </div>
-                                        )}
-                                    </>
                                 )}
                             </div>
+                        ) : (
+                            /* Live Camera Feed */
+                            <>
+                                <video
+                                    ref={videoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    className="recorder-video"
+                                />
 
-                            {liveGuidanceEnabled && (
-                                <aside className="recorder-guidance-sidebar" aria-label="Live body position guidance">
-                                    <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
-                                </aside>
-                            )}
+                                {stream && (
+                                    <RoboticSkeletonOverlay
+                                        videoRef={videoRef}
+                                        landmarks={liveGuidance.landmarks}
+                                        selectedSide={targetSide}
+                                        exerciseName={exerciseName}
+                                        enabled={isSkeletonVisible && !recordedUrl}
+                                        hasReliablePose={liveGuidance.hasReliablePose}
+                                    />
+                                )}
+
+                                {!stream && !isRecording && countdown === null && !isCameraStarting && (
+                                    <button
+                                        type="button"
+                                        className="recorder-center-start"
+                                        onClick={handleStartCamera}
+                                        aria-label="Turn on camera to preview your position"
+                                    >
+                                        <span className="recorder-start-orb" aria-hidden="true">
+                                            <Camera size={34} strokeWidth={1.8} />
+                                        </span>
+                                        <span className="recorder-start-label">Turn on camera</span>
+                                        <span className="recorder-start-helper">Check your position before recording</span>
+                                    </button>
+                                )}
+
+                                {stream && !isRecording && countdown === null && (
+                                    <div className="recorder-camera-preview-badge" role="status">
+                                        Not recording
+                                    </div>
+                                )}
+
+                                {isCameraStarting && (
+                                    <div className="recorder-analyzing-overlay">
+                                        <LoaderCircle className="recorder-spin" size={34} />
+                                        <div>
+                                            <strong>Starting your camera</strong>
+                                            <span>Approve camera access if your browser asks.</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Countdown Timer Overlay */}
+                                {countdown !== null && (
+                                    <div className="recorder-countdown">
+                                        <div key={countdown}>{countdown}</div>
+                                        <span>Get ready</span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    {/* Floating Top Header Bar */}
+                    <header className="recorder-floating-header">
+                        <div className="recorder-floating-title-badge">
+                            <Video size={18} style={{ color: "#2dd4bf" }} />
+                            <h3 id="exercise-recorder-title">{exerciseName}</h3>
                         </div>
 
-                        {/* Action Footer */}
+                        <div className="recorder-floating-header-controls">
+                            {targetSide && !recordedUrl && (
+                                <span className="recorder-active-arm" aria-live="polite">
+                                    {isRecording ? "Recording" : recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
+                                </span>
+                            )}
+
+                            {!recordedUrl && (
+                                <div className="recorder-timer-dropdown-container" ref={timerDropdownRef}>
+                                    <button
+                                        type="button"
+                                        className="recorder-timer-dropdown-trigger"
+                                        onClick={() => setIsTimerDropdownOpen((prev) => !prev)}
+                                        disabled={isRecording || isFinalizingRecording}
+                                        aria-haspopup="true"
+                                        aria-expanded={isTimerDropdownOpen}
+                                        title="Choose recording duration timer"
+                                    >
+                                        <Timer size={14} style={{ color: "var(--color-primary, #0f766e)" }} />
+                                        <span>
+                                            Timer: {selectedTargetDuration === null
+                                                ? "No timer"
+                                                : selectedTargetDuration === 20
+                                                    ? "20s"
+                                                    : selectedTargetDuration === 30
+                                                        ? "30s"
+                                                        : selectedTargetDuration === 60
+                                                            ? "1 min"
+                                                            : `${selectedTargetDuration}s`}
+                                        </span>
+                                        <ChevronDown size={13} style={{ color: "#64748b", marginLeft: "2px" }} />
+                                    </button>
+
+                                    {isTimerDropdownOpen && (
+                                        <div className="recorder-timer-dropdown-menu" role="menu">
+                                            <div className="recorder-timer-dropdown-header">Auto-Stop Timer</div>
+                                            <button
+                                                type="button"
+                                                className={`recorder-timer-dropdown-item ${selectedTargetDuration === null ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                onClick={() => {
+                                                    setSelectedTargetDuration(null);
+                                                    setIsTimerDropdownOpen(false);
+                                                }}
+                                                role="menuitem"
+                                            >
+                                                <span>No timer (Manual stop)</span>
+                                                {selectedTargetDuration === null && <Check size={14} />}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`recorder-timer-dropdown-item ${selectedTargetDuration === 20 ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                onClick={() => {
+                                                    setSelectedTargetDuration(20);
+                                                    setIsTimerDropdownOpen(false);
+                                                }}
+                                                role="menuitem"
+                                            >
+                                                <span>20 seconds</span>
+                                                {selectedTargetDuration === 20 && <Check size={14} />}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`recorder-timer-dropdown-item ${selectedTargetDuration === 30 ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                onClick={() => {
+                                                    setSelectedTargetDuration(30);
+                                                    setIsTimerDropdownOpen(false);
+                                                }}
+                                                role="menuitem"
+                                            >
+                                                <span>30 seconds</span>
+                                                {selectedTargetDuration === 30 && <Check size={14} />}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`recorder-timer-dropdown-item ${selectedTargetDuration === 60 ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                onClick={() => {
+                                                    setSelectedTargetDuration(60);
+                                                    setIsTimerDropdownOpen(false);
+                                                }}
+                                                role="menuitem"
+                                            >
+                                                <span>1 minute (60s)</span>
+                                                {selectedTargetDuration === 60 && <Check size={14} />}
+                                            </button>
+                                            <div className="recorder-timer-dropdown-custom">
+                                                <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                                    Custom seconds
+                                                </div>
+                                                <form
+                                                    className="recorder-timer-custom-form"
+                                                    onSubmit={(e) => {
+                                                        e.preventDefault();
+                                                        const parsed = parseInt(customDurationInput, 10);
+                                                        if (!isNaN(parsed) && parsed > 0) {
+                                                            setSelectedTargetDuration(parsed);
+                                                            setIsTimerDropdownOpen(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="number"
+                                                        min="5"
+                                                        max="600"
+                                                        step="1"
+                                                        placeholder="Secs"
+                                                        value={customDurationInput}
+                                                        onChange={(e) => setCustomDurationInput(e.target.value)}
+                                                        aria-label="Custom seconds"
+                                                    />
+                                                    <button type="submit">Set</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {minimumDurationSeconds ? (
+                                <span className="recorder-min-duration-badge" title={`Minimum duration to count: ${formatTime(minimumDurationSeconds)}`}>
+                                    Min: {formatTime(minimumDurationSeconds)}
+                                </span>
+                            ) : null}
+
+                            <button
+                                onClick={handleClose}
+                                className="recorder-floating-close-btn"
+                                aria-label="Close recorder"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Floating Top Controls (Skeleton HUD & Voice) */}
+                    {liveGuidanceEnabled && (
+                        <div className="recorder-top-pills">
+                            <button
+                                type="button"
+                                className={`live-guidance-pill ${isSkeletonVisible ? "" : "live-guidance-pill-muted"}`}
+                                onClick={() => setIsSkeletonVisible((prev) => !prev)}
+                                aria-pressed={isSkeletonVisible}
+                                aria-label={isSkeletonVisible ? "Disable robotic skeleton tracking" : "Enable robotic skeleton tracking"}
+                                title="Skeleton HUD"
+                            >
+                                <Scan size={14} aria-hidden="true" />
+                                {isSkeletonVisible ? "Skeleton HUD" : "HUD Off"}
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`live-guidance-pill ${isVoiceEnabled ? "" : "live-guidance-pill-muted"}`}
+                                onClick={handleVoiceToggle}
+                                aria-pressed={isVoiceEnabled}
+                                aria-label={isVoiceEnabled ? "Mute live voice coaching" : "Enable live voice coaching"}
+                            >
+                                {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
+                                {isVoiceEnabled ? "Voice on" : "Voice muted"}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Floating Center Feedback & Cues */}
+                    <div className="recorder-center-cue-container">
+                        {isRecording && (
+                            <div
+                                style={{
+                                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                                    padding: "6px 14px",
+                                    borderRadius: "9999px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    fontSize: "13px",
+                                    fontWeight: 700,
+                                    color: "#FFF",
+                                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                                    backdropFilter: "blur(10px)",
+                                }}
+                            >
+                                <span
+                                    className="animate-pulse-subtle"
+                                    style={{
+                                        width: "9px",
+                                        height: "9px",
+                                        borderRadius: "50%",
+                                        backgroundColor: "#EF4444",
+                                        display: "inline-block",
+                                    }}
+                                />
+                                {selectedTargetDuration ? (
+                                    <span>REC · {formatTime(elapsedSeconds)} / {formatTime(selectedTargetDuration)}</span>
+                                ) : (
+                                    <span>REC · {formatTime(elapsedSeconds)}</span>
+                                )}
+                            </div>
+                        )}
+
+                        {liveGuidanceEnabled && isRecording && liveCoachingMessage && (
+                            <div
+                                aria-live="polite"
+                                className="live-coaching-message"
+                            >
+                                {liveCoachingMessage}
+                            </div>
+                        )}
+
+                        {liveGuidanceEnabled && (
+                            <div
+                                aria-live="polite"
+                                className={`live-guidance-cue ${liveGuidance.justCompletedRepetition ? "live-guidance-cue-complete" : ""}`}
+                            >
+                                <div>{liveGuidance.message}</div>
+                                {liveGuidance.status === "ready" && !isPreviewing && (
+                                    <div className="live-guidance-repetitions">
+                                        Detected repetitions: {liveGuidance.repetitions}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Floating Body Visibility Panel (Top-Right) */}
+                    {liveGuidanceEnabled && (
+                        <aside className="recorder-floating-guidance" aria-label="Live body position guidance">
+                            <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
+                        </aside>
+                    )}
+
+                    {/* Floating Follow-Along Guide (Bottom-Left) */}
+                    {stream && !recordedUrl && (
+                        <div className="recorder-floating-avatar">
+                            <FollowAlongVideo
+                                exerciseName={exerciseName}
+                                selectedSide={targetSide}
+                                analysisModelKey={analysisModelKey}
+                                isRecording={isRecording}
+                            />
+                        </div>
+                    )}
+
+                    {/* Floating Bottom Action Footer */}
+                    <footer className="recorder-floating-footer">
                         {recordedUrl && recordedClips.length > 1 && (
                             <div className="recorder-clip-tabs" aria-label="Recorded arm clips">
                                 {recordedClips.map((clip) => (
@@ -1313,121 +1232,144 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 ))}
                             </div>
                         )}
-                        <div className="recorder-progress" aria-hidden={!isRecording}>
+
+                        {/* Top progress bar if recording */}
+                        <div className="recorder-progress" style={{ width: "min(600px, 90%)", borderRadius: "999px", overflow: "hidden" }} aria-hidden={!isRecording}>
                             <span style={{ width: `${isRecording ? recordingProgress : 0}%` }} />
                         </div>
 
-                        <div className="recorder-actions">
-                            <div className="recorder-action-copy">
-                                <strong>
-                                    {error && cameraAccessIssue
-                                        ? "Camera access is needed"
-                                        : recordedUrl
-                                            ? "Review before sending"
-                                            : isFinalizingRecording
-                                                ? "Finishing your recording"
-                                                : isRecording
-                                                    ? "Your session is recording"
-                                                    : countdown !== null
-                                                        ? "Move into position"
-                                                        : stream
-                                                            ? recordedClips.length > 0 && targetSide ? `${targetSide === "left" ? "Left" : "Right"} arm is next` : "Check your position"
-                                                            : "Ready when you are"}
-                                </strong>
-                                <span>
-                                    {error && cameraAccessIssue
-                                        ? "Check browser permission, then try again."
-                                        : recordedUrl
-                                            ? "Review each arm before sending. You can retake an unsent clip."
-                                            : isFinalizingRecording
-                                                ? "Your video will be ready to review shortly."
-                                                : isRecording
-                                                    ? recordingTime.belowMinimum
-                                                        ? `Minimum to count: ${formatTime(minimumDurationSeconds ?? 0)}. You may stop earlier, but this arm may not count.`
-                                                        : recordingTime.goalReached
-                                                            ? "Time goal reached. Stop when you are ready."
-                                                            : "Move naturally and follow the live guidance."
-                                                    : countdown !== null
-                                                        ? "Recording begins automatically after the countdown."
-                                                        : stream
-                                                            ? recordedClips.length > 0 && targetSide ? "The other arm is saved. Reposition, then tap Start recording—or review the saved arm." : "Make sure your body is visible, then start recording."
-                                                            : "Turn on your camera to see yourself first."}
-                                </span>
-                            </div>
-                            {error && !cameraAccessIssue && <div role="alert" className="recorder-inline-error">{error}</div>}
-                            <div className="recorder-action-buttons">
-                                {error && cameraAccessIssue ? (
-                                    <Button variant="outline" onClick={handleCameraRecovery} disabled={isCameraStarting}>
-                                        {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
-                                        {cameraAccessIssue === "consent" ? "Allow Camera" : "Reconnect"}
-                                    </Button>
-                                ) : evaluationScore !== null ? (
+                        <div className="recorder-footer-status-pill">
+                            <span>
+                                {error && cameraAccessIssue
+                                    ? "Check browser permission, then try again."
+                                    : recordedUrl
+                                        ? "Review each arm before sending. You can retake an unsent clip."
+                                        : isFinalizingRecording
+                                            ? "Your video will be ready to review shortly."
+                                            : isRecording
+                                                ? recordingTime.belowMinimum
+                                                    ? `Minimum to count: ${formatTime(minimumDurationSeconds ?? 0)}. You may stop earlier, but this arm may not count.`
+                                                    : recordingTime.goalReached
+                                                        ? "Time goal reached. Stop when you are ready."
+                                                        : "Move naturally and follow the live guidance."
+                                                : countdown !== null
+                                                    ? "Recording begins automatically after the countdown."
+                                                    : stream
+                                                        ? recordedClips.length > 0 && targetSide ? "The other arm is saved. Reposition, then tap Start recording—or review the saved arm." : "Make sure your body is visible, then start recording."
+                                                        : "Turn on your camera to see yourself first."}
+                            </span>
+                        </div>
+
+                        {error && !cameraAccessIssue && <div role="alert" className="recorder-inline-error" style={{ color: "#f87171" }}>{error}</div>}
+
+                        <div className="recorder-floating-action-bar">
+                            {error && cameraAccessIssue ? (
+                                <Button variant="outline" size="lg" className="recorder-primary-action-btn" onClick={handleCameraRecovery} disabled={isCameraStarting}>
+                                    {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
+                                    {cameraAccessIssue === "consent" ? "Allow Camera" : "Reconnect"}
+                                </Button>
+                            ) : recordedUrl ? (
+                                <>
                                     <Button
-                                        onClick={() => {
-                                            handleClose();
-                                            window.location.reload();
-                                        }}
+                                        variant="outline"
+                                        size="lg"
+                                        onClick={handleRetakeClip}
+                                        disabled={isEvaluating || clipResults.some((result) => result.clientSessionId === selectedReviewClip?.clientSessionId)}
                                     >
-                                        Done
+                                        <RotateCcw />
+                                        Retake This Arm
                                     </Button>
-                                ) : recordedUrl ? (
-                                    <>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleRetakeClip}
-                                            disabled={isEvaluating || clipResults.some((result) => result.clientSessionId === selectedReviewClip?.clientSessionId)}
-                                        >
-                                            <RotateCcw />
-                                            Retake This Arm
-                                        </Button>
-                                        <Button
-                                            onClick={handleEvaluate}
-                                            disabled={isEvaluating}
-                                        >
-                                            {isEvaluating ? <LoaderCircle className="recorder-spin" /> : <Sparkles />}
-                                            {isEvaluating ? "Evaluating..." : recordedClips.length > 1 ? "Evaluate Both Arms" : "Evaluate Session"}
-                                        </Button>
-                                    </>
-                                ) : isFinalizingRecording ? (
-                                    <Button disabled>
-                                        <LoaderCircle className="recorder-spin" />
-                                        Finishing...
+                                    <Button
+                                        size="lg"
+                                        className="recorder-primary-action-btn"
+                                        onClick={handleEvaluate}
+                                        disabled={isEvaluating}
+                                    >
+                                        {isEvaluating ? <LoaderCircle className="recorder-spin" /> : <Sparkles />}
+                                        {isEvaluating ? "Evaluating..." : recordedClips.length > 1 ? "Evaluate Both Arms" : "Evaluate Session"}
                                     </Button>
-                                ) : countdown !== null ? (
-                                    <Button disabled>
-                                        Starting in {countdown}s...
+                                </>
+                            ) : isFinalizingRecording ? (
+                                <Button size="lg" disabled>
+                                    <LoaderCircle className="recorder-spin" />
+                                    Finishing...
+                                </Button>
+                            ) : countdown !== null ? (
+                                <Button size="lg" disabled>
+                                    Starting in {countdown}s...
+                                </Button>
+                            ) : isRecording ? (
+                                <>
+                                    {canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side)) && (
+                                        <Button variant="outline" size="lg" onClick={handleSwitchArm} disabled={isFinalizingRecording}>
+                                            Switch arm
+                                        </Button>
+                                    )}
+                                    <Button
+                                        size="lg"
+                                        onClick={stopRecording}
+                                        className="recorder-stop-action-btn"
+                                    >
+                                        <CircleStop />
+                                        Stop Recording
                                     </Button>
-                                ) : isRecording ? (
-                                    <>
-                                        {canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side)) && (
-                                            <Button variant="outline" onClick={handleSwitchArm} disabled={isFinalizingRecording}>
-                                                Switch arm
-                                            </Button>
-                                        )}
-                                        <Button
-                                            onClick={stopRecording}
-                                            className="recorder-stop-button"
-                                        >
-                                            <CircleStop />
-                                            Stop Recording
+                                </>
+                            ) : stream ? (
+                                <>
+                                    {recordedClips.length > 0 && (
+                                        <Button variant="outline" size="lg" onClick={handleReviewSavedClips}>
+                                            Review saved arm
                                         </Button>
-                                    </>
-                                ) : stream ? (
-                                    <>
-                                        {recordedClips.length > 0 && (
-                                            <Button variant="outline" onClick={handleReviewSavedClips}>
-                                                Review saved arm
-                                            </Button>
-                                        )}
-                                        <Button onClick={handleStartRecording}>
-                                            <Video />
-                                            Start Recording
-                                        </Button>
-                                    </>
-                                ) : null}
+                                    )}
+                                    <Button size="lg" className="recorder-primary-action-btn" onClick={handleStartRecording}>
+                                        <Video />
+                                        Start Recording
+                                    </Button>
+                                </>
+                            ) : null}
+                        </div>
+                    </footer>
+
+                    {/* Centered Modal Overlay for Evaluation Result */}
+                    {evaluationScore !== null && (
+                        <div className="recorder-centered-card-overlay animate-fade-in">
+                            <div className="card" style={{ maxWidth: "480px", width: "100%", padding: "40px 24px", textAlign: "center", background: "#ffffff", borderRadius: "20px" }}>
+                                <div style={{
+                                    width: "80px",
+                                    height: "80px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "rgba(22, 163, 74, 0.15)",
+                                    border: "3px solid #16A34A",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    margin: "0 auto 20px auto",
+                                    color: "#16A34A"
+                                }}>
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <h4 style={{ fontSize: "22px", fontWeight: 750, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>Evaluation Complete!</h4>
+                                <p style={{ color: "var(--color-text-secondary)", margin: "0 0 16px 0", fontSize: "14px" }}>
+                                    Your exercise performance has been evaluated.
+                                </p>
+                                <div style={{ fontSize: "52px", fontWeight: 800, color: "#16A34A", margin: "16px 0" }}>
+                                    {formatScore(evaluationScore)} <span style={{ fontSize: "20px", fontWeight: 500, color: "var(--color-text-muted)" }}>/ 100</span>
+                                </div>
+                                <Button
+                                    size="lg"
+                                    style={{ width: "100%", marginTop: "12px" }}
+                                    onClick={() => {
+                                        handleClose();
+                                        window.location.reload();
+                                    }}
+                                >
+                                    Done
+                                </Button>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 

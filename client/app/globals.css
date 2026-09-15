@@ -655,6 +655,265 @@ body {
   color: var(--color-primary);
 }
 
+.recorder-fullscreen-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  z-index: 9999;
+  background: #000000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.recorder-fullscreen-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  overflow: hidden;
+}
+
+.recorder-fullscreen-stage .recorder-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.recorder-fullscreen-stage .recorder-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.recorder-fullscreen-stage .recorder-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scaleX(-1);
+  background: #000000;
+}
+
+/* Floating Top Header Bar */
+.recorder-floating-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+}
+
+.recorder-floating-header > * {
+  pointer-events: auto;
+}
+
+.recorder-floating-title-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.recorder-floating-title-badge h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 750;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.recorder-floating-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.recorder-floating-close-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.78);
+  color: #ffffff;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: all 0.15s ease;
+}
+
+.recorder-floating-close-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
+  border-color: rgba(239, 68, 68, 1);
+  transform: scale(1.05);
+}
+
+/* Floating Top HUD Pills */
+.recorder-top-pills {
+  position: absolute;
+  top: 76px;
+  left: 24px;
+  z-index: 30;
+  display: flex;
+  gap: 10px;
+}
+
+/* Floating Body Visibility Panel */
+.recorder-floating-guidance {
+  position: absolute;
+  top: 76px;
+  right: 24px;
+  z-index: 30;
+  width: 220px;
+  max-height: calc(100vh - 200px);
+  pointer-events: auto;
+}
+
+.recorder-floating-guidance .key-point-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
+}
+
+/* Floating Follow-Along Guide */
+.recorder-floating-avatar {
+  position: absolute;
+  bottom: 110px;
+  left: 24px;
+  z-index: 30;
+}
+
+/* Center Live Coaching & Status Cues */
+.recorder-center-cue-container {
+  position: absolute;
+  top: 86px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 600px;
+  width: 90%;
+  pointer-events: none;
+}
+
+.recorder-center-cue-container > * {
+  pointer-events: auto;
+}
+
+/* Floating Bottom Action Footer */
+.recorder-floating-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  padding: 20px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+}
+
+.recorder-floating-footer > * {
+  pointer-events: auto;
+}
+
+.recorder-floating-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.recorder-primary-action-btn {
+  min-height: 48px;
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 750;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.recorder-primary-action-btn:hover:not(:disabled) {
+  transform: scale(1.03);
+  box-shadow: 0 10px 28px rgba(15, 118, 110, 0.55);
+}
+
+.recorder-stop-action-btn {
+  min-height: 48px;
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 750;
+  border-radius: 999px;
+  background: #e11d48 !important;
+  color: #ffffff !important;
+  border: none;
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.45);
+}
+
+.recorder-stop-action-btn:hover:not(:disabled) {
+  background: #be123c !important;
+  transform: scale(1.03);
+}
+
+.recorder-footer-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Modal Overlay for Evaluation / Check-In */
+.recorder-centered-card-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(14px);
+  padding: 24px;
+}
+
 .recorder-workspace {
   position: relative;
   display: grid;
