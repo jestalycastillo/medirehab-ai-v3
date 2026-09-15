@@ -1285,14 +1285,7 @@ body {
   border-radius: 4px;
 }
 
-.trajectory-arc {
-  animation: arc-pulse 2s ease-in-out infinite;
-}
 
-@keyframes arc-pulse {
-  0%, 100% { opacity: 0.3; stroke-width: 1.5; }
-  50% { opacity: 0.8; stroke-width: 2.5; stroke: #00ff9d; }
-}
 
 /* Dynamic Biomechanical Kinematics handled directly via high-precision vector engine */
 

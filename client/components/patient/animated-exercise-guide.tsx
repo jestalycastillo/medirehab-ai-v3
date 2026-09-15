@@ -241,27 +241,7 @@ export function AnimatedExerciseGuide({
                     </filter>
                 </defs>
 
-                {/* Left Arm Motion Trajectory Arc Guide */}
-                {isLeftActive && (
-                    <path
-                        d={`M 72 164 A 88 88 0 0 0 ${leftArm.wrist.x} ${leftArm.wrist.y}`}
-                        fill="none"
-                        stroke="rgba(0, 240, 255, 0.28)"
-                        strokeWidth="2"
-                        strokeDasharray="4 4"
-                    />
-                )}
 
-                {/* Right Arm Motion Trajectory Arc Guide */}
-                {isRightActive && (
-                    <path
-                        d={`M 128 164 A 88 88 0 0 1 ${rightArm.wrist.x} ${rightArm.wrist.y}`}
-                        fill="none"
-                        stroke="rgba(0, 240, 255, 0.28)"
-                        strokeWidth="2"
-                        strokeDasharray="4 4"
-                    />
-                )}
 
                 {/* Pelvis & Lower Body Frame */}
                 <g stroke="#1e3a47" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
