@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Activity } from "lucide-react";
 
 interface AnimatedExerciseGuideProps {
     exerciseName: string;
@@ -386,7 +385,6 @@ export function AnimatedExerciseGuide({
             {/* Bottom Movement Telemetry Bar */}
             <div className="animated-exercise-footer">
                 <div className="exercise-phase-badge">
-                    <Activity size={12} className="text-slate-700" />
                     <span>{cyclePhase}</span>
                 </div>
             </div>
