@@ -12,7 +12,9 @@ import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
 import {
     Camera,
+    Check,
     CheckCircle2,
+    ChevronDown,
     CircleStop,
     LoaderCircle,
     RotateCcw,
@@ -93,12 +95,18 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [selectedSide, setSelectedSide] = useState<ArmSide | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [selectedTargetDuration, setSelectedTargetDuration] = useState<number | null>(targetDurationSeconds ?? null);
+    const [isTimerDropdownOpen, setIsTimerDropdownOpen] = useState(false);
     const [customDurationInput, setCustomDurationInput] = useState<string>(
         targetDurationSeconds && ![20, 30, 60].includes(targetDurationSeconds)
             ? String(targetDurationSeconds)
             : "45",
     );
-    const [isCustomEditing, setIsCustomEditing] = useState(false);
+    const timerDropdownRef = useRef<HTMLDivElement>(null);
+    const selectedTargetDurationRef = useRef<number | null>(selectedTargetDuration);
+
+    useEffect(() => {
+        selectedTargetDurationRef.current = selectedTargetDuration;
+    }, [selectedTargetDuration]);
 
     useEffect(() => {
         if (targetDurationSeconds !== undefined) {
@@ -108,6 +116,20 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             }
         }
     }, [targetDurationSeconds]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (timerDropdownRef.current && !timerDropdownRef.current.contains(e.target as Node)) {
+                setIsTimerDropdownOpen(false);
+            }
+        };
+        if (isTimerDropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isTimerDropdownOpen]);
 
     const modelGuidance = getExerciseModelGuidanceConfig(analysisModelKey);
     const isSideSelectable = modelGuidance?.selectableSide ?? false;
@@ -616,7 +638,16 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 clearInterval(elapsedIntervalRef.current);
             }
             elapsedIntervalRef.current = setInterval(() => {
-                setElapsedSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)));
+                const currentElapsed = Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000));
+                setElapsedSeconds(currentElapsed);
+
+                if (selectedTargetDurationRef.current !== null && currentElapsed >= selectedTargetDurationRef.current) {
+                    if (elapsedIntervalRef.current) {
+                        clearInterval(elapsedIntervalRef.current);
+                        elapsedIntervalRef.current = null;
+                    }
+                    stopRecording();
+                }
             }, 250);
 
             clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -880,115 +911,111 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 )}
 
                                 {!recordedUrl && (
-                                    <div className="recorder-timer-selector" role="group" aria-label="Recording timer duration">
-                                        <span className="recorder-timer-label">
-                                            <Timer size={12} aria-hidden="true" />
-                                            Timer
-                                        </span>
+                                    <div className="recorder-timer-dropdown-container" ref={timerDropdownRef}>
                                         <button
                                             type="button"
-                                            className={`recorder-timer-btn ${selectedTargetDuration === null ? "recorder-timer-btn-active" : ""}`}
-                                            onClick={() => {
-                                                setSelectedTargetDuration(null);
-                                                setIsCustomEditing(false);
-                                            }}
+                                            className="recorder-timer-dropdown-trigger"
+                                            onClick={() => setIsTimerDropdownOpen((prev) => !prev)}
                                             disabled={isRecording || isFinalizingRecording}
-                                            aria-label="No timer"
+                                            aria-haspopup="true"
+                                            aria-expanded={isTimerDropdownOpen}
+                                            title="Choose recording duration timer"
                                         >
-                                            No timer
+                                            <Timer size={14} style={{ color: "var(--color-primary, #0f766e)" }} />
+                                            <span>
+                                                Timer: {selectedTargetDuration === null
+                                                    ? "No timer"
+                                                    : selectedTargetDuration === 20
+                                                        ? "20s"
+                                                        : selectedTargetDuration === 30
+                                                            ? "30s"
+                                                            : selectedTargetDuration === 60
+                                                                ? "1 min"
+                                                                : `${selectedTargetDuration}s`}
+                                            </span>
+                                            <ChevronDown size={13} style={{ color: "#64748b", marginLeft: "2px" }} />
                                         </button>
-                                        <button
-                                            type="button"
-                                            className={`recorder-timer-btn ${selectedTargetDuration === 20 ? "recorder-timer-btn-active" : ""}`}
-                                            onClick={() => {
-                                                setSelectedTargetDuration(20);
-                                                setIsCustomEditing(false);
-                                            }}
-                                            disabled={isRecording || isFinalizingRecording}
-                                            aria-label="20 seconds timer"
-                                        >
-                                            20s
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`recorder-timer-btn ${selectedTargetDuration === 30 ? "recorder-timer-btn-active" : ""}`}
-                                            onClick={() => {
-                                                setSelectedTargetDuration(30);
-                                                setIsCustomEditing(false);
-                                            }}
-                                            disabled={isRecording || isFinalizingRecording}
-                                            aria-label="30 seconds timer"
-                                        >
-                                            30s
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`recorder-timer-btn ${selectedTargetDuration === 60 ? "recorder-timer-btn-active" : ""}`}
-                                            onClick={() => {
-                                                setSelectedTargetDuration(60);
-                                                setIsCustomEditing(false);
-                                            }}
-                                            disabled={isRecording || isFinalizingRecording}
-                                            aria-label="1 minute timer"
-                                        >
-                                            1 min
-                                        </button>
-                                        {isCustomEditing && !isRecording ? (
-                                            <div className="recorder-timer-custom-wrap">
-                                                <input
-                                                    type="number"
-                                                    min="5"
-                                                    max="600"
-                                                    step="1"
-                                                    className="recorder-timer-custom-input"
-                                                    value={customDurationInput}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        setCustomDurationInput(val);
-                                                        const parsed = parseInt(val, 10);
-                                                        if (!isNaN(parsed) && parsed > 0) {
-                                                            setSelectedTargetDuration(parsed);
-                                                        }
+
+                                        {isTimerDropdownOpen && (
+                                            <div className="recorder-timer-dropdown-menu" role="menu">
+                                                <div className="recorder-timer-dropdown-header">Auto-Stop Timer</div>
+                                                <button
+                                                    type="button"
+                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === null ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                    onClick={() => {
+                                                        setSelectedTargetDuration(null);
+                                                        setIsTimerDropdownOpen(false);
                                                     }}
-                                                    onBlur={() => {
-                                                        const parsed = parseInt(customDurationInput, 10);
-                                                        if (isNaN(parsed) || parsed <= 0) {
-                                                            setCustomDurationInput("45");
-                                                            setSelectedTargetDuration(45);
-                                                        }
-                                                        setIsCustomEditing(false);
+                                                    role="menuitem"
+                                                >
+                                                    <span>No timer (Manual stop)</span>
+                                                    {selectedTargetDuration === null && <Check size={14} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === 20 ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                    onClick={() => {
+                                                        setSelectedTargetDuration(20);
+                                                        setIsTimerDropdownOpen(false);
                                                     }}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" || e.key === "Escape") {
+                                                    role="menuitem"
+                                                >
+                                                    <span>20 seconds</span>
+                                                    {selectedTargetDuration === 20 && <Check size={14} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === 30 ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                    onClick={() => {
+                                                        setSelectedTargetDuration(30);
+                                                        setIsTimerDropdownOpen(false);
+                                                    }}
+                                                    role="menuitem"
+                                                >
+                                                    <span>30 seconds</span>
+                                                    {selectedTargetDuration === 30 && <Check size={14} />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`recorder-timer-dropdown-item ${selectedTargetDuration === 60 ? "recorder-timer-dropdown-item-active" : ""}`}
+                                                    onClick={() => {
+                                                        setSelectedTargetDuration(60);
+                                                        setIsTimerDropdownOpen(false);
+                                                    }}
+                                                    role="menuitem"
+                                                >
+                                                    <span>1 minute (60s)</span>
+                                                    {selectedTargetDuration === 60 && <Check size={14} />}
+                                                </button>
+                                                <div className="recorder-timer-dropdown-custom">
+                                                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                                        Custom seconds
+                                                    </div>
+                                                    <form
+                                                        className="recorder-timer-custom-form"
+                                                        onSubmit={(e) => {
+                                                            e.preventDefault();
                                                             const parsed = parseInt(customDurationInput, 10);
-                                                            if (isNaN(parsed) || parsed <= 0) {
-                                                                setCustomDurationInput("45");
-                                                                setSelectedTargetDuration(45);
+                                                            if (!isNaN(parsed) && parsed > 0) {
+                                                                setSelectedTargetDuration(parsed);
+                                                                setIsTimerDropdownOpen(false);
                                                             }
-                                                            setIsCustomEditing(false);
-                                                        }
-                                                    }}
-                                                    autoFocus
-                                                    aria-label="Custom seconds"
-                                                />
-                                                <span className="recorder-timer-custom-unit">s</span>
+                                                        }}
+                                                    >
+                                                        <input
+                                                            type="number"
+                                                            min="5"
+                                                            max="600"
+                                                            step="1"
+                                                            placeholder="Secs"
+                                                            value={customDurationInput}
+                                                            onChange={(e) => setCustomDurationInput(e.target.value)}
+                                                            aria-label="Custom seconds"
+                                                        />
+                                                        <button type="submit">Set</button>
+                                                    </form>
+                                                </div>
                                             </div>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                className={`recorder-timer-btn ${selectedTargetDuration !== null && ![20, 30, 60].includes(selectedTargetDuration) ? "recorder-timer-btn-active" : ""}`}
-                                                onClick={() => {
-                                                    const parsed = parseInt(customDurationInput, 10) || 45;
-                                                    setSelectedTargetDuration(parsed);
-                                                    setIsCustomEditing(true);
-                                                }}
-                                                disabled={isRecording || isFinalizingRecording}
-                                                aria-label="Custom seconds timer"
-                                            >
-                                                {selectedTargetDuration !== null && ![20, 30, 60].includes(selectedTargetDuration)
-                                                    ? `${selectedTargetDuration}s`
-                                                    : "Custom"}
-                                            </button>
                                         )}
                                     </div>
                                 )}
