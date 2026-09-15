@@ -441,6 +441,110 @@ body {
   white-space: nowrap;
 }
 
+.recorder-timer-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+  background: var(--color-slate-100, #f1f5f9);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 999px;
+  min-height: 30px;
+}
+
+.recorder-timer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.recorder-timer-btn {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.recorder-timer-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+
+.recorder-timer-btn-active {
+  background: #0f766e !important;
+  color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.3);
+}
+
+.recorder-timer-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.recorder-timer-custom-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #ffffff;
+  border: 1px solid #0f766e;
+  border-radius: 999px;
+  padding: 1px 6px;
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15);
+}
+
+.recorder-timer-custom-input {
+  width: 36px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+  outline: none;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+
+.recorder-timer-custom-input::-webkit-outer-spin-button,
+.recorder-timer-custom-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.recorder-timer-custom-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.recorder-min-duration-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 2px 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+
 .recorder-phase {
   display: inline-flex;
   align-items: center;

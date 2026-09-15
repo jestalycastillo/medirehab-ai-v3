@@ -18,6 +18,7 @@ import {
     RotateCcw,
     Scan,
     Sparkles,
+    Timer,
     Video,
     Volume2,
     VolumeX,
@@ -91,6 +92,22 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [liveCoachingMessage, setLiveCoachingMessage] = useState<string | null>(null);
     const [selectedSide, setSelectedSide] = useState<ArmSide | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [selectedTargetDuration, setSelectedTargetDuration] = useState<number | null>(targetDurationSeconds ?? null);
+    const [customDurationInput, setCustomDurationInput] = useState<string>(
+        targetDurationSeconds && ![20, 30, 60].includes(targetDurationSeconds)
+            ? String(targetDurationSeconds)
+            : "45",
+    );
+    const [isCustomEditing, setIsCustomEditing] = useState(false);
+
+    useEffect(() => {
+        if (targetDurationSeconds !== undefined) {
+            setSelectedTargetDuration(targetDurationSeconds);
+            if (targetDurationSeconds !== null && ![20, 30, 60].includes(targetDurationSeconds)) {
+                setCustomDurationInput(String(targetDurationSeconds));
+            }
+        }
+    }, [targetDurationSeconds]);
 
     const modelGuidance = getExerciseModelGuidanceConfig(analysisModelKey);
     const isSideSelectable = modelGuidance?.selectableSide ?? false;
@@ -778,7 +795,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         }
     };
 
-    const recordingTime = getRecordingTimeState(elapsedSeconds, targetDurationSeconds, minimumDurationSeconds);
+    const recordingTime = getRecordingTimeState(elapsedSeconds, selectedTargetDuration, minimumDurationSeconds);
     const recordingProgress = recordingTime.progress;
 
     return (
@@ -861,10 +878,126 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                         {isRecording ? "Recording" : recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
                                     </span>
                                 )}
-                                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
-                                    {targetDurationSeconds ? `Time goal: ${formatTime(targetDurationSeconds)}${isSideSelectable ? " per arm" : ""}` : "No prescribed time goal"}
-                                    {minimumDurationSeconds ? ` · Minimum to count: ${formatTime(minimumDurationSeconds)}` : ""}
-                                </span>
+
+                                {!recordedUrl && (
+                                    <div className="recorder-timer-selector" role="group" aria-label="Recording timer duration">
+                                        <span className="recorder-timer-label">
+                                            <Timer size={12} aria-hidden="true" />
+                                            Timer
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className={`recorder-timer-btn ${selectedTargetDuration === null ? "recorder-timer-btn-active" : ""}`}
+                                            onClick={() => {
+                                                setSelectedTargetDuration(null);
+                                                setIsCustomEditing(false);
+                                            }}
+                                            disabled={isRecording || isFinalizingRecording}
+                                            aria-label="No timer"
+                                        >
+                                            No timer
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`recorder-timer-btn ${selectedTargetDuration === 20 ? "recorder-timer-btn-active" : ""}`}
+                                            onClick={() => {
+                                                setSelectedTargetDuration(20);
+                                                setIsCustomEditing(false);
+                                            }}
+                                            disabled={isRecording || isFinalizingRecording}
+                                            aria-label="20 seconds timer"
+                                        >
+                                            20s
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`recorder-timer-btn ${selectedTargetDuration === 30 ? "recorder-timer-btn-active" : ""}`}
+                                            onClick={() => {
+                                                setSelectedTargetDuration(30);
+                                                setIsCustomEditing(false);
+                                            }}
+                                            disabled={isRecording || isFinalizingRecording}
+                                            aria-label="30 seconds timer"
+                                        >
+                                            30s
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`recorder-timer-btn ${selectedTargetDuration === 60 ? "recorder-timer-btn-active" : ""}`}
+                                            onClick={() => {
+                                                setSelectedTargetDuration(60);
+                                                setIsCustomEditing(false);
+                                            }}
+                                            disabled={isRecording || isFinalizingRecording}
+                                            aria-label="1 minute timer"
+                                        >
+                                            1 min
+                                        </button>
+                                        {isCustomEditing && !isRecording ? (
+                                            <div className="recorder-timer-custom-wrap">
+                                                <input
+                                                    type="number"
+                                                    min="5"
+                                                    max="600"
+                                                    step="1"
+                                                    className="recorder-timer-custom-input"
+                                                    value={customDurationInput}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setCustomDurationInput(val);
+                                                        const parsed = parseInt(val, 10);
+                                                        if (!isNaN(parsed) && parsed > 0) {
+                                                            setSelectedTargetDuration(parsed);
+                                                        }
+                                                    }}
+                                                    onBlur={() => {
+                                                        const parsed = parseInt(customDurationInput, 10);
+                                                        if (isNaN(parsed) || parsed <= 0) {
+                                                            setCustomDurationInput("45");
+                                                            setSelectedTargetDuration(45);
+                                                        }
+                                                        setIsCustomEditing(false);
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === "Escape") {
+                                                            const parsed = parseInt(customDurationInput, 10);
+                                                            if (isNaN(parsed) || parsed <= 0) {
+                                                                setCustomDurationInput("45");
+                                                                setSelectedTargetDuration(45);
+                                                            }
+                                                            setIsCustomEditing(false);
+                                                        }
+                                                    }}
+                                                    autoFocus
+                                                    aria-label="Custom seconds"
+                                                />
+                                                <span className="recorder-timer-custom-unit">s</span>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className={`recorder-timer-btn ${selectedTargetDuration !== null && ![20, 30, 60].includes(selectedTargetDuration) ? "recorder-timer-btn-active" : ""}`}
+                                                onClick={() => {
+                                                    const parsed = parseInt(customDurationInput, 10) || 45;
+                                                    setSelectedTargetDuration(parsed);
+                                                    setIsCustomEditing(true);
+                                                }}
+                                                disabled={isRecording || isFinalizingRecording}
+                                                aria-label="Custom seconds timer"
+                                            >
+                                                {selectedTargetDuration !== null && ![20, 30, 60].includes(selectedTargetDuration)
+                                                    ? `${selectedTargetDuration}s`
+                                                    : "Custom"}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {minimumDurationSeconds ? (
+                                    <span className="recorder-min-duration-badge" title={`Minimum duration to count: ${formatTime(minimumDurationSeconds)}`}>
+                                        Min: {formatTime(minimumDurationSeconds)}
+                                    </span>
+                                ) : null}
 
                                 <button
                                     onClick={handleClose}
@@ -1111,8 +1244,8 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                         display: "inline-block",
                                                     }}
                                                 />
-                                                {targetDurationSeconds ? (
-                                                    <span>REC · {formatTime(elapsedSeconds)} / {formatTime(targetDurationSeconds)}</span>
+                                                {selectedTargetDuration ? (
+                                                    <span>REC · {formatTime(elapsedSeconds)} / {formatTime(selectedTargetDuration)}</span>
                                                 ) : (
                                                     <span>REC · {formatTime(elapsedSeconds)}</span>
                                                 )}
