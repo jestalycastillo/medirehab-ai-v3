@@ -7,6 +7,7 @@ interface AnimatedExerciseGuideProps {
     selectedSide?: "left" | "right" | null;
     analysisModelKey?: string | null;
     isRecording?: boolean;
+    isCountingDown?: boolean;
     speed?: number; // 0.75, 1.0, 1.25
 }
 
@@ -43,12 +44,14 @@ export function AnimatedExerciseGuide({
     exerciseName,
     selectedSide,
     analysisModelKey,
+    isRecording = false,
+    isCountingDown = false,
     speed = 1.0,
 }: AnimatedExerciseGuideProps) {
     const movement = resolveMovementType(exerciseName, selectedSide, analysisModelKey);
     const animationDuration = 4.0 / Math.max(0.5, speed); // full cycle in seconds
 
-    const [cyclePhase, setCyclePhase] = useState<"Raising Up" | "Hold Peak" | "Lowering" | "Rest">("Raising Up");
+    const [cyclePhase, setCyclePhase] = useState<string>("Raising Up");
 
     // Kinematic joint coordinates (updated at 60fps)
     const [leftArm, setLeftArm] = useState<ArmKinematics>({
@@ -64,14 +67,36 @@ export function AnimatedExerciseGuide({
     });
 
     useEffect(() => {
-        let frameId: number;
-        const startTime = performance.now();
-
         const SHOULDER_L = { x: 72, y: 76 };
         const SHOULDER_R = { x: 128, y: 76 };
         const UPPER_ARM_LEN = 44;
         const FOREARM_LEN = 44;
         const TOTAL_LEN = UPPER_ARM_LEN + FOREARM_LEN;
+
+        // Reset arms to starting rest pose
+        const resetArmsToRest = () => {
+            setLeftArm({
+                shoulder: SHOULDER_L,
+                elbow: { x: SHOULDER_L.x, y: SHOULDER_L.y + UPPER_ARM_LEN },
+                wrist: { x: SHOULDER_L.x, y: SHOULDER_L.y + TOTAL_LEN },
+            });
+            setRightArm({
+                shoulder: SHOULDER_R,
+                elbow: { x: SHOULDER_R.x, y: SHOULDER_R.y + UPPER_ARM_LEN },
+                wrist: { x: SHOULDER_R.x, y: SHOULDER_R.y + TOTAL_LEN },
+            });
+        };
+
+        // While counting down before recording starts: freeze at starting resting pose
+        if (isCountingDown) {
+            setCyclePhase("Get Ready");
+            resetArmsToRest();
+            return;
+        }
+
+        let frameId: number;
+        // Start fresh from t=0 so recording & animation align from the first rep
+        const startTime = performance.now();
 
         let maxAngle = 90;
         if (movement.includes("abduction")) maxAngle = 145;
@@ -87,7 +112,7 @@ export function AnimatedExerciseGuide({
             const progress = elapsed / animationDuration; // 0.0 to 1.0
 
             let angle = 0;
-            let phase: "Raising Up" | "Hold Peak" | "Lowering" | "Rest" = "Rest";
+            let phase = "Rest";
 
             if (progress < 0.40) {
                 // Phase 1: Concentric Raise (0% to 40%) - smooth ease in/out
@@ -184,7 +209,7 @@ export function AnimatedExerciseGuide({
 
         frameId = requestAnimationFrame(updateKinematics);
         return () => cancelAnimationFrame(frameId);
-    }, [animationDuration, movement]);
+    }, [animationDuration, isCountingDown, isRecording, movement]);
 
     const isLeftActive = movement === "left_flexion" || movement === "left_abduction";
     const isRightActive = movement === "right_flexion" || movement === "right_abduction";

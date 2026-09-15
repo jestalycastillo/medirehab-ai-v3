@@ -9,6 +9,7 @@ interface FollowAlongVideoProps {
     selectedSide?: "left" | "right" | null;
     analysisModelKey?: string | null;
     isRecording?: boolean;
+    isCountingDown?: boolean;
     onClose?: () => void;
 }
 
@@ -17,6 +18,7 @@ export function FollowAlongVideo({
     selectedSide,
     analysisModelKey,
     isRecording = false,
+    isCountingDown = false,
 }: FollowAlongVideoProps) {
     const [playbackRate, setPlaybackRate] = useState<number>(1.0);
     const [isVisible, setIsVisible] = useState(true);
@@ -112,6 +114,7 @@ export function FollowAlongVideo({
                     selectedSide={selectedSide}
                     analysisModelKey={analysisModelKey}
                     isRecording={isRecording}
+                    isCountingDown={isCountingDown}
                     speed={playbackRate}
                 />
             </div>

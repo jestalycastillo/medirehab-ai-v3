@@ -984,6 +984,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     selectedSide={targetSide}
                                     analysisModelKey={analysisModelKey}
                                     isRecording={isRecording}
+                                    isCountingDown={countdown !== null}
                                 />
                             )}
                         </div>
