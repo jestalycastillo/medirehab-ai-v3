@@ -93,23 +93,47 @@ export function FollowAlongVideo({
     return (
         <div
             className="follow-along-card animate-scale-in"
+            style={{
+                backgroundColor: "#ffffff",
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12)",
+            }}
             role="region"
             aria-label="Animated exercise demonstration guide to follow along"
         >
             {/* Header / Title Bar */}
-            <div className="follow-along-header">
+            <div
+                className="follow-along-header"
+                style={{
+                    backgroundColor: "#f8fafc",
+                    borderBottom: "1px solid #e2e8f0",
+                    color: "#0f172a",
+                }}
+            >
                 <div className="follow-along-title-group">
-                    <span className="follow-along-pulse-dot" aria-hidden="true" />
-                    <strong className="follow-along-title">{displayName}</strong>
+                    <span
+                        className="follow-along-pulse-dot"
+                        style={{ backgroundColor: "#0f766e", boxShadow: "none" }}
+                        aria-hidden="true"
+                    />
+                    <strong className="follow-along-title" style={{ color: "#0f172a" }}>
+                        {displayName}
+                    </strong>
                 </div>
 
                 <div className="follow-along-actions">
                     {/* Mode Toggle (Animated Avatar vs Video) */}
-                    <div className="follow-along-mode-switch">
+                    <div className="follow-along-mode-switch" style={{ backgroundColor: "#f1f5f9", borderColor: "#e2e8f0" }}>
                         <button
                             type="button"
                             onClick={() => setGuideMode("animated")}
                             className={`follow-along-mode-btn ${guideMode === "animated" ? "follow-along-mode-btn-active" : ""}`}
+                            style={
+                                guideMode === "animated"
+                                    ? { backgroundColor: "#0f766e", color: "#ffffff" }
+                                    : { color: "#64748b" }
+                            }
                             title="Animated Avatar Guide"
                         >
                             Avatar
@@ -118,6 +142,11 @@ export function FollowAlongVideo({
                             type="button"
                             onClick={() => setGuideMode("video")}
                             className={`follow-along-mode-btn ${guideMode === "video" ? "follow-along-mode-btn-active" : ""}`}
+                            style={
+                                guideMode === "video"
+                                    ? { backgroundColor: "#0f766e", color: "#ffffff" }
+                                    : { color: "#64748b" }
+                            }
                             title="Instructor Video"
                         >
                             Video
@@ -128,6 +157,7 @@ export function FollowAlongVideo({
                         type="button"
                         onClick={cyclePlaybackRate}
                         className="follow-along-mini-btn"
+                        style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0", color: "#334155" }}
                         title={`Speed: ${playbackRate}x`}
                         aria-label={`Change speed, currently ${playbackRate}x`}
                     >
@@ -138,6 +168,7 @@ export function FollowAlongVideo({
                         type="button"
                         onClick={() => setIsVisible(false)}
                         className="follow-along-mini-btn"
+                        style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0", color: "#334155" }}
                         title="Hide guide"
                         aria-label="Hide exercise guide"
                     >
@@ -147,7 +178,7 @@ export function FollowAlongVideo({
             </div>
 
             {/* Guide Display (Animated Avatar or Video Player) */}
-            <div className="follow-along-video-wrapper">
+            <div className="follow-along-video-wrapper" style={{ backgroundColor: "#ffffff", background: "#ffffff" }}>
                 {guideMode === "animated" ? (
                     <AnimatedExerciseGuide
                         exerciseName={exerciseName}

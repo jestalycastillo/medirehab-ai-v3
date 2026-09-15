@@ -199,13 +199,25 @@ export function AnimatedExerciseGuide({
         movement === "side_arms_raise" || movement === "right_flexion" || movement === "right_abduction";
 
     return (
-        <div className="animated-exercise-container">
+        <div
+            className="animated-exercise-container"
+            style={{
+                backgroundColor: "#ffffff",
+                background: "#ffffff",
+                border: "none",
+            }}
+        >
             {/* SVG Anatomical Avatar with Crisp Black Skeleton on Pure White Background */}
             <svg
                 viewBox="0 0 200 240"
                 className="animated-exercise-svg"
                 role="img"
                 aria-label={`Animated exercise demonstration for ${exerciseName}`}
+                style={{
+                    backgroundColor: "#ffffff",
+                    background: "#ffffff",
+                    display: "block",
+                }}
             >
                 {/* Pelvis & Lower Body Frame */}
                 <g stroke="#111827" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">

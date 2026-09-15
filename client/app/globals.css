@@ -1015,16 +1015,16 @@ body {
 }
 
 .robotic-hud-pill-active {
-  border-color: rgba(0, 240, 255, 0.45);
-  background: rgba(4, 20, 28, 0.88);
-  color: #00f0ff;
-  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25), 0 8px 22px rgba(3, 15, 14, 0.16);
+  border-color: rgba(15, 118, 110, 0.4);
+  background: #f0fdfa;
+  color: #0f766e;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .robotic-hud-pill-active:hover {
-  border-color: rgba(0, 240, 255, 0.75);
-  background: rgba(8, 30, 42, 0.95);
-  color: #38bdf8;
+  border-color: rgba(15, 118, 110, 0.75);
+  background: #ffffff;
+  color: #0f766e;
 }
 
 /* Follow Along Demo Video Player */
