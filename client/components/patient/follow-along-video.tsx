@@ -111,18 +111,17 @@ export function FollowAlongVideo({
                     color: "#0f172a",
                 }}
             >
-                <div className="follow-along-title-group">
-                    <span
-                        className="follow-along-pulse-dot"
-                        style={{ backgroundColor: "#0f766e", boxShadow: "none" }}
-                        aria-hidden="true"
-                    />
-                    <strong className="follow-along-title" style={{ color: "#0f172a" }}>
-                        {displayName}
-                    </strong>
-                </div>
 
-                <div className="follow-along-actions">
+
+                <div
+                    className="follow-along-actions"
+                    style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                    }}
+                >
                     {/* Mode Toggle (Animated Avatar vs Video) */}
                     <div className="follow-along-mode-switch" style={{ backgroundColor: "#f1f5f9", borderColor: "#e2e8f0" }}>
                         <button
