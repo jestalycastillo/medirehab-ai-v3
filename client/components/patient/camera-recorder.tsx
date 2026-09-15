@@ -334,7 +334,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         if (videoRef.current && stream && !error && !recordedUrl) {
             videoRef.current.srcObject = stream;
         }
-    }, [stream, error, recordedUrl]);
+    }, [stream, error, recordedUrl, isOpen]);
 
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
@@ -458,6 +458,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         visitIdRef.current = crypto.randomUUID();
         setSelectedSide(null);
         setIsOpen(true);
+        void handleStartCamera();
     };
 
     const handleClose = () => {
@@ -1205,14 +1206,12 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
                     {/* Floating Follow-Along Guide (Bottom-Left) */}
                     {stream && !recordedUrl && (
-                        <div className="recorder-floating-avatar">
-                            <FollowAlongVideo
-                                exerciseName={exerciseName}
-                                selectedSide={targetSide}
-                                analysisModelKey={analysisModelKey}
-                                isRecording={isRecording}
-                            />
-                        </div>
+                        <FollowAlongVideo
+                            exerciseName={exerciseName}
+                            selectedSide={targetSide}
+                            analysisModelKey={analysisModelKey}
+                            isRecording={isRecording}
+                        />
                     )}
 
                     {/* Floating Bottom Action Footer */}
