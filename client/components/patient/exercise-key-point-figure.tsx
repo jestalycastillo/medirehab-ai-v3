@@ -19,8 +19,7 @@ export function ExerciseKeyPointFigure({ points }: ExerciseKeyPointFigureProps) 
         >
             <div className="key-point-panel-header">
                 <div>
-                    <strong>Body position</strong>
-                    <span>{allVisible ? "You are ready" : "Move into frame"}</span>
+                    <strong>Body visibility</strong>
                 </div>
                 <div className={`key-point-count ${allVisible ? "key-point-count-ready" : ""}`}>
                     {visibleCount}/{requiredPoints.length}
