@@ -2,12 +2,6 @@ import type { PrismaClient } from "@prisma/client";
 
 const CATALOG = [
     {
-        name: "Side Arms Raise",
-        description: "Stand upright with your arms at your sides. Keeping your elbows straight, raise both arms out to shoulder height, then lower them slowly and with control.",
-        analysisModelKey: "side_arms_raise_v1",
-        image: { imageName: "Side Arms Raise", filepath: "/exercises/arms_raise.jpg" }
-    },
-    {
         name: "Shoulder Flexion",
         description: "Stand upright with your arms at your sides. Select your target arm (left or right). Keeping your elbow straight, raise your arm forward and upward to shoulder height, then lower it slowly with control.",
         analysisModelKey: "shoulder_flexion",
@@ -22,17 +16,6 @@ const CATALOG = [
 ] as const;
 
 export async function seedExerciseCatalog(prisma: PrismaClient): Promise<void> {
-    const canonicalSideArms = await prisma.exercise.findUnique({ where: { name: "Side Arms Raise" } });
-    if (!canonicalSideArms) {
-        const legacy = await prisma.exercise.findUnique({ where: { name: "Arms Raise" } });
-        if (legacy && (!legacy.analysisModelKey || legacy.analysisModelKey === "side_arms_raise_v1")) {
-            await prisma.exercise.update({
-                where: { id: legacy.id },
-                data: { name: "Side Arms Raise", analysisModelKey: "side_arms_raise_v1" }
-            });
-        }
-    }
-
     for (const item of CATALOG) {
         const existing = await prisma.exercise.findUnique({
             where: { name: item.name },

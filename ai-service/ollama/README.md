@@ -29,7 +29,7 @@ camera, browser, login, or exercise assignment:
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://localhost:8000/coaching `
   -ContentType 'application/json' `
-  -Body '{"exercise_name":"Side Arms Raise","event":"issue_resolved"}'
+  -Body '{"exercise_name":"Shoulder Flexion","event":"issue_resolved"}'
 ```
 
 Expect `source` to be `ollama`. Use `docker compose logs ollama-init` if the
@@ -80,7 +80,7 @@ ollama run coach-qwen:latest
 Try a short verified coaching input, for example:
 
 ```text
-Exercise: Side Arms Raise
+Exercise: Shoulder Flexion
 Verified praise: The patient corrected a movement issue.
 ```
 

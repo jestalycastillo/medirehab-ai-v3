@@ -20,11 +20,11 @@ see [the live-coaching setup guide](ai-service/ollama/README.md).
 
 ## Model-backed exercises
 
-The built-in catalog has Side Arms Raise (`side_arms_raise_v1`), Shoulder Flexion
-(`shoulder_flexion`), and Shoulder Abduction (`shoulder_abduction`). For flexion
-and abduction, the patient selects an arm before recording; the backend routes
-evaluation to the corresponding `left_*` or `right_*` checkpoint. Each session
-stores the actual checkpoint key and arm, which are returned in care history.
+The built-in catalog has Shoulder Flexion (`shoulder_flexion`) and Shoulder
+Abduction (`shoulder_abduction`). For each exercise, the patient selects an arm
+before recording; the backend routes evaluation to the corresponding `left_*`
+or `right_*` checkpoint. Each session stores the actual checkpoint key and arm,
+which are returned in care history.
 
 Docker startup runs migrations and the exercise-only catalog seed automatically.
 For a host-only backend, run these from `server` after setting `DATABASE_URL`:

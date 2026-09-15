@@ -2,6 +2,7 @@
 
 import type { ExerciseKeyPointVisibility } from "@/lib/pose/exercise-key-points";
 import { ExerciseKeyPointBody } from "./exercise-key-point-body";
+import { UserCheck, CheckCircle2 } from "lucide-react";
 
 interface ExerciseKeyPointFigureProps {
     points: ExerciseKeyPointVisibility[];
@@ -18,19 +19,31 @@ export function ExerciseKeyPointFigure({ points }: ExerciseKeyPointFigureProps) 
             className="key-point-panel"
         >
             <div className="key-point-panel-header">
-                <div>
-                    <strong>Body position</strong>
-                    <span>{allVisible ? "You are ready" : "Move into frame"}</span>
+                <div className="key-point-panel-title">
+                    <UserCheck className="w-4 h-4 text-teal-600" />
+                    <strong>Body visibility</strong>
                 </div>
                 <div className={`key-point-count ${allVisible ? "key-point-count-ready" : ""}`}>
-                    {visibleCount}/{requiredPoints.length}
+                    {allVisible ? (
+                        <span className="inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            {visibleCount}/{requiredPoints.length}
+                        </span>
+                    ) : (
+                        <span>
+                            {visibleCount}/{requiredPoints.length}
+                        </span>
+                    )}
                 </div>
             </div>
 
             <ExerciseKeyPointBody points={points} />
 
             <div className="key-point-progress" aria-hidden="true">
-                <span style={{ width: `${requiredPoints.length ? (visibleCount / requiredPoints.length) * 100 : 0}%` }} />
+                <span
+                    className={allVisible ? "key-point-progress-ready" : ""}
+                    style={{ width: `${requiredPoints.length ? (visibleCount / requiredPoints.length) * 100 : 0}%` }}
+                />
             </div>
 
             <div className="key-point-list">
@@ -39,8 +52,8 @@ export function ExerciseKeyPointFigure({ points }: ExerciseKeyPointFigureProps) 
                         key={point.id}
                         className={point.isVisible ? "key-point-item key-point-item-visible" : "key-point-item"}
                     >
-                        <span aria-hidden="true" />
-                        {point.label}
+                        <span className="key-point-item-indicator" aria-hidden="true" />
+                        <span className="key-point-item-text">{point.label}</span>
                     </div>
                 ))}
             </div>

@@ -73,7 +73,7 @@ async function main() {
 
         await request(`/users/patients/${patientId}/assign-doctor`, { method: "PATCH", cookie: adminCookie, body: { doctorUserId: doctor.id } });
         const available = await request(`/exercises/patients/${patientId}/available`, { cookie: doctor.cookie });
-        const exercise = available.payload.exercises.find((item: Json) => item.name === "Side Arms Raise") ?? available.payload.exercises[0];
+        const exercise = available.payload.exercises.find((item: Json) => item.name === "Shoulder Abduction") ?? available.payload.exercises[0];
         assert(exercise, "Seeded exercise is required");
         const assigned = await request(`/exercises/patients/${patientId}/assignments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { exerciseId: exercise.id } });
         const assignmentId = assigned.payload.assignment.id as string;
@@ -116,7 +116,7 @@ async function main() {
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.completed, 1);
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.remaining, 1);
         assert.equal(assignedWithAdherence.payload.assignments[0].adherence.today.status, "IN_PROGRESS");
-        assert.equal(assignedWithAdherence.payload.assignments[0].exercise.analysisModelKey, "side_arms_raise_v1");
+        assert.equal(assignedWithAdherence.payload.assignments[0].exercise.analysisModelKey, "shoulder_abduction");
         assert.deepEqual(assignedWithAdherence.payload.assignments[0].scheduledDays, [scheduledDay]);
         assert.equal(assignedWithAdherence.payload.assignments[0].targetSets, 3);
         const sessionCount = await prisma.exerciseSession.count({ where: { patientUserId: patientId } });

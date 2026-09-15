@@ -2,14 +2,6 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import {
-    INITIAL_SIDE_ARMS_RAISE_STATE,
-    updateSideArmsRaiseGuidance,
-    supportsSideArmsRaiseGuidance,
-    type SideArmsRaiseGuidanceEvent,
-    type SideArmsRaiseGuidanceIssue,
-    type SideArmsRaiseGuidanceState,
-} from "@/lib/pose/side-arms-raise-guidance";
-import {
     INITIAL_SHOULDER_FLEXION_STATE,
     updateShoulderFlexionGuidance,
     supportsShoulderFlexionGuidance,
@@ -64,8 +56,8 @@ function getFramingMessage(points: ExerciseKeyPointVisibility[]): string {
     return `Adjust your position so your ${missingLabels} ${missing.length === 1 ? "is" : "are"} visible.`;
 }
 
-export type LiveGuidanceIssue = SideArmsRaiseGuidanceIssue | ShoulderFlexionGuidanceIssue | ShoulderAbductionGuidanceIssue;
-export type LiveGuidanceEvent = SideArmsRaiseGuidanceEvent | ShoulderFlexionGuidanceEvent | ShoulderAbductionGuidanceEvent;
+export type LiveGuidanceIssue = ShoulderFlexionGuidanceIssue | ShoulderAbductionGuidanceIssue;
+export type LiveGuidanceEvent = ShoulderFlexionGuidanceEvent | ShoulderAbductionGuidanceEvent;
 
 export interface LiveGuidanceView {
     mode: LiveGuidanceMode;
@@ -85,7 +77,7 @@ export interface LiveGuidanceView {
 
 const DISABLED_VIEW: LiveGuidanceView = {
     mode: "exercise",
-    exerciseName: "Side Arms Raise",
+    exerciseName: "Shoulder Flexion",
     status: "disabled",
     message: "",
     repetitions: 0,
@@ -101,7 +93,6 @@ const DISABLED_VIEW: LiveGuidanceView = {
 
 export function supportsExerciseLiveGuidance(exerciseName: string): boolean {
     return (
-        supportsSideArmsRaiseGuidance(exerciseName) ||
         supportsShoulderFlexionGuidance(exerciseName) ||
         supportsShoulderAbductionGuidance(exerciseName)
     );
@@ -125,15 +116,13 @@ function getLoadingView(
 export function useSideArmsRaiseGuidance(
     enabled: boolean,
     videoRef: RefObject<HTMLVideoElement | null>,
-    exerciseName = "Side Arms Raise",
+    exerciseName = "Shoulder Flexion",
     selectedSide: "left" | "right" = "left",
     mode: LiveGuidanceMode = "exercise",
 ): LiveGuidanceView {
-    const isFlexion = supportsShoulderFlexionGuidance(exerciseName);
     const isAbduction = supportsShoulderAbductionGuidance(exerciseName);
     const [view, setView] = useState<LiveGuidanceView>(DISABLED_VIEW);
 
-    const sideArmsStateRef = useRef<SideArmsRaiseGuidanceState>(INITIAL_SIDE_ARMS_RAISE_STATE);
     const flexionStateRef = useRef<ShoulderFlexionGuidanceState>(INITIAL_SHOULDER_FLEXION_STATE);
     const abductionStateRef = useRef<ShoulderAbductionGuidanceState>(INITIAL_SHOULDER_ABDUCTION_STATE);
     const guidanceDisplayRef = useRef<GuidanceDisplayState>(INITIAL_GUIDANCE_DISPLAY_STATE);
@@ -149,7 +138,6 @@ export function useSideArmsRaiseGuidance(
         let lastFrameTime = 0;
         let animationFrameId = 0;
 
-        sideArmsStateRef.current = INITIAL_SIDE_ARMS_RAISE_STATE;
         flexionStateRef.current = INITIAL_SHOULDER_FLEXION_STATE;
         abductionStateRef.current = INITIAL_SHOULDER_ABDUCTION_STATE;
         guidanceDisplayRef.current = INITIAL_GUIDANCE_DISPLAY_STATE;
@@ -181,21 +169,17 @@ export function useSideArmsRaiseGuidance(
                 message: mode === "framing"
                     ? "Position checking is unavailable. You can still preview and record."
                     : "Live guidance is unavailable. Recording still works.",
-                repetitions: mode === "framing" ? 0 : isFlexion
-                    ? flexionStateRef.current.repetitions
-                    : isAbduction
-                        ? abductionStateRef.current.repetitions
-                        : sideArmsStateRef.current.repetitions,
+                repetitions: mode === "framing" ? 0 : isAbduction
+                    ? abductionStateRef.current.repetitions
+                    : flexionStateRef.current.repetitions,
                 hasReliablePose: false,
                 justCompletedRepetition: false,
                 keyPoints: initialKeyPoints,
                 activeIssues: [],
                 resolvedIssues: [],
-                recentGuidanceEvents: mode === "framing" ? [] : isFlexion
-                    ? flexionStateRef.current.recentGuidanceEvents
-                    : isAbduction
-                        ? abductionStateRef.current.recentGuidanceEvents
-                        : sideArmsStateRef.current.recentGuidanceEvents,
+                recentGuidanceEvents: mode === "framing" ? [] : isAbduction
+                    ? abductionStateRef.current.recentGuidanceEvents
+                    : flexionStateRef.current.recentGuidanceEvents,
                 landmarks: null,
                 worldLandmarks: null,
             });
@@ -208,9 +192,7 @@ export function useSideArmsRaiseGuidance(
                 workerReady = true;
                 const message = mode === "framing"
                     ? FRAMING_PROMPT
-                    : isFlexion || isAbduction
-                    ? `Move fully into the frame so your shoulders and ${selectedSide} arm are visible.`
-                    : "Move fully into the frame so both shoulders and elbows are visible.";
+                    : `Move fully into the frame so your shoulders and ${selectedSide} arm are visible.`;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
                     guidanceDisplayRef.current,
                     message,
@@ -274,36 +256,7 @@ export function useSideArmsRaiseGuidance(
                 });
                 return;
             }
-            if (isFlexion) {
-                const snapshot = updateShoulderFlexionGuidance(
-                    flexionStateRef.current,
-                    currentLandmarks,
-                    selectedSide,
-                    currentWorldLandmarks,
-                );
-                flexionStateRef.current = snapshot.state;
-                guidanceDisplayRef.current = stabilizeGuidanceMessage(
-                    guidanceDisplayRef.current,
-                    snapshot.message,
-                    performance.now(),
-                    !snapshot.hasReliablePose || snapshot.justCompletedRepetition,
-                );
-                setView({
-                    mode,
-                    exerciseName,
-                    status: "ready",
-                    message: guidanceDisplayRef.current.displayedMessage,
-                    repetitions: snapshot.state.repetitions,
-                    hasReliablePose: snapshot.hasReliablePose,
-                    justCompletedRepetition: snapshot.justCompletedRepetition,
-                    keyPoints: snapshot.keyPoints,
-                    activeIssues: snapshot.activeIssues,
-                    resolvedIssues: snapshot.resolvedIssues,
-                    recentGuidanceEvents: snapshot.recentGuidanceEvents,
-                    landmarks: currentLandmarks,
-                    worldLandmarks: currentWorldLandmarks,
-                });
-            } else if (isAbduction) {
+            if (isAbduction) {
                 const snapshot = updateShoulderAbductionGuidance(
                     abductionStateRef.current,
                     currentLandmarks,
@@ -333,11 +286,13 @@ export function useSideArmsRaiseGuidance(
                     worldLandmarks: currentWorldLandmarks,
                 });
             } else {
-                const snapshot = updateSideArmsRaiseGuidance(
-                    sideArmsStateRef.current,
+                const snapshot = updateShoulderFlexionGuidance(
+                    flexionStateRef.current,
                     currentLandmarks,
+                    selectedSide,
+                    currentWorldLandmarks,
                 );
-                sideArmsStateRef.current = snapshot.state;
+                flexionStateRef.current = snapshot.state;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
                     guidanceDisplayRef.current,
                     snapshot.message,
@@ -416,7 +371,7 @@ export function useSideArmsRaiseGuidance(
             worker.postMessage(closeMessage);
             worker.terminate();
         };
-    }, [enabled, videoRef, exerciseName, isFlexion, isAbduction, selectedSide, mode]);
+    }, [enabled, videoRef, exerciseName, isAbduction, selectedSide, mode]);
 
     if (!enabled) return DISABLED_VIEW;
     return view.status === "disabled" || view.mode !== mode || view.exerciseName !== exerciseName
