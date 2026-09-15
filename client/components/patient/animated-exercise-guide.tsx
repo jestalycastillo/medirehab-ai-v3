@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Activity } from "lucide-react";
 
 interface AnimatedExerciseGuideProps {
@@ -53,7 +53,6 @@ export function AnimatedExerciseGuide({
     const movement = resolveMovementType(exerciseName, selectedSide, analysisModelKey);
     const animationDuration = 4.0 / Math.max(0.5, speed); // full cycle in seconds
 
-    const [currentAngle, setCurrentAngle] = useState(0);
     const [cyclePhase, setCyclePhase] = useState<"Raising Up" | "Hold Peak" | "Lowering" | "Rest">("Raising Up");
 
     // Kinematic joint coordinates (updated at 60fps)
@@ -119,7 +118,6 @@ export function AnimatedExerciseGuide({
                 angle = 0;
             }
 
-            setCurrentAngle(angle);
             setCyclePhase(phase);
 
             const rad = (angle * Math.PI) / 180;
@@ -130,13 +128,9 @@ export function AnimatedExerciseGuide({
                 let uy: number;
 
                 if (isFlexion) {
-                    // Forward sagittal raise: raises upward with slight depth inward vector
                     ux = -0.32 * Math.sin(rad);
                     uy = Math.cos(rad);
                 } else {
-                    // Coronal lateral raise (Abduction / Side Arms Raise):
-                    // In screen coords (+y is down, +x is right):
-                    // Left arm raises outward to the LEFT (-x, -y as angle goes from 0° down to 180° up)
                     ux = -Math.sin(rad);
                     uy = Math.cos(rad);
                 }
@@ -153,7 +147,6 @@ export function AnimatedExerciseGuide({
                     },
                 });
             } else {
-                // Resting down at side
                 setLeftArm({
                     shoulder: SHOULDER_L,
                     elbow: { x: SHOULDER_L.x, y: SHOULDER_L.y + UPPER_ARM_LEN },
@@ -170,7 +163,6 @@ export function AnimatedExerciseGuide({
                     ux = 0.32 * Math.sin(rad);
                     uy = Math.cos(rad);
                 } else {
-                    // Right arm raises outward to the RIGHT (+x, -y as angle goes from 0° down to 180° up)
                     ux = Math.sin(rad);
                     uy = Math.cos(rad);
                 }
@@ -187,7 +179,6 @@ export function AnimatedExerciseGuide({
                     },
                 });
             } else {
-                // Resting down at side
                 setRightArm({
                     shoulder: SHOULDER_R,
                     elbow: { x: SHOULDER_R.x, y: SHOULDER_R.y + UPPER_ARM_LEN },
@@ -209,92 +200,65 @@ export function AnimatedExerciseGuide({
 
     return (
         <div className="animated-exercise-container">
-            {/* SVG Anatomical Avatar with Exact Kinematic Positions */}
+            {/* SVG Anatomical Avatar with Crisp Black Skeleton on Pure White Background */}
             <svg
                 viewBox="0 0 200 240"
                 className="animated-exercise-svg"
                 role="img"
                 aria-label={`Animated exercise demonstration for ${exerciseName}`}
             >
-                <defs>
-                    <linearGradient id="avatar-glow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#00FF9D" stopOpacity="0.4" />
-                    </linearGradient>
-
-                    <linearGradient id="body-gradient" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#0f2b38" />
-                        <stop offset="100%" stopColor="#071821" />
-                    </linearGradient>
-
-                    <linearGradient id="torso-cage-glow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgba(0, 240, 255, 0.25)" />
-                        <stop offset="100%" stopColor="rgba(0, 255, 157, 0.05)" />
-                    </linearGradient>
-
-                    <filter id="neon-glow" x="-30%" y="-30%" width="160%" height="160%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feMerge>
-                            <feMergeNode in="blur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                </defs>
-
-
-
                 {/* Pelvis & Lower Body Frame */}
-                <g stroke="#1e3a47" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
-                    <path d="M 80 148 L 120 148" stroke="#38bdf8" strokeWidth="2.5" />
-                    <path d="M 82 148 L 82 190 L 80 230" />
-                    <path d="M 118 148 L 118 190 L 120 230" />
+                <g stroke="#111827" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                    <path d="M 80 148 L 120 148" strokeWidth="3.5" />
+                    <path d="M 82 148 L 82 190 L 80 230" strokeWidth="3" />
+                    <path d="M 118 148 L 118 190 L 120 230" strokeWidth="3" />
                 </g>
 
-                {/* Torso Cage */}
+                {/* Torso Outline */}
                 <path
                     d="M 72 76 L 128 76 L 120 148 L 80 148 Z"
-                    fill="url(#torso-cage-glow)"
-                    stroke="rgba(0, 240, 255, 0.4)"
-                    strokeWidth="1.5"
+                    fill="#F8FAFC"
+                    stroke="#111827"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
                 />
 
-                {/* Spine Axis */}
+                {/* Spine Central Axis */}
                 <line
                     x1="100"
                     y1="56"
                     x2="100"
                     y2="148"
-                    stroke="rgba(0, 240, 255, 0.6)"
-                    strokeWidth="1.5"
+                    stroke="#111827"
+                    strokeWidth="2"
                     strokeDasharray="3 3"
                 />
 
                 {/* Head & Neck */}
                 <g className="avatar-head">
-                    <line x1="100" y1="56" x2="100" y2="68" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="100" y1="56" x2="100" y2="68" stroke="#111827" strokeWidth="3" strokeLinecap="round" />
                     <circle
                         cx="100"
                         cy="36"
                         r="18"
-                        fill="url(#body-gradient)"
-                        stroke="#00F0FF"
-                        strokeWidth="2"
-                        filter="url(#neon-glow)"
+                        fill="#FFFFFF"
+                        stroke="#111827"
+                        strokeWidth="3"
                     />
-                    <path d="M 91 35 Q 100 32 109 35" stroke="#00FF9D" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                    <circle cx="100" cy="38" r="2" fill="#FFFFFF" />
+                    {/* Neutral Face Visor */}
+                    <path d="M 92 35 Q 100 33 108 35" stroke="#111827" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                    <circle cx="100" cy="38" r="2" fill="#111827" />
                 </g>
 
                 {/* Chest Central Core */}
                 <g className="avatar-chest-core">
                     <polygon
                         points="100,74 108,84 100,94 92,84"
-                        fill="rgba(0, 240, 255, 0.35)"
-                        stroke="#00F0FF"
-                        strokeWidth="1.8"
-                        filter="url(#neon-glow)"
+                        fill="#E2E8F0"
+                        stroke="#111827"
+                        strokeWidth="2"
                     />
-                    <circle cx="100" cy="84" r="3" fill="#FFFFFF" />
+                    <circle cx="100" cy="84" r="2.5" fill="#111827" />
                 </g>
 
                 {/* --- Left Arm Kinetic Chain: Shoulder -> Elbow -> Wrist --- */}
@@ -305,17 +269,8 @@ export function AnimatedExerciseGuide({
                         y1={leftArm.shoulder.y}
                         x2={leftArm.elbow.x}
                         y2={leftArm.elbow.y}
-                        stroke={isLeftActive ? "#00F0FF" : "#38bdf8"}
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                    />
-                    <line
-                        x1={leftArm.shoulder.x}
-                        y1={leftArm.shoulder.y}
-                        x2={leftArm.elbow.x}
-                        y2={leftArm.elbow.y}
-                        stroke="#FFFFFF"
-                        strokeWidth="1.2"
+                        stroke="#111827"
+                        strokeWidth={isLeftActive ? "4.5" : "3.5"}
                         strokeLinecap="round"
                     />
 
@@ -325,39 +280,28 @@ export function AnimatedExerciseGuide({
                         y1={leftArm.elbow.y}
                         x2={leftArm.wrist.x}
                         y2={leftArm.wrist.y}
-                        stroke={isLeftActive ? "#00F0FF" : "#38bdf8"}
-                        strokeWidth="3.2"
-                        strokeLinecap="round"
-                    />
-                    <line
-                        x1={leftArm.elbow.x}
-                        y1={leftArm.elbow.y}
-                        x2={leftArm.wrist.x}
-                        y2={leftArm.wrist.y}
-                        stroke="#FFFFFF"
-                        strokeWidth="1"
+                        stroke="#111827"
+                        strokeWidth={isLeftActive ? "4" : "3"}
                         strokeLinecap="round"
                     />
 
-                    {/* Elbow Joint Node (strictly between shoulder and wrist) */}
+                    {/* Elbow Joint Node */}
                     <circle
                         cx={leftArm.elbow.x}
                         cy={leftArm.elbow.y}
                         r="4.5"
-                        fill="rgba(0, 255, 157, 0.4)"
-                        stroke={isLeftActive ? "#00FF9D" : "#38bdf8"}
-                        strokeWidth="1.8"
+                        fill="#FFFFFF"
+                        stroke="#111827"
+                        strokeWidth="2.5"
                     />
-                    <circle cx={leftArm.elbow.x} cy={leftArm.elbow.y} r="1.8" fill="#FFFFFF" />
+                    <circle cx={leftArm.elbow.x} cy={leftArm.elbow.y} r="1.8" fill="#111827" />
 
-                    {/* Wrist End-Effector */}
+                    {/* Wrist Node */}
                     <circle
                         cx={leftArm.wrist.x}
                         cy={leftArm.wrist.y}
-                        r="3.5"
-                        fill="#00F0FF"
-                        stroke="#FFFFFF"
-                        strokeWidth="1"
+                        r="4"
+                        fill="#111827"
                     />
                 </g>
 
@@ -369,17 +313,8 @@ export function AnimatedExerciseGuide({
                         y1={rightArm.shoulder.y}
                         x2={rightArm.elbow.x}
                         y2={rightArm.elbow.y}
-                        stroke={isRightActive ? "#00F0FF" : "#38bdf8"}
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                    />
-                    <line
-                        x1={rightArm.shoulder.x}
-                        y1={rightArm.shoulder.y}
-                        x2={rightArm.elbow.x}
-                        y2={rightArm.elbow.y}
-                        stroke="#FFFFFF"
-                        strokeWidth="1.2"
+                        stroke="#111827"
+                        strokeWidth={isRightActive ? "4.5" : "3.5"}
                         strokeLinecap="round"
                     />
 
@@ -389,39 +324,28 @@ export function AnimatedExerciseGuide({
                         y1={rightArm.elbow.y}
                         x2={rightArm.wrist.x}
                         y2={rightArm.wrist.y}
-                        stroke={isRightActive ? "#00F0FF" : "#38bdf8"}
-                        strokeWidth="3.2"
-                        strokeLinecap="round"
-                    />
-                    <line
-                        x1={rightArm.elbow.x}
-                        y1={rightArm.elbow.y}
-                        x2={rightArm.wrist.x}
-                        y2={rightArm.wrist.y}
-                        stroke="#FFFFFF"
-                        strokeWidth="1"
+                        stroke="#111827"
+                        strokeWidth={isRightActive ? "4" : "3"}
                         strokeLinecap="round"
                     />
 
-                    {/* Elbow Joint Node (strictly between shoulder and wrist) */}
+                    {/* Elbow Joint Node */}
                     <circle
                         cx={rightArm.elbow.x}
                         cy={rightArm.elbow.y}
                         r="4.5"
-                        fill="rgba(0, 255, 157, 0.4)"
-                        stroke={isRightActive ? "#00FF9D" : "#38bdf8"}
-                        strokeWidth="1.8"
+                        fill="#FFFFFF"
+                        stroke="#111827"
+                        strokeWidth="2.5"
                     />
-                    <circle cx={rightArm.elbow.x} cy={rightArm.elbow.y} r="1.8" fill="#FFFFFF" />
+                    <circle cx={rightArm.elbow.x} cy={rightArm.elbow.y} r="1.8" fill="#111827" />
 
-                    {/* Wrist End-Effector */}
+                    {/* Wrist Node */}
                     <circle
                         cx={rightArm.wrist.x}
                         cy={rightArm.wrist.y}
-                        r="3.5"
-                        fill="#00F0FF"
-                        stroke="#FFFFFF"
-                        strokeWidth="1"
+                        r="4"
+                        fill="#111827"
                     />
                 </g>
 
@@ -430,31 +354,28 @@ export function AnimatedExerciseGuide({
                     cx={leftArm.shoulder.x}
                     cy={leftArm.shoulder.y}
                     r="5.5"
-                    fill="rgba(0, 240, 255, 0.4)"
-                    stroke={isLeftActive ? "#00F0FF" : "#38bdf8"}
-                    strokeWidth="2"
+                    fill="#E2E8F0"
+                    stroke="#111827"
+                    strokeWidth="2.5"
                 />
-                <circle cx={leftArm.shoulder.x} cy={leftArm.shoulder.y} r="2" fill="#FFFFFF" />
+                <circle cx={leftArm.shoulder.x} cy={leftArm.shoulder.y} r="2" fill="#111827" />
 
                 <circle
                     cx={rightArm.shoulder.x}
                     cy={rightArm.shoulder.y}
                     r="5.5"
-                    fill="rgba(0, 240, 255, 0.4)"
-                    stroke={isRightActive ? "#00F0FF" : "#38bdf8"}
-                    strokeWidth="2"
+                    fill="#E2E8F0"
+                    stroke="#111827"
+                    strokeWidth="2.5"
                 />
-                <circle cx={rightArm.shoulder.x} cy={rightArm.shoulder.y} r="2" fill="#FFFFFF" />
+                <circle cx={rightArm.shoulder.x} cy={rightArm.shoulder.y} r="2" fill="#111827" />
             </svg>
 
             {/* Bottom Movement Telemetry Bar */}
             <div className="animated-exercise-footer">
                 <div className="exercise-phase-badge">
-                    <Activity size={12} className="text-cyan-400" />
+                    <Activity size={12} className="text-slate-700" />
                     <span>{cyclePhase}</span>
-                </div>
-                <div className="exercise-angle-badge">
-                    <span>{currentAngle}°</span>
                 </div>
             </div>
         </div>
