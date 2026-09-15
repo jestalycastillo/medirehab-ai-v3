@@ -94,7 +94,7 @@ The exercise evaluation pipeline utilizes a deep **1D-Convolutional Pose Autoenc
 
 1. **Mean Squared Error (MSE)**:
    $$\\text{MSE} = \\frac{1}{T \\times D} \\sum_{t=1}^{T} \\sum_{d=1}^{D} (x_{t, d} - \\hat{x}_{t, d})^2$$
-   where $T = 200$ (normalized temporal frames) and $D = 8$ (spatial coordinates for left/right shoulders and elbows).
+   where $T = 200$ (normalized temporal frames) and $D = 12$ (spatial coordinates for chest reference point, nose orientation, left/right shoulders, and elbows).
 
 2. **Root Mean Squared Error (RMSE)**:
    $$\\text{RMSE} = \\sqrt{\\text{MSE}}$$
@@ -122,6 +122,7 @@ The exercise evaluation pipeline utilizes a deep **1D-Convolutional Pose Autoenc
         "name": "Left Shoulder Flexion",
         "csv_dir": os.path.join(AI_SERVICE_DIR, "data", "left_flexion_csv"),
         "features": (
+            "Chest_x", "Chest_y",
             "Left Shoulder_x", "Left Shoulder_y",
             "Right Shoulder_x", "Right Shoulder_y",
             "Left Elbow_x", "Left Elbow_y",
@@ -133,6 +134,7 @@ The exercise evaluation pipeline utilizes a deep **1D-Convolutional Pose Autoenc
         "name": "Right Shoulder Flexion",
         "csv_dir": os.path.join(AI_SERVICE_DIR, "data", "right_flexion_csv"),
         "features": (
+            "Chest_x", "Chest_y",
             "Left Shoulder_x", "Left Shoulder_y",
             "Right Shoulder_x", "Right Shoulder_y",
             "Left Elbow_x", "Left Elbow_y",
@@ -144,6 +146,7 @@ The exercise evaluation pipeline utilizes a deep **1D-Convolutional Pose Autoenc
         "name": "Left Shoulder Abduction",
         "csv_dir": os.path.join(AI_SERVICE_DIR, "data", "left_abduction_csv"),
         "features": (
+            "Chest_x", "Chest_y",
             "Left Shoulder_x", "Left Shoulder_y",
             "Right Shoulder_x", "Right Shoulder_y",
             "Left Elbow_x", "Left Elbow_y",
@@ -155,6 +158,7 @@ The exercise evaluation pipeline utilizes a deep **1D-Convolutional Pose Autoenc
         "name": "Right Shoulder Abduction",
         "csv_dir": os.path.join(AI_SERVICE_DIR, "data", "right_abduction_csv"),
         "features": (
+            "Chest_x", "Chest_y",
             "Left Shoulder_x", "Left Shoulder_y",
             "Right Shoulder_x", "Right Shoulder_y",
             "Left Elbow_x", "Left Elbow_y",
@@ -166,6 +170,7 @@ The exercise evaluation pipeline utilizes a deep **1D-Convolutional Pose Autoenc
         "name": "Bilateral Side Arms Raise",
         "csv_dir": os.path.join(AI_SERVICE_DIR, "data", "shoulder_exercise_1"),
         "features": (
+            "Chest_x", "Chest_y",
             "Left Shoulder_x", "Left Shoulder_y",
             "Right Shoulder_x", "Right Shoulder_y",
             "Left Elbow_x", "Left Elbow_y",
@@ -184,7 +189,7 @@ def load_dataset_splits(model_key, test_size=0.20, val_size=0.15, random_state=4
     for f in csv_files:
         try:
             data, dim = preprocess(f, target_frames=200, expected_features=cfg["features"])
-            sequences.append(data[0]) # (200, 8)
+            sequences.append(data[0]) # (200, 12)
             valid_files.append(f)
         except Exception as e:
             continue
