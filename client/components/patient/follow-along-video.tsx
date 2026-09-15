@@ -23,7 +23,7 @@ export function FollowAlongVideo({
     const [guideMode, setGuideMode] = useState<"animated" | "video">("animated");
     const [isPlaying, setIsPlaying] = useState(true);
     const [isMinimized, setIsMinimized] = useState(false);
-    const [isMirrored, setIsMirrored] = useState(true);
+    const [isMirrored, setIsMirrored] = useState(false);
     const [playbackRate, setPlaybackRate] = useState<number>(1.0);
     const [isVisible, setIsVisible] = useState(true);
 
@@ -174,7 +174,7 @@ export function FollowAlongVideo({
 
             {/* Guide Display (Animated Avatar or Video Player) */}
             {!isMinimized && (
-                <div className="follow-along-video-wrapper" style={{ transform: isMirrored ? "scaleX(-1)" : "none" }}>
+                <div className="follow-along-video-wrapper">
                     {guideMode === "animated" ? (
                         <AnimatedExerciseGuide
                             exerciseName={exerciseName}
@@ -195,6 +195,7 @@ export function FollowAlongVideo({
                                 playsInline
                                 preload="auto"
                                 className="follow-along-video-element"
+                                style={{ transform: isMirrored ? "scaleX(-1)" : "none" }}
                             />
 
                             <div className="follow-along-controls-bar">
