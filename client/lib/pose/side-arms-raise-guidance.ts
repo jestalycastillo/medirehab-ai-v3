@@ -35,7 +35,9 @@ export type SideArmsRaiseGuidanceIssueId =
     | "right-arm-low"
     | "both-arms-high"
     | "left-arm-high"
-    | "right-arm-high";
+    | "right-arm-high"
+    | "torso-leaning"
+    | "chest-sway";
 
 export interface SideArmsRaiseGuidanceIssue {
     id: SideArmsRaiseGuidanceIssueId;
@@ -188,6 +190,8 @@ export function updateSideArmsRaiseGuidance(
             break;
     }
 
+    const shoulderTilt = Math.abs(upperBodyLandmarks.leftShoulder.y - upperBodyLandmarks.rightShoulder.y) / shoulderWidth;
+
     const baseState = {
         phase,
         repetitions,
@@ -200,6 +204,7 @@ export function updateSideArmsRaiseGuidance(
         rightDrop,
         leftReach,
         rightReach,
+        shoulderTilt,
     );
     const verifiedIssues = updateVerifiedIssues(previous, correctionIssue);
     const guidanceEvents = [
@@ -253,7 +258,14 @@ function toUpperBodyLandmarks(landmarks: PoseLandmarkMap | null): UpperBodyLandm
         return null;
     }
 
+    const chest: PosePoint = landmarks?.chest ?? {
+        x: (leftShoulder.x + rightShoulder.x) / 2,
+        y: (leftShoulder.y + rightShoulder.y) / 2,
+        visibility: Math.min(leftShoulder.visibility, rightShoulder.visibility),
+    };
+
     return {
+        chest,
         leftShoulder,
         rightShoulder,
         leftElbow,
@@ -297,9 +309,14 @@ function correctiveGuidanceIssue(
     rightDrop: number,
     leftReach: number,
     rightReach: number,
+    shoulderTilt: number,
 ): SideArmsRaiseGuidanceIssue | null {
     if (state.phase !== "raising" && state.phase !== "top") {
         return null;
+    }
+
+    if (shoulderTilt > 0.22) {
+        return issue("torso-leaning", "Keep your chest upright and avoid leaning your torso.");
     }
 
     if (leftReach < MIN_SIDE_REACH && rightReach < MIN_SIDE_REACH) {

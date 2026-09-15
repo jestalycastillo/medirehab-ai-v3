@@ -6,6 +6,7 @@ export interface PosePoint {
 
 export type PoseLandmarkKey =
     | "nose"
+    | "chest"
     | "leftShoulder"
     | "rightShoulder"
     | "leftElbow"
@@ -31,6 +32,7 @@ export interface PoseWorldPoint {
 export type PoseWorldLandmarkMap = Partial<Record<PoseLandmarkKey, PoseWorldPoint>>;
 
 export interface UpperBodyLandmarks extends PoseLandmarkMap {
+    chest?: PosePoint;
     leftShoulder: PosePoint;
     rightShoulder: PosePoint;
     leftElbow: PosePoint;

@@ -540,6 +540,7 @@ export const api = {
     assignmentId: string,
     event: "issue_resolved" | "repetition_completed",
     side?: "left" | "right",
+    issueType?: string,
   ) {
     return request<{
       success: boolean;
@@ -547,7 +548,7 @@ export const api = {
       source: "ollama" | "fallback";
     }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/live-coaching`, {
       method: "POST",
-      body: JSON.stringify({ event, side }),
+      body: JSON.stringify({ event, side, issueType }),
     });
   },
 

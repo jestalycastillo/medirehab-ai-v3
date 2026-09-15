@@ -6,6 +6,7 @@ export interface ExerciseKeyPointVisibility {
     side: "left" | "right" | "center";
     region:
         | "head"
+        | "chest"
         | "shoulder"
         | "elbow"
         | "wrist"
@@ -23,6 +24,7 @@ const KEY_POINT_DETAILS: Record<
     Omit<ExerciseKeyPointVisibility, "isRequired" | "isVisible">
 > = {
     nose: { id: "nose", label: "Head", side: "center", region: "head" },
+    chest: { id: "chest", label: "Chest", side: "center", region: "chest" },
     leftShoulder: { id: "leftShoulder", label: "Left shoulder", side: "left", region: "shoulder" },
     rightShoulder: { id: "rightShoulder", label: "Right shoulder", side: "right", region: "shoulder" },
     leftElbow: { id: "leftElbow", label: "Left elbow", side: "left", region: "elbow" },
@@ -38,11 +40,11 @@ const KEY_POINT_DETAILS: Record<
 };
 
 const EXERCISE_REQUIRED_KEY_POINTS: Record<string, PoseLandmarkKey[]> = {
-    "side arms raise": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
-    "left shoulder flexion": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
-    "right shoulder flexion": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
-    "shoulder flexion": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
-    "shoulder abduction": ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "side arms raise": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "left shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "right shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    "shoulder abduction": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
 };
 
 export function getExerciseKeyPointVisibility(
@@ -61,11 +63,11 @@ export function getExerciseKeyPointVisibility(
         normalized === "shoulder abduction"
     ) {
         if (selectedSide === "left" || normalized.includes("left")) {
-            requiredList = ["leftShoulder", "rightShoulder", "leftElbow"];
+            requiredList = ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow"];
         } else if (selectedSide === "right" || normalized.includes("right")) {
-            requiredList = ["leftShoulder", "rightShoulder", "rightElbow"];
+            requiredList = ["nose", "chest", "leftShoulder", "rightShoulder", "rightElbow"];
         } else {
-            requiredList = ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
+            requiredList = ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
         }
     } else {
         requiredList = EXERCISE_REQUIRED_KEY_POINTS[normalized];
@@ -73,21 +75,41 @@ export function getExerciseKeyPointVisibility(
 
     if (!requiredList) {
         if (normalized.includes("arm") || normalized.includes("shoulder")) {
-            requiredList = ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
+            requiredList = ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
         } else if (normalized.includes("squat") || normalized.includes("knee") || normalized.includes("leg")) {
             requiredList = ["leftHip", "rightHip", "leftKnee", "rightKnee"];
         } else {
-            requiredList = ["leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
+            requiredList = ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
         }
     }
 
     const requiredIds = new Set(requiredList);
 
-    return Object.values(KEY_POINT_DETAILS).map((point) => ({
-        ...point,
-        isRequired: requiredIds.has(point.id),
-        isVisible: (landmarks?.[point.id]?.visibility ?? 0) >= requiredVisibility,
-    }));
+    // Compute robust chest visibility: must have both shoulders in frame and with sufficient width
+    let chestVis = 0;
+    if (landmarks?.chest?.visibility !== undefined && landmarks.chest.visibility > 0) {
+        chestVis = landmarks.chest.visibility;
+    } else if (landmarks?.leftShoulder && landmarks?.rightShoulder) {
+        const ls = landmarks.leftShoulder;
+        const rs = landmarks.rightShoulder;
+        const span = Math.hypot(ls.x - rs.x, ls.y - rs.y);
+        const inBounds = ls.y >= 0.05 && ls.y <= 0.95 && rs.y >= 0.05 && rs.y <= 0.95;
+        if (ls.visibility >= requiredVisibility && rs.visibility >= requiredVisibility && span >= 0.08 && inBounds) {
+            chestVis = Math.min(ls.visibility, rs.visibility);
+        }
+    }
+
+    return Object.values(KEY_POINT_DETAILS).map((point) => {
+        let isVisible = (landmarks?.[point.id]?.visibility ?? 0) >= requiredVisibility;
+        if (point.id === "chest") {
+            isVisible = chestVis >= requiredVisibility;
+        }
+        return {
+            ...point,
+            isRequired: requiredIds.has(point.id),
+            isVisible,
+        };
+    });
 }
 
 export function getRequiredExerciseKeyPointVisibility(
