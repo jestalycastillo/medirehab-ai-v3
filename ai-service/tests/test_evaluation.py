@@ -27,7 +27,6 @@ from app.utils import process_video as process_video_module
 class ModelRegistryTests(unittest.TestCase):
     def test_all_catalog_model_variants_load(self):
         for model_key in (
-            "side_arms_raise_v1",
             "left_flexion",
             "left_flexion_v2",
             "right_flexion",
@@ -43,8 +42,8 @@ class ModelRegistryTests(unittest.TestCase):
                 self.assertEqual(len(loaded.definition.features), 12)
 
     def test_registered_model_is_cached(self):
-        first = get_loaded_model("side_arms_raise_v1")
-        second = get_loaded_model("side_arms_raise_v1")
+        first = get_loaded_model("left_flexion")
+        second = get_loaded_model("left_flexion")
 
         self.assertIs(first, second)
 
@@ -70,7 +69,7 @@ class ModelRegistryTests(unittest.TestCase):
             get_model_definition("unknown_model_v1")
 
     def test_known_motion_scores_above_intentionally_incorrect_motion(self):
-        loaded_model = get_loaded_model("side_arms_raise_v1")
+        loaded_model = get_loaded_model("left_flexion")
         training_trace = sorted(
             (Path(__file__).resolve().parents[1] / "data" / "shoulder_exercise_1").glob(
                 "*.csv"
@@ -110,7 +109,7 @@ class ModelRegistryTests(unittest.TestCase):
 
 class TracePreprocessingTests(unittest.TestCase):
     def test_preprocess_reads_only_the_requested_trace(self):
-        features = get_model_definition("side_arms_raise_v1").features
+        features = get_model_definition("left_flexion").features
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             directory = Path(temporary_directory)
@@ -242,7 +241,7 @@ class EvaluationRouteTests(unittest.TestCase):
             side_effect=FileNotFoundError,
         ):
             unavailable_response = self.client.post(
-                "/evaluate/side_arms_raise_v1",
+                "/evaluate/left_flexion",
                 files={"video": ("recording.webm", b"video", "video/webm")},
             )
 
@@ -270,7 +269,7 @@ class EvaluationRouteTests(unittest.TestCase):
         ):
             responses = [
                 self.client.post(
-                    "/evaluate/side_arms_raise_v1",
+                    "/evaluate/left_flexion",
                     files={"video": ("recording.webm", b"video", "video/webm")},
                 )
                 for _ in range(2)

@@ -10,12 +10,12 @@ CHECKPOINT_PATH = (
     Path(__file__).resolve().parents[2]
     / "training"
     / "checkpoints"
-    / "side_arms_raise_v1.pth"
+    / "left_flexion.pth"
 )
 APP_MODEL_PATH = (
     Path(__file__).resolve().parents[1]
     / "models"
-    / "side_arms_raise_v1.pth"
+    / "left_flexion.pth"
 )
 
 

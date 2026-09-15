@@ -1,11 +1,10 @@
 export interface ExerciseModelGuidanceConfig {
-  guidanceName: "Side Arms Raise" | "Shoulder Flexion" | "Shoulder Abduction";
+  guidanceName: "Shoulder Flexion" | "Shoulder Abduction";
   selectableSide: boolean;
   fixedSide?: "left" | "right";
 }
 
 const MODEL_GUIDANCE: Record<string, ExerciseModelGuidanceConfig> = {
-  side_arms_raise_v1: { guidanceName: "Side Arms Raise", selectableSide: false },
   shoulder_flexion: { guidanceName: "Shoulder Flexion", selectableSide: true },
   shoulder_abduction: { guidanceName: "Shoulder Abduction", selectableSide: true },
   left_flexion: { guidanceName: "Shoulder Flexion", selectableSide: false, fixedSide: "left" },
@@ -44,5 +43,8 @@ export function getExerciseDemoVideoUrl(
     return "/exercises/videos/left_shoulder_abduction.mp4";
   }
 
-  return "/exercises/videos/side_arms_raise.mp4";
+  if (selectedSide === "right" || key.includes("right")) {
+    return "/exercises/videos/right_shoulder_flexion.mp4";
+  }
+  return "/exercises/videos/left_shoulder_flexion.mp4";
 }

@@ -40,7 +40,6 @@ const KEY_POINT_DETAILS: Record<
 };
 
 const EXERCISE_REQUIRED_KEY_POINTS: Record<string, PoseLandmarkKey[]> = {
-    "side arms raise": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
     "left shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
     "right shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
     "shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],

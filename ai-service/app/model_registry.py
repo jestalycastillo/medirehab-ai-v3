@@ -29,26 +29,6 @@ class LoadedAnalysisModel:
 
 
 MODEL_REGISTRY = {
-    "side_arms_raise_v1": AnalysisModelDefinition(
-        checkpoint_path=Path(__file__).resolve().parent
-        / "models"
-        / "side_arms_raise_v1.pth",
-        input_frames=200,
-        features=(
-            "Chest_x",
-            "Chest_y",
-            "Nose_x",
-            "Nose_y",
-            "Left Shoulder_x",
-            "Left Shoulder_y",
-            "Right Shoulder_x",
-            "Right Shoulder_y",
-            "Left Elbow_x",
-            "Left Elbow_y",
-            "Right Elbow_x",
-            "Right Elbow_y",
-        ),
-    ),
     "left_flexion": AnalysisModelDefinition(
         checkpoint_path=Path(__file__).resolve().parent
         / "models"

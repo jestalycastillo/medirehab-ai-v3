@@ -2,11 +2,6 @@ import assert from "node:assert/strict";
 import { resolveExerciseAnalysisModel } from "../src/utils/exerciseAnalysisModel";
 import { HttpError } from "../src/utils/httpError";
 
-assert.deepEqual(resolveExerciseAnalysisModel("side_arms_raise_v1"), {
-    evaluatedModelKey: "side_arms_raise_v1",
-    selectedSide: null
-});
-
 for (const movement of ["flexion", "abduction"] as const) {
     for (const side of ["left", "right"] as const) {
         assert.deepEqual(resolveExerciseAnalysisModel(`shoulder_${movement}`, side), {
@@ -26,10 +21,6 @@ for (const movement of ["flexion", "abduction"] as const) {
 
 assert.throws(
     () => resolveExerciseAnalysisModel("right_flexion", "left"),
-    (error) => error instanceof HttpError && error.statusCode === 400
-);
-assert.throws(
-    () => resolveExerciseAnalysisModel("side_arms_raise_v1", "left"),
     (error) => error instanceof HttpError && error.statusCode === 400
 );
 

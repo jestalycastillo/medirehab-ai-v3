@@ -10,7 +10,7 @@ interface AnimatedExerciseGuideProps {
     speed?: number; // 0.75, 1.0, 1.25
 }
 
-type MovementType = "side_arms_raise" | "left_flexion" | "right_flexion" | "left_abduction" | "right_abduction";
+type MovementType = "left_flexion" | "right_flexion" | "left_abduction" | "right_abduction";
 
 interface ArmKinematics {
     shoulder: { x: number; y: number };
@@ -26,13 +26,6 @@ function resolveMovementType(
     const norm = (exerciseName || "").toLowerCase();
     const key = (modelKey || "").toLowerCase();
 
-    if (norm.includes("flexion") || key.includes("flexion")) {
-        if (selectedSide === "right" || key.includes("right")) {
-            return "right_flexion";
-        }
-        return "left_flexion";
-    }
-
     if (norm.includes("abduction") || key.includes("abduction")) {
         if (selectedSide === "right" || key.includes("right")) {
             return "right_abduction";
@@ -40,7 +33,10 @@ function resolveMovementType(
         return "left_abduction";
     }
 
-    return "side_arms_raise";
+    if (selectedSide === "right" || key.includes("right")) {
+        return "right_flexion";
+    }
+    return "left_flexion";
 }
 
 export function AnimatedExerciseGuide({
@@ -81,10 +77,8 @@ export function AnimatedExerciseGuide({
         if (movement.includes("abduction")) maxAngle = 145;
         if (movement.includes("flexion")) maxAngle = 160;
 
-        const isLeftActive =
-            movement === "side_arms_raise" || movement === "left_flexion" || movement === "left_abduction";
-        const isRightActive =
-            movement === "side_arms_raise" || movement === "right_flexion" || movement === "right_abduction";
+        const isLeftActive = movement === "left_flexion" || movement === "left_abduction";
+        const isRightActive = movement === "right_flexion" || movement === "right_abduction";
         const isFlexion = movement.includes("flexion");
 
         const updateKinematics = () => {
@@ -192,10 +186,8 @@ export function AnimatedExerciseGuide({
         return () => cancelAnimationFrame(frameId);
     }, [animationDuration, movement]);
 
-    const isLeftActive =
-        movement === "side_arms_raise" || movement === "left_flexion" || movement === "left_abduction";
-    const isRightActive =
-        movement === "side_arms_raise" || movement === "right_flexion" || movement === "right_abduction";
+    const isLeftActive = movement === "left_flexion" || movement === "left_abduction";
+    const isRightActive = movement === "right_flexion" || movement === "right_abduction";
 
     return (
         <div

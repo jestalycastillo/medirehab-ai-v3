@@ -17,14 +17,11 @@ test("generic shoulder exercises start on the left and can switch only to an unr
   assert.equal(canSwitchArm(config, "right", ["left"]), false);
 });
 
-test("fixed-side exercises cannot switch and bilateral exercises do not select an arm", () => {
+test("fixed-side exercises cannot switch", () => {
   const fixed = getExerciseModelGuidanceConfig("left_flexion");
+  assert(fixed);
   assert.equal(resolveRecordingSide(fixed, "right"), "left");
   assert.equal(canSwitchArm(fixed, "left", []), false);
-  const bilateral = getExerciseModelGuidanceConfig("side_arms_raise_v1");
-  assert.equal(resolveRecordingSide(bilateral, null), undefined);
-  assert.equal(canRecordArm(bilateral, null, []), true);
-  assert.equal(canRecordArm(bilateral, null, [undefined]), false);
 });
 
 test("prescribed time is a goal per arm, never an automatic stop", () => {

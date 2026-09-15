@@ -120,7 +120,6 @@ export function ExerciseForm({
             >
               <option value="shoulder_flexion">Shoulder Flexion (shoulder_flexion)</option>
               <option value="shoulder_abduction">Shoulder Abduction (shoulder_abduction)</option>
-              <option value="side_arms_raise_v1">Side Arms Raise (side_arms_raise_v1)</option>
             </select>
           </div>
           
