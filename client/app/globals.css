@@ -805,10 +805,10 @@ body {
   height: 100%;
 }
 
-/* Floating Follow-Along Guide */
+/* Floating Follow-Along Guide (Below Exercise Title Label) */
 .recorder-fullscreen-container .follow-along-card {
   position: absolute;
-  bottom: 84px;
+  top: 76px;
   left: 24px;
   z-index: 25;
   margin: 0;
