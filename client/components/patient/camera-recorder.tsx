@@ -6,6 +6,7 @@ import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
 import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config";
 import { canRecordArm, canSwitchArm, getRecordingTimeState, resolveRecordingSide, type ArmSide } from "@/lib/camera-visit";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
+import { RoboticSkeletonOverlay } from "./robotic-skeleton-overlay";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
     CircleStop,
     LoaderCircle,
     RotateCcw,
+    Scan,
     Sparkles,
     Video,
     Volume2,
@@ -65,6 +67,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [isFinalizingRecording, setIsFinalizingRecording] = useState(false);
     const [isCameraStarting, setIsCameraStarting] = useState(false);
     const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+    const [isSkeletonVisible, setIsSkeletonVisible] = useState(true);
     const [countdown, setCountdown] = useState<number | null>(null);
     const [recordedClips, setRecordedClips] = useState<RecordedClip[]>([]);
     const [reviewClipKey, setReviewClipKey] = useState<string | null>(null);
@@ -190,6 +193,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             : liveGuidance.resolvedIssues.length > 0
               ? "issue_resolved"
               : null;
+        const resolvedIssueId = liveGuidance.resolvedIssues[0]?.id;
         const now = Date.now();
 
         if (!event || now - lastLiveCoachingAtRef.current < LIVE_COACHING_COOLDOWN_MS) {
@@ -202,7 +206,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         const requestedAt = Date.now();
 
         if (assignmentId) {
-            api.requestLiveCoaching(exerciseId, assignmentId, event, targetSide ?? undefined)
+            api.requestLiveCoaching(exerciseId, assignmentId, event, targetSide ?? undefined, resolvedIssueId)
                 .then((response) => {
                     if (
                         liveCoachingRequestIdRef.current !== requestId
@@ -232,7 +236,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     if (liveCoachingRequestIdRef.current !== requestId || !isRecordingRef.current) return;
                     const fallbackMsg = event === "repetition_completed"
                         ? (targetSide ? `Great control on that repetition on your ${targetSide} arm.` : "Great control on that repetition.")
-                        : "Nice adjustment. Keep moving with steady control.";
+                        : (resolvedIssueId === "torso-leaning" || resolvedIssueId === "chest-sway"
+                            ? "Great posture adjustment. Keeping your chest steady helps isolate the shoulder."
+                            : "Nice adjustment. Keep moving with steady control.");
                     setLiveCoachingMessage(fallbackMsg);
                     if (isVoiceEnabledRef.current) {
                         lastSpokenMessageRef.current = fallbackMsg;
@@ -292,10 +298,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     const startCamera = async (): Promise<MediaStream | null> => {
         setError(null);
-        setRecordedUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return null;
-        });
+        setCameraAccessIssue(null);
+        setReviewClipKey(null);
+        setLiveCoachingMessage(null);
+        setIsFinalizingRecording(false);
+        setIsCameraStarting(true);
         try {
             if (!navigator.mediaDevices?.getUserMedia) {
                 setCameraAccessIssue("unavailable");
@@ -432,10 +439,12 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         setIsCameraStarting(false);
         setIsOpen(false);
         setError(null);
-        setRecordedUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return null;
-        });
+        setCameraAccessIssue(null);
+        for (const url of clipUrlsRef.current) URL.revokeObjectURL(url);
+        clipUrlsRef.current.clear();
+        setRecordedClips([]);
+        setReviewClipKey(null);
+        setClipResults([]);
         setIsEvaluating(false);
         setEvaluationScore(null);
         setSessionIds([]);
@@ -529,28 +538,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             recorder.onerror = (e) => {
                 console.error("MediaRecorder error:", e);
-                setIsRecording(false);
-                if (recordingTimeoutRef.current) {
-                    clearTimeout(recordingTimeoutRef.current);
-                    recordingTimeoutRef.current = null;
-                }
-                if (elapsedIntervalRef.current) {
-                    clearInterval(elapsedIntervalRef.current);
-                    elapsedIntervalRef.current = null;
-                }
-                setError("Recording error occurred. Please try again.");
             };
 
             recorder.onstop = () => {
-                setIsRecording(false);
-                if (recordingTimeoutRef.current) {
-                    clearTimeout(recordingTimeoutRef.current);
-                    recordingTimeoutRef.current = null;
-                }
-                if (elapsedIntervalRef.current) {
-                    clearInterval(elapsedIntervalRef.current);
-                    elapsedIntervalRef.current = null;
-                }
                 try {
                     isRecordingRef.current = false;
                     liveCoachingRequestIdRef.current += 1;
@@ -558,17 +548,39 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     if (assignmentId) {
                         void api.stopExerciseActivity(assignmentId).catch(() => undefined);
                     }
+                    if (elapsedIntervalRef.current) {
+                        clearInterval(elapsedIntervalRef.current);
+                        elapsedIntervalRef.current = null;
+                    }
+                    setIsRecording(false);
+                    if (discardRecordingRef.current) return;
                     const rawMimeType = recorder.mimeType || preferredMimeType || "video/webm";
                     const cleanMimeType = rawMimeType.split(";")[0]?.trim() || "video/webm";
                     recordingDurationSecondsRef.current = Math.max(1, Math.round((Date.now() - recordingStartedAtRef.current) / 1000));
+                    setElapsedSeconds(recordingDurationSecondsRef.current);
                     const blob = new Blob(chunksRef.current, { type: cleanMimeType });
-                    blobRef.current = blob;
                     const url = URL.createObjectURL(blob);
-                    setRecordedUrl((prev) => {
-                        if (prev) URL.revokeObjectURL(prev);
-                        return url;
-                    });
-                    stopCamera();
+                    clipUrlsRef.current.add(url);
+                    const clip: RecordedClip = {
+                        side: recordingSideRef.current,
+                        blob,
+                        url,
+                        durationSeconds: recordingDurationSecondsRef.current,
+                        clientSessionId: clientSessionIdRef.current,
+                        guidanceFeedback: [...liveGuidanceFeedbackRef.current],
+                    };
+                    setRecordedClips((current) => [...current, clip]);
+                    setIsFinalizingRecording(false);
+                    if (stopDispositionRef.current === "switch" && clip.side) {
+                        setSelectedSide(clip.side === "left" ? "right" : "left");
+                        setElapsedSeconds(0);
+                        setLiveCoachingMessage(null);
+                        lastSpokenMessageRef.current = "";
+                        lastSpokenAtRef.current = 0;
+                    } else {
+                        setReviewClipKey(clip.side ?? "both");
+                        stopCamera();
+                    }
                     if (onSave) {
                         onSave(blob);
                     }
@@ -590,18 +602,10 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             }, 250);
 
             clientSessionIdRef.current = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-            recorder.start();
+            recorder.start(1000);
             setIsRecording(true);
             if (assignmentId) {
                 void api.startExerciseActivity(assignmentId).catch(() => undefined);
-            }
-
-            if (selectedTimerSeconds !== null && selectedTimerSeconds > 0) {
-                recordingTimeoutRef.current = setTimeout(() => {
-                    stopRecording();
-                }, selectedTimerSeconds * 1000);
-            } else {
-                recordingTimeoutRef.current = null;
             }
         } catch (err) {
             console.error("Failed to start recording:", err);
@@ -978,6 +982,17 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                         className="recorder-video"
                                     />
 
+                                    {stream && (
+                                        <RoboticSkeletonOverlay
+                                            videoRef={videoRef}
+                                            landmarks={liveGuidance.landmarks}
+                                            selectedSide={targetSide}
+                                            exerciseName={exerciseName}
+                                            enabled={isSkeletonVisible && !recordedUrl}
+                                            hasReliablePose={liveGuidance.hasReliablePose}
+                                        />
+                                    )}
+
                                     {!stream && !isRecording && countdown === null && !isCameraStarting && (
                                         <button
                                             type="button"
@@ -1011,19 +1026,34 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
                                     {liveGuidanceEnabled && (
                                         <>
-                                            <button
-                                                type="button"
-                                                className={`live-guidance-pill ${isVoiceEnabled ? "" : "live-guidance-pill-muted"}`}
-                                                onClick={handleVoiceToggle}
-                                                aria-pressed={isVoiceEnabled}
-                                                aria-label={isVoiceEnabled ? "Mute live voice coaching" : "Enable live voice coaching"}
-                                            >
-                                                <span
-                                                    className={`live-guidance-status live-guidance-status-${liveGuidance.status}`}
-                                                />
-                                                {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
-                                                {isVoiceEnabled ? "Voice on" : "Voice muted"}
-                                            </button>
+                                            <div className="recorder-top-pills">
+                                                <button
+                                                    type="button"
+                                                    className={`live-guidance-pill robotic-hud-pill ${isSkeletonVisible ? "robotic-hud-pill-active" : "live-guidance-pill-muted"}`}
+                                                    onClick={() => setIsSkeletonVisible((prev) => !prev)}
+                                                    aria-pressed={isSkeletonVisible}
+                                                    aria-label={isSkeletonVisible ? "Disable robotic skeleton tracking" : "Enable robotic skeleton tracking"}
+                                                    title="Robotic Skeleton HUD"
+                                                >
+                                                    <Scan size={14} aria-hidden="true" />
+                                                    {isSkeletonVisible ? "Skeleton HUD" : "HUD Off"}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    className={`live-guidance-pill ${isVoiceEnabled ? "" : "live-guidance-pill-muted"}`}
+                                                    onClick={handleVoiceToggle}
+                                                    aria-pressed={isVoiceEnabled}
+                                                    aria-label={isVoiceEnabled ? "Mute live voice coaching" : "Enable live voice coaching"}
+                                                >
+                                                    <span
+                                                        className={`live-guidance-status live-guidance-status-${liveGuidance.status}`}
+                                                    />
+                                                    {isVoiceEnabled ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
+                                                    {isVoiceEnabled ? "Voice on" : "Voice muted"}
+                                                </button>
+                                            </div>
+
                                             {isRecording && liveCoachingMessage && (
                                                 <div
                                                     aria-live="polite"
@@ -1178,14 +1208,8 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 <>
                                     <Button
                                         variant="outline"
-                                        onClick={() => {
-                                            setRecordedUrl((prev) => {
-                                                if (prev) URL.revokeObjectURL(prev);
-                                                return null;
-                                            });
-                                            startCamera();
-                                        }}
-                                        disabled={isEvaluating}
+                                        onClick={handleRetakeClip}
+                                        disabled={isEvaluating || clipResults.some((result) => result.clientSessionId === selectedReviewClip?.clientSessionId)}
                                     >
                                         <RotateCcw />
                                         Retake This Arm

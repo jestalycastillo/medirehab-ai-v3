@@ -962,6 +962,22 @@ body {
   animation: spin 900ms linear infinite;
 }
 
+.recorder-top-pills {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recorder-top-pills .live-guidance-pill {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
 .live-guidance-pill {
   position: absolute;
   top: 14px;
@@ -996,6 +1012,19 @@ body {
   border-color: rgba(100, 120, 117, 0.22);
   background: rgba(241, 245, 244, 0.94);
   color: var(--color-text-muted);
+}
+
+.robotic-hud-pill-active {
+  border-color: rgba(0, 240, 255, 0.45);
+  background: rgba(4, 20, 28, 0.88);
+  color: #00f0ff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25), 0 8px 22px rgba(3, 15, 14, 0.16);
+}
+
+.robotic-hud-pill-active:hover {
+  border-color: rgba(0, 240, 255, 0.75);
+  background: rgba(8, 30, 42, 0.95);
+  color: #38bdf8;
 }
 
 .live-guidance-status {
