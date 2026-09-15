@@ -968,9 +968,21 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
                     {/* Floating Top Header Bar */}
                     <header className="recorder-floating-header">
-                        <div className="recorder-floating-title-badge">
-                            <Video size={18} style={{ color: "#2dd4bf" }} />
-                            <h3 id="exercise-recorder-title">{exerciseName}</h3>
+                        <div className="recorder-floating-top-left">
+                            <div className="recorder-floating-title-badge">
+                                <Video size={18} style={{ color: "#2dd4bf" }} />
+                                <h3 id="exercise-recorder-title">{exerciseName}</h3>
+                            </div>
+
+                            {/* Floating Follow-Along Guide (Directly below exercise title) */}
+                            {stream && !recordedUrl && (
+                                <FollowAlongVideo
+                                    exerciseName={exerciseName}
+                                    selectedSide={targetSide}
+                                    analysisModelKey={analysisModelKey}
+                                    isRecording={isRecording}
+                                />
+                            )}
                         </div>
 
                         <div className="recorder-floating-header-controls">
@@ -1202,16 +1214,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         <aside className="recorder-floating-guidance" aria-label="Live body position guidance">
                             <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
                         </aside>
-                    )}
-
-                    {/* Floating Follow-Along Guide (Bottom-Left) */}
-                    {stream && !recordedUrl && (
-                        <FollowAlongVideo
-                            exerciseName={exerciseName}
-                            selectedSide={targetSide}
-                            analysisModelKey={analysisModelKey}
-                            isRecording={isRecording}
-                        />
                     )}
 
                     {/* Floating Bottom Action Footer */}

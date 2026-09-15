@@ -710,7 +710,7 @@ body {
   padding: 16px 24px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.45) 60%, rgba(0, 0, 0, 0) 100%);
   pointer-events: none;
@@ -718,6 +718,23 @@ body {
 
 .recorder-floating-header > * {
   pointer-events: auto;
+}
+
+.recorder-floating-top-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.recorder-floating-top-left .follow-along-card {
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
 }
 
 .recorder-floating-title-badge {
@@ -803,15 +820,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3);
   height: 100%;
-}
-
-/* Floating Follow-Along Guide (Below Exercise Title Label) */
-.recorder-fullscreen-container .follow-along-card {
-  position: absolute;
-  top: 76px;
-  left: 24px;
-  z-index: 25;
-  margin: 0;
 }
 
 /* Center Live Coaching & Status Cues */
