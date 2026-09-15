@@ -6,6 +6,7 @@ export type LiveCoachingSide = "left" | "right";
 export type ValidatedLiveCoachingInput = {
     event: LiveCoachingEvent;
     side?: LiveCoachingSide;
+    issueType?: string;
 };
 
 const LIVE_COACHING_EVENTS = new Set<LiveCoachingEvent>([
@@ -21,9 +22,11 @@ export const validateLiveCoachingInput = (
     }
 
     const side = body.side === "left" || body.side === "right" ? body.side : undefined;
+    const issueType = typeof body.issueType === "string" ? body.issueType.trim() : undefined;
 
     return {
         event: body.event as LiveCoachingEvent,
-        ...(side ? { side } : {})
+        ...(side ? { side } : {}),
+        ...(issueType ? { issueType } : {})
     };
 };

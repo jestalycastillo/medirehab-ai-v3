@@ -11,8 +11,11 @@ type AiServiceCoachingResponse = {
     source?: unknown;
 };
 
-const fallbackForEvent = (event: LiveCoachingEvent, side?: LiveCoachingSide): string => {
+const fallbackForEvent = (event: LiveCoachingEvent, side?: LiveCoachingSide, issueType?: string): string => {
     const sideContext = side ? ` on your ${side} arm` : "";
+    if (issueType === "torso-leaning" || issueType === "chest-compensation" || issueType === "chest-sway" || issueType === "posture") {
+        return "Great posture adjustment. Keeping your chest steady helps isolate the shoulder.";
+    }
     switch (event) {
         case "issue_resolved":
             return `Nice adjustment${sideContext}. Keep moving with steady control.`;
@@ -50,7 +53,8 @@ const getAiServiceTimeoutMs = (): number => {
 const requestCoachingMessage = async (
     exerciseName: string,
     event: LiveCoachingEvent,
-    side?: LiveCoachingSide
+    side?: LiveCoachingSide,
+    issueType?: string
 ): Promise<{ message: string; source: "ollama" | "fallback" } | null> => {
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), getAiServiceTimeoutMs());
@@ -68,6 +72,7 @@ const requestCoachingMessage = async (
                 exercise_name: fullExerciseName,
                 event,
                 side,
+                issue_type: issueType,
             }),
         });
 
@@ -95,7 +100,8 @@ export const createLiveCoachingMessage = async (
     exerciseId: string,
     assignmentId: string,
     event: LiveCoachingEvent,
-    side?: LiveCoachingSide
+    side?: LiveCoachingSide,
+    issueType?: string
 ): Promise<{ message: string; source: "ollama" | "fallback" }> => {
     let exerciseName = "Shoulder Flexion";
 
@@ -119,6 +125,6 @@ export const createLiveCoachingMessage = async (
         }
     }
 
-    const coaching = await requestCoachingMessage(exerciseName, event, side);
-    return coaching ?? { message: fallbackForEvent(event, side), source: "fallback" };
+    const coaching = await requestCoachingMessage(exerciseName, event, side, issueType);
+    return coaching ?? { message: fallbackForEvent(event, side, issueType), source: "fallback" };
 };
