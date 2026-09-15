@@ -163,8 +163,8 @@ export function AnimatedExerciseGuide({
                     <path
                         d={
                             movement === "left_flexion"
-                                ? "M 48 160 A 70 85 0 0 1 58 20"
-                                : "M 48 160 A 85 85 0 0 1 12 76"
+                                ? "M 48 160 A 70 85 0 0 0 58 20"
+                                : "M 48 160 A 85 85 0 0 0 12 76"
                         }
                         fill="none"
                         stroke="rgba(0, 240, 255, 0.22)"
@@ -178,8 +178,8 @@ export function AnimatedExerciseGuide({
                     <path
                         d={
                             movement === "right_flexion"
-                                ? "M 152 160 A 70 85 0 0 0 142 20"
-                                : "M 152 160 A 85 85 0 0 0 188 76"
+                                ? "M 152 160 A 70 85 0 0 1 142 20"
+                                : "M 152 160 A 85 85 0 0 1 188 76"
                         }
                         fill="none"
                         stroke="rgba(0, 240, 255, 0.22)"
