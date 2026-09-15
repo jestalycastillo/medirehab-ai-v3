@@ -30,7 +30,9 @@ export type ShoulderAbductionGuidanceIssueId =
     | "target-arm-high"
     | "other-arm-moving"
     | "target-arm-direction"
-    | "direction-uncertain";
+    | "direction-uncertain"
+    | "torso-leaning"
+    | "chest-sway";
 
 export interface ShoulderAbductionGuidanceIssue {
     id: ShoulderAbductionGuidanceIssueId;
@@ -270,7 +272,12 @@ function toUpperBodyLandmarks(landmarks: PoseLandmarkMap | null): UpperBodyLandm
     if (!landmarks) return null;
     const { leftShoulder, rightShoulder, leftElbow, rightElbow } = landmarks;
     if (!leftShoulder || !rightShoulder || !leftElbow || !rightElbow) return null;
-    return { leftShoulder, rightShoulder, leftElbow, rightElbow };
+    const chest: PosePoint = landmarks.chest ?? {
+        x: (leftShoulder.x + rightShoulder.x) / 2,
+        y: (leftShoulder.y + rightShoulder.y) / 2,
+        visibility: Math.min(leftShoulder.visibility, rightShoulder.visibility),
+    };
+    return { chest, leftShoulder, rightShoulder, leftElbow, rightElbow };
 }
 
 function hasReliableUpperBodyLandmarks(
@@ -327,6 +334,14 @@ function detectCandidateIssue(
     sideLabel: string,
     otherLabel: string,
 ): ShoulderAbductionGuidanceIssue | null {
+    const shoulderTilt = Math.abs(landmarks.leftShoulder.y - landmarks.rightShoulder.y) / shoulderWidth;
+    if (shoulderTilt > 0.22) {
+        return {
+            id: "torso-leaning",
+            instruction: `Keep your chest upright and avoid leaning your torso.`,
+        };
+    }
+
     const targetElbow = side === "left" ? landmarks.leftElbow : landmarks.rightElbow;
     const targetShoulder = side === "left" ? landmarks.leftShoulder : landmarks.rightShoulder;
     const otherElbow = side === "left" ? landmarks.rightElbow : landmarks.leftElbow;

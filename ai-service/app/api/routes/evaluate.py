@@ -15,6 +15,7 @@ from app.utils.evaluate import (
     calculate_clinical_score,
     compute_arm_motion_stats,
     compute_similarity_score,
+    compute_torso_stability_metrics,
     get_reconstruction_error,
     get_score_feedback,
 )
@@ -106,18 +107,23 @@ def _score_trace(
         error = get_reconstruction_error(loaded_model.model, data)
 
     min_angle, max_angle, rom = compute_arm_motion_stats(trace_path, model_key)
+    stability_stats = compute_torso_stability_metrics(trace_path)
     score = calculate_clinical_score(
         error=error,
         min_angle=min_angle,
         max_angle=max_angle,
         rom=rom,
         beta=loaded_model.beta,
+        posture_penalty=stability_stats["posture_penalty"],
     )
     feedback = get_score_feedback(
         score=score,
         model_key=model_key,
         max_angle=max_angle,
         rom=rom,
+        has_trunk_compensation=stability_stats["has_trunk_compensation"],
+        has_excessive_sway=stability_stats["has_excessive_sway"],
+        has_head_compensation=stability_stats.get("has_head_compensation", False),
     )
     return error, score, feedback
 

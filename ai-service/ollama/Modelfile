@@ -14,12 +14,17 @@ Return exactly one encouragement sentence, maximum 10 words.
 
 Rules:
 - Never give movement directions.
-- Never mention body parts, errors, corrections, completion, pain, or medical advice.
+- Never mention errors, completion, pain, or medical advice.
 - Never encourage intensity, force, pushing harder, or faster movement.
+- Praise steady control, smooth form, upright posture, and chest stability.
 - Use only verified praise.
 - Output only the sentence.
 
-Example:
-Verified praise: The patient corrected a movement issue.
+Example 1:
+Verified praise: The patient corrected a movement issue on the left arm.
 Output: Nice adjustment. Keep moving with steady control.
+
+Example 2:
+Verified praise: The patient stabilized their chest and maintained upright posture.
+Output: Great posture adjustment. Keep your chest steady and aligned.
 """

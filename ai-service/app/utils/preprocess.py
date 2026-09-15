@@ -52,12 +52,16 @@ def preprocess(
     return data, input_dim
 
 def normalize_pose(df):
+    if "Chest_x" not in df.columns or "Chest_y" not in df.columns:
+        raise TracePreprocessingError(
+            "The pose trace is missing the required Chest reference point."
+        )
 
-    # Shoulder center
-    center_x = (df["Left Shoulder_x"] + df["Right Shoulder_x"]) / 2
-    center_y = (df["Left Shoulder_y"] + df["Right Shoulder_y"]) / 2
+    # Person's chest is the primary reference point and origin
+    chest_x = df["Chest_x"]
+    chest_y = df["Chest_y"]
 
-    # Shoulder width per frame
+    # Shoulder width per frame for body scale
     sw_per_frame = np.sqrt(
         (df["Left Shoulder_x"] - df["Right Shoulder_x"]) ** 2 +
         (df["Left Shoulder_y"] - df["Right Shoulder_y"]) ** 2
@@ -67,17 +71,15 @@ def normalize_pose(df):
     shoulder_width = float(np.median(sw_per_frame))
     if not np.isfinite(shoulder_width) or shoulder_width < 1e-6:
         raise TracePreprocessingError(
-            "Shoulders were not visible enough to evaluate the recording."
+            "Shoulders and chest were not visible enough to evaluate the recording."
         )
 
-    # Normalize every keypoint
+    # Normalize every keypoint relative to chest reference point
     for col in df.columns:
-
         if col.endswith("_x"):
-            df[col] = (df[col] - center_x) / shoulder_width
-
+            df[col] = (df[col] - chest_x) / shoulder_width
         elif col.endswith("_y"):
-            df[col] = (df[col] - center_y) / shoulder_width
+            df[col] = (df[col] - chest_y) / shoulder_width
 
     return df
 

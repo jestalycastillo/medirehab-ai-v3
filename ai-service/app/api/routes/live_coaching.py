@@ -19,7 +19,7 @@ DEFAULT_OLLAMA_TIMEOUT_MS = 30_000
 DEFAULT_OLLAMA_KEEP_ALIVE = "10m"
 MAX_COACHING_WORDS = 10
 DISALLOWED_COACHING_WORDS = re.compile(
-    r"\b(?:complete|completed|finish|finished|done|pain|dizzy|dizziness|medical|doctor|error|left|right|arm|shoulder|elbow|wrist|push|hard|stronger|force|intense|intensity|faster|higher|lower|further|goals?)\b",
+    r"\b(?:complete|completed|finish|finished|done|pain|dizzy|dizziness|medical|doctor|error|push|hard|stronger|force|intense|intensity|faster|higher|lower|further|goals?)\b",
     re.IGNORECASE,
 )
 
@@ -28,8 +28,9 @@ COACH_SYSTEM_PROMPT = " ".join(
         "You are a warm, short exercise coach.",
         "Return exactly one encouragement sentence, maximum 10 words.",
         "Never give movement directions.",
-        "Never mention body parts, errors, corrections, completion, pain, or medical advice.",
+        "Never mention errors, completion, pain, or medical advice.",
         "Never encourage intensity, force, pushing harder, or faster movement.",
+        "Praise steady control, smooth form, upright posture, and chest stability.",
         "Use only the verified praise. Return only the sentence.",
     ]
 )
@@ -39,17 +40,22 @@ class LiveCoachingRequest(BaseModel):
     exercise_name: str = Field(min_length=1, max_length=120)
     event: Literal["issue_resolved", "repetition_completed"]
     side: Literal["left", "right"] | None = None
+    issue_type: str | None = None
 
 
-def _praise_for_event(event: str, side: str | None = None) -> str:
+def _praise_for_event(event: str, side: str | None = None, issue_type: str | None = None) -> str:
     arm_text = f" on the {side} arm" if side else ""
+    if issue_type in ("torso-leaning", "chest-compensation", "chest-sway", "posture"):
+        return "The patient stabilized their chest and maintained upright posture."
     if event == "issue_resolved":
         return f"The patient corrected a movement issue{arm_text}."
     return f"The patient completed a controlled repetition{arm_text}."
 
 
-def _fallback_for_event(event: str, side: str | None = None) -> str:
+def _fallback_for_event(event: str, side: str | None = None, issue_type: str | None = None) -> str:
     side_text = f" on your {side} arm" if side else ""
+    if issue_type in ("torso-leaning", "chest-compensation", "chest-sway", "posture"):
+        return "Great posture adjustment. Keeping your chest steady helps isolate the shoulder."
     if event == "issue_resolved":
         return f"Nice adjustment{side_text}. Keep moving with steady control."
     return f"Great control on that repetition{side_text}. Keep the pace smooth."
@@ -91,7 +97,7 @@ async def _request_coaching_message(request: LiveCoachingRequest) -> str | None:
                 "role": "user",
                 "content": (
                     f"Exercise: {request.exercise_name}\n"
-                    f"Verified praise: {_praise_for_event(request.event, request.side)}"
+                    f"Verified praise: {_praise_for_event(request.event, request.side, request.issue_type)}"
                 ),
             },
         ],
@@ -121,6 +127,6 @@ async def create_live_coaching(request: LiveCoachingRequest):
 
     return {
         "success": True,
-        "message": _fallback_for_event(request.event, request.side),
+        "message": _fallback_for_event(request.event, request.side, request.issue_type),
         "source": "fallback",
     }

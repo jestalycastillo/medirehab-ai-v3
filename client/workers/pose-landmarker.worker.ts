@@ -9,7 +9,7 @@ import type {
     PoseWorkerResponse,
 } from "@/lib/pose/pose-landmarker.types";
 
-const LANDMARK_INDEXES: Record<PoseLandmarkKey, number> = {
+const LANDMARK_INDEXES: Record<Exclude<PoseLandmarkKey, "chest">, number> = {
     nose: 0,
     leftShoulder: 11,
     rightShoulder: 12,
@@ -96,12 +96,40 @@ workerScope.onmessage = async (event) => {
 function selectBodyLandmarks(
     landmarks: Array<{ x: number; y: number; visibility?: number }>,
 ): PoseLandmarkMap {
-    return Object.fromEntries(
+    const landmarkMap = Object.fromEntries(
         Object.entries(LANDMARK_INDEXES).map(([key, index]) => [
             key,
             toPosePoint(landmarks[index]),
         ]),
     ) as PoseLandmarkMap;
+
+    const leftShoulder = landmarkMap.leftShoulder;
+    const rightShoulder = landmarkMap.rightShoulder;
+
+    if (leftShoulder && rightShoulder) {
+        const span = Math.hypot(leftShoulder.x - rightShoulder.x, leftShoulder.y - rightShoulder.y);
+        const chestX = (leftShoulder.x + rightShoulder.x) / 2;
+        const chestY = (leftShoulder.y + rightShoulder.y) / 2;
+
+        // Chest is only visible if both shoulders are genuinely inside the frame (0.05 to 0.95),
+        // shoulder span is anatomically meaningful (> 0.08 of frame), and both have confident visibility
+        const isChestInBounds = chestX >= 0.05 && chestX <= 0.95 && chestY >= 0.05 && chestY <= 0.95;
+        const areShouldersInFrame = leftShoulder.y >= 0.05 && leftShoulder.y <= 0.95 && rightShoulder.y >= 0.05 && rightShoulder.y <= 0.95;
+        const areShouldersValid =
+            leftShoulder.visibility >= 0.65 &&
+            rightShoulder.visibility >= 0.65 &&
+            span >= 0.08 &&
+            isChestInBounds &&
+            areShouldersInFrame;
+
+        landmarkMap.chest = {
+            x: chestX,
+            y: chestY,
+            visibility: areShouldersValid ? Math.min(leftShoulder.visibility, rightShoulder.visibility) : 0,
+        };
+    }
+
+    return landmarkMap;
 }
 
 function toPosePoint(landmark?: { x: number; y: number; visibility?: number }): PosePoint {
@@ -115,12 +143,26 @@ function toPosePoint(landmark?: { x: number; y: number; visibility?: number }): 
 function selectWorldLandmarks(
     landmarks: Array<{ x: number; y: number; z: number; visibility?: number }>,
 ): PoseWorldLandmarkMap {
-    return Object.fromEntries(
+    const worldMap = Object.fromEntries(
         Object.entries(LANDMARK_INDEXES).map(([key, index]) => [
             key,
             toWorldPoint(landmarks[index]),
         ]),
     ) as PoseWorldLandmarkMap;
+
+    const leftShoulder = worldMap.leftShoulder;
+    const rightShoulder = worldMap.rightShoulder;
+
+    if (leftShoulder && rightShoulder) {
+        worldMap.chest = {
+            x: (leftShoulder.x + rightShoulder.x) / 2,
+            y: (leftShoulder.y + rightShoulder.y) / 2,
+            z: (leftShoulder.z + rightShoulder.z) / 2,
+            visibility: Math.min(leftShoulder.visibility, rightShoulder.visibility),
+        };
+    }
+
+    return worldMap;
 }
 
 function toWorldPoint(landmark?: { x: number; y: number; z: number; visibility?: number }): PoseWorldPoint {

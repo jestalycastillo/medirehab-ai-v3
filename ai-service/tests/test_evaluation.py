@@ -29,14 +29,18 @@ class ModelRegistryTests(unittest.TestCase):
         for model_key in (
             "side_arms_raise_v1",
             "left_flexion",
+            "left_flexion_v2",
             "right_flexion",
+            "right_flexion_v2",
             "left_abduction",
+            "left_abduction_v2",
             "right_abduction",
+            "right_abduction_v2",
         ):
             with self.subTest(model_key=model_key):
                 loaded = get_loaded_model(model_key)
                 self.assertEqual(loaded.definition.input_frames, 200)
-                self.assertEqual(len(loaded.definition.features), 8)
+                self.assertEqual(len(loaded.definition.features), 12)
 
     def test_registered_model_is_cached(self):
         first = get_loaded_model("side_arms_raise_v1")
@@ -47,9 +51,13 @@ class ModelRegistryTests(unittest.TestCase):
     def test_side_specific_models_return_matching_feedback(self):
         for key, direction in (
             ("left_flexion", "forward"),
+            ("left_flexion_v2", "forward"),
             ("right_flexion", "forward"),
+            ("right_flexion_v2", "forward"),
             ("left_abduction", "sideways"),
+            ("left_abduction_v2", "sideways"),
             ("right_abduction", "sideways"),
+            ("right_abduction_v2", "sideways"),
         ):
             with self.subTest(model_key=key):
                 feedback = get_score_feedback(80.0, key)
@@ -63,11 +71,11 @@ class ModelRegistryTests(unittest.TestCase):
 
     def test_known_motion_scores_above_intentionally_incorrect_motion(self):
         loaded_model = get_loaded_model("side_arms_raise_v1")
-        training_trace = next(
+        training_trace = sorted(
             (Path(__file__).resolve().parents[1] / "data" / "shoulder_exercise_1").glob(
                 "*.csv"
             )
-        )
+        )[0]
         known_motion, _ = preprocess(
             training_trace,
             loaded_model.definition.input_frames,
@@ -81,7 +89,7 @@ class ModelRegistryTests(unittest.TestCase):
             np.array([-3.0, 3.0, 3.0, -3.0], dtype=np.float32),
         ):
             incorrect_motion = known_motion.copy()
-            incorrect_motion[:, :, 4:] = elbow_coordinates
+            incorrect_motion[:, :, 8:] = elbow_coordinates
             incorrect_motions.append(incorrect_motion)
 
         def score(motion):
@@ -111,6 +119,10 @@ class TracePreprocessingTests(unittest.TestCase):
             frame = pd.DataFrame(
                 {
                     "frame": [0, 1, 2],
+                    "Chest_x": [0.5, 0.5, 0.5],
+                    "Chest_y": [0.4, 0.4, 0.4],
+                    "Nose_x": [0.5, 0.5, 0.5],
+                    "Nose_y": [0.2, 0.2, 0.2],
                     "Left Shoulder_x": [0.3, 0.3, 0.3],
                     "Left Shoulder_y": [0.4, 0.4, 0.4],
                     "Right Shoulder_x": [0.7, 0.7, 0.7],

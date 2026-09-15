@@ -94,7 +94,8 @@ export const createLiveCoaching = async (
             exerciseId,
             assignmentId,
             input.event,
-            input.side
+            input.side,
+            input.issueType
         );
 
         res.status(200).json({ success: true, ...coaching });

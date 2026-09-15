@@ -35,6 +35,8 @@ import {
     type GuidanceDisplayState,
 } from "@/lib/pose/live-guidance-stabilizer";
 import type {
+    PoseLandmarkMap,
+    PoseWorldLandmarkMap,
     PoseWorkerRequest,
     PoseWorkerResponse,
 } from "@/lib/pose/pose-landmarker.types";
@@ -77,6 +79,8 @@ export interface LiveGuidanceView {
     activeIssues: LiveGuidanceIssue[];
     resolvedIssues: LiveGuidanceIssue[];
     recentGuidanceEvents: LiveGuidanceEvent[];
+    landmarks: PoseLandmarkMap | null;
+    worldLandmarks: PoseWorldLandmarkMap | null;
 }
 
 const DISABLED_VIEW: LiveGuidanceView = {
@@ -91,6 +95,8 @@ const DISABLED_VIEW: LiveGuidanceView = {
     activeIssues: [],
     resolvedIssues: [],
     recentGuidanceEvents: [],
+    landmarks: null,
+    worldLandmarks: null,
 };
 
 export function supportsExerciseLiveGuidance(exerciseName: string): boolean {
@@ -190,6 +196,8 @@ export function useSideArmsRaiseGuidance(
                     : isAbduction
                         ? abductionStateRef.current.recentGuidanceEvents
                         : sideArmsStateRef.current.recentGuidanceEvents,
+                landmarks: null,
+                worldLandmarks: null,
             });
         };
 
@@ -221,6 +229,8 @@ export function useSideArmsRaiseGuidance(
                     activeIssues: [],
                     resolvedIssues: [],
                     recentGuidanceEvents: [],
+                    landmarks: null,
+                    worldLandmarks: null,
                 });
                 return;
             }
@@ -231,10 +241,13 @@ export function useSideArmsRaiseGuidance(
             }
 
             framePending = false;
+            const currentLandmarks = event.data.landmarks ?? null;
+            const currentWorldLandmarks = event.data.worldLandmarks ?? null;
+
             if (mode === "framing") {
                 const keyPoints = getRequiredExerciseKeyPointVisibility(
                     exerciseName,
-                    event.data.landmarks,
+                    currentLandmarks,
                     undefined,
                     selectedSide,
                 );
@@ -256,15 +269,17 @@ export function useSideArmsRaiseGuidance(
                     activeIssues: [],
                     resolvedIssues: [],
                     recentGuidanceEvents: [],
+                    landmarks: currentLandmarks,
+                    worldLandmarks: currentWorldLandmarks,
                 });
                 return;
             }
             if (isFlexion) {
                 const snapshot = updateShoulderFlexionGuidance(
                     flexionStateRef.current,
-                    event.data.landmarks,
+                    currentLandmarks,
                     selectedSide,
-                    event.data.worldLandmarks,
+                    currentWorldLandmarks,
                 );
                 flexionStateRef.current = snapshot.state;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
@@ -285,13 +300,15 @@ export function useSideArmsRaiseGuidance(
                     activeIssues: snapshot.activeIssues,
                     resolvedIssues: snapshot.resolvedIssues,
                     recentGuidanceEvents: snapshot.recentGuidanceEvents,
+                    landmarks: currentLandmarks,
+                    worldLandmarks: currentWorldLandmarks,
                 });
             } else if (isAbduction) {
                 const snapshot = updateShoulderAbductionGuidance(
                     abductionStateRef.current,
-                    event.data.landmarks,
+                    currentLandmarks,
                     selectedSide,
-                    event.data.worldLandmarks,
+                    currentWorldLandmarks,
                 );
                 abductionStateRef.current = snapshot.state;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
@@ -312,11 +329,13 @@ export function useSideArmsRaiseGuidance(
                     activeIssues: snapshot.activeIssues,
                     resolvedIssues: snapshot.resolvedIssues,
                     recentGuidanceEvents: snapshot.recentGuidanceEvents,
+                    landmarks: currentLandmarks,
+                    worldLandmarks: currentWorldLandmarks,
                 });
             } else {
                 const snapshot = updateSideArmsRaiseGuidance(
                     sideArmsStateRef.current,
-                    event.data.landmarks,
+                    currentLandmarks,
                 );
                 sideArmsStateRef.current = snapshot.state;
                 guidanceDisplayRef.current = stabilizeGuidanceMessage(
@@ -337,6 +356,8 @@ export function useSideArmsRaiseGuidance(
                     activeIssues: snapshot.activeIssues,
                     resolvedIssues: snapshot.resolvedIssues,
                     recentGuidanceEvents: snapshot.recentGuidanceEvents,
+                    landmarks: currentLandmarks,
+                    worldLandmarks: currentWorldLandmarks,
                 });
             }
         };

@@ -30,7 +30,9 @@ export type ShoulderFlexionGuidanceIssueId =
     | "target-arm-high"
     | "other-arm-moving"
     | "target-arm-direction"
-    | "direction-uncertain";
+    | "direction-uncertain"
+    | "torso-leaning"
+    | "chest-sway";
 
 export interface ShoulderFlexionGuidanceIssue {
     id: ShoulderFlexionGuidanceIssueId;
@@ -196,6 +198,8 @@ export function updateShoulderFlexionGuidance(
             break;
     }
 
+    const shoulderTilt = Math.abs(upperBodyLandmarks.leftShoulder.y - upperBodyLandmarks.rightShoulder.y) / shoulderWidth;
+
     const baseState = {
         phase,
         repetitions,
@@ -208,6 +212,7 @@ export function updateShoulderFlexionGuidance(
         otherDrop,
         otherElbow.visibility >= REQUIRED_VISIBILITY,
         targetArmAtShoulderHeight ? direction : null,
+        shoulderTilt,
         sideLabel,
         otherLabel,
     );
@@ -270,7 +275,14 @@ function toUpperBodyLandmarks(landmarks: PoseLandmarkMap | null): UpperBodyLandm
         return null;
     }
 
+    const chest: PosePoint = landmarks?.chest ?? {
+        x: (leftShoulder.x + rightShoulder.x) / 2,
+        y: (leftShoulder.y + rightShoulder.y) / 2,
+        visibility: Math.min(leftShoulder.visibility, rightShoulder.visibility),
+    };
+
     return {
+        chest,
         leftShoulder,
         rightShoulder,
         leftElbow,
@@ -315,11 +327,19 @@ function correctiveGuidanceIssue(
     otherDrop: number,
     otherArmVisible: boolean,
     direction: ShoulderMovementDirection | null,
+    shoulderTilt: number,
     sideLabel: string,
     otherLabel: string,
 ): ShoulderFlexionGuidanceIssue | null {
     if (state.phase !== "raising" && state.phase !== "top") {
         return null;
+    }
+
+    if (shoulderTilt > 0.22) {
+        return {
+            id: "torso-leaning",
+            instruction: `Keep your chest upright and avoid leaning your torso.`,
+        };
     }
 
     if (direction === "sideways") {

@@ -84,6 +84,87 @@ def compute_arm_motion_stats(
     return min_angle, max_angle, rom
 
 
+def compute_torso_stability_metrics(
+    trace_path: Union[str, Path],
+) -> dict:
+    """
+    Evaluates torso and chest stability across the recording:
+    - Lateral and vertical chest displacement relative to shoulder span
+    - Trunk tilt / lateral lean compensation
+    - Whole-body sway vs isolated arm movement detection
+    """
+    df = pd.read_csv(trace_path)
+    
+    if "Chest_x" not in df.columns or "Chest_y" not in df.columns:
+        return {
+            "chest_sway_x": 0.0,
+            "chest_sway_y": 0.0,
+            "has_trunk_compensation": False,
+            "has_excessive_sway": False,
+            "posture_penalty": 0.0,
+        }
+
+    # Normalize by shoulder width if available
+    if "Left Shoulder_x" in df.columns and "Right Shoulder_x" in df.columns:
+        sw = np.sqrt(
+            (df["Left Shoulder_x"] - df["Right Shoulder_x"]) ** 2
+            + (df["Left Shoulder_y"] - df["Right Shoulder_y"]) ** 2
+        )
+        norm_scale = float(np.median(sw)) if np.median(sw) > 1e-4 else 1.0
+    else:
+        norm_scale = 1.0
+
+    chest_x = df["Chest_x"].to_numpy()
+    chest_y = df["Chest_y"].to_numpy()
+
+    # Normalized displacement range for chest
+    range_x = float(np.ptp(chest_x)) / norm_scale
+    range_y = float(np.ptp(chest_y)) / norm_scale
+
+    # Standard deviation of torso center
+    std_x = float(np.std(chest_x)) / norm_scale
+    std_y = float(np.std(chest_y)) / norm_scale
+
+    # Head / Nose displacement and orientation stability if Nose is available
+    has_head_compensation = False
+    nose_sway_x = 0.0
+    nose_sway_y = 0.0
+    if "Nose_x" in df.columns and "Nose_y" in df.columns:
+        nose_x = df["Nose_x"].to_numpy()
+        nose_y = df["Nose_y"].to_numpy()
+        nose_range_x = float(np.ptp(nose_x)) / norm_scale
+        nose_sway_x = float(np.std(nose_x)) / norm_scale
+        nose_sway_y = float(np.std(nose_y)) / norm_scale
+        # Excessive head tilt / cervical compensation when lifting arm
+        has_head_compensation = nose_range_x > 0.38 or nose_sway_x > 0.12
+
+    # Detect excessive lateral trunk lean / cheating compensation
+    has_trunk_compensation = range_x > 0.35 or std_x > 0.10
+    has_excessive_sway = range_x > 0.50 or range_y > 0.40
+
+    # Calculate modest posture penalty if severe compensation occurred
+    posture_penalty = 0.0
+    if has_excessive_sway:
+        posture_penalty = 12.0
+    elif has_trunk_compensation:
+        posture_penalty = 6.0
+    elif has_head_compensation:
+        posture_penalty = 4.0
+
+    return {
+        "chest_sway_x": std_x,
+        "chest_sway_y": std_y,
+        "chest_range_x": range_x,
+        "chest_range_y": range_y,
+        "nose_sway_x": nose_sway_x,
+        "nose_sway_y": nose_sway_y,
+        "has_trunk_compensation": has_trunk_compensation,
+        "has_excessive_sway": has_excessive_sway,
+        "has_head_compensation": has_head_compensation,
+        "posture_penalty": posture_penalty,
+    }
+
+
 def compute_similarity_score(
     error: float,
     mean_val_loss: float = 0.005,
@@ -106,11 +187,13 @@ def calculate_clinical_score(
     max_angle: float,
     rom: float,
     beta: float = 14.0,
+    posture_penalty: float = 0.0,
 ) -> float:
     """
     Computes comprehensive clinical score combining:
     1. Trajectory & posture accuracy from the neural autoencoder (45%)
     2. Range of Motion & peak arm elevation completion (55%)
+    3. Torso stability and compensation penalty
     Also penalizes motionless / stationary recordings.
     """
     # 1. Trajectory score
@@ -137,6 +220,7 @@ def calculate_clinical_score(
     else:
         final_score = 0.45 * traj_score + 0.55 * rom_score
 
+    final_score = max(5.0, final_score - posture_penalty)
     return round(float(np.clip(final_score, 0.0, 100.0)), 2)
 
 
@@ -145,10 +229,13 @@ def get_score_feedback(
     model_key: str,
     max_angle: Optional[float] = None,
     rom: Optional[float] = None,
+    has_trunk_compensation: bool = False,
+    has_excessive_sway: bool = False,
+    has_head_compensation: bool = False,
 ) -> list[str]:
     """
     Generates tailored, actionable clinical feedback based on the exercise,
-    side, achieved range of motion, and performance score.
+    side, achieved range of motion, torso stability, and performance score.
     """
     key_lower = model_key.lower()
     is_flexion = "flexion" in key_lower
@@ -174,18 +261,28 @@ def get_score_feedback(
     peak_info = f" (peak elevation {max_angle:.0f}°)" if max_angle is not None else ""
 
     if score >= 90.0:
-        return [
+        feedback = [
             f"Excellent execution of the {exercise_name}{peak_info}! You maintained steady control and reached the target range of motion."
         ]
     elif score >= 75.0:
-        return [
-            f"Good form on the {exercise_name}{peak_info}. Focus on maintaining a smooth, steady pace and keeping your {arm_desc} aligned."
+        dir_cue = f" while raising {('forward' if is_flexion else ('sideways' if is_abduction else 'smoothly'))}"
+        feedback = [
+            f"Good form on the {exercise_name}{peak_info}. Focus on maintaining a smooth, steady pace and keeping your {arm_desc} aligned{dir_cue}."
         ]
     elif score >= 50.0:
-        return [
+        feedback = [
             f"Moderate effort. Try to {movement_cue}, hold for a moment at the peak, and lower smoothly."
         ]
     else:
-        return [
+        feedback = [
             f"Focus on the basic movement pattern: {movement_cue} without shrugging or rushing."
         ]
+
+    if has_excessive_sway:
+        feedback.append("Noticeable whole-body swaying detected: Keep your chest and upper body still to isolate the shoulder movement.")
+    elif has_trunk_compensation:
+        feedback.append("Avoid leaning your torso to the side to help lift your arm. Keep your chest facing straight ahead.")
+    elif has_head_compensation:
+        feedback.append("Keep your head facing forward and neck relaxed without tilting your head.")
+
+    return feedback

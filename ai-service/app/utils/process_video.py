@@ -21,7 +21,7 @@ BODY_PARTS = [
     "Left Ankle", "Right Ankle"
 ]
 
-KEEP_INDICES = (5, 6, 7, 8)
+KEEP_INDICES = (0, 5, 6, 7, 8)
 MAX_ANALYSIS_FRAMES = 200
 POSE_INFERENCE_SIZE = 640
 FALLBACK_ANALYSIS_FPS = 10.0
@@ -86,7 +86,7 @@ def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
     try:
         with open(output_csv_path, "w", newline="") as file:
             writer = csv.writer(file)
-            header = ["frame"]
+            header = ["frame", "Chest_x", "Chest_y"]
             for idx in KEEP_INDICES:
                 part = BODY_PARTS[idx]
                 header += [f"{part}_x", f"{part}_y"]
@@ -122,7 +122,10 @@ def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
                         and len(keypoints.xy) > 0
                     ):
                         xy = keypoints.xy[0]
-                        row = [total_frames]
+                        # Compute chest reference point from left (5) and right (6) shoulders
+                        chest_x = (xy[5][0].item() + xy[6][0].item()) / (2 * width)
+                        chest_y = (xy[5][1].item() + xy[6][1].item()) / (2 * height)
+                        row = [total_frames, chest_x, chest_y]
                         for idx in KEEP_INDICES:
                             x = xy[idx][0].item() / width
                             y = xy[idx][1].item() / height
