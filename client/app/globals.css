@@ -2890,7 +2890,9 @@ body {
   background: var(--color-surface);
 }
 
-.role-dashboard-quick-links a {
+.role-dashboard-quick-links a,
+.role-dashboard-quick-links button,
+.role-dashboard-quick-link-btn {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) 16px;
   grid-template-rows: auto auto;
@@ -2900,23 +2902,35 @@ body {
   padding: 14px 17px;
   color: var(--color-text-primary);
   text-decoration: none;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
 }
 
-.role-dashboard-quick-links a + a {
+.role-dashboard-quick-links a + a,
+.role-dashboard-quick-links a + button,
+.role-dashboard-quick-links button + a,
+.role-dashboard-quick-links button + button {
   border-left: 1px solid var(--color-border);
 }
 
-.role-dashboard-quick-links a:hover {
+.role-dashboard-quick-links a:hover,
+.role-dashboard-quick-links button:hover {
   background: var(--color-primary-soft);
 }
 
 .role-dashboard-quick-links a:focus-visible,
+.role-dashboard-quick-links button:focus-visible,
 .role-dashboard-disclosure summary:focus-visible {
   outline: 3px solid var(--color-primary);
   outline-offset: -3px;
 }
 
-.role-dashboard-quick-links a > svg:first-child {
+.role-dashboard-quick-links a > svg:first-child,
+.role-dashboard-quick-links button > svg:first-child {
   grid-column: 1;
   grid-row: 1 / 3;
   width: 20px;
@@ -2924,28 +2938,429 @@ body {
 }
 
 .role-dashboard-quick-links a > span,
-.role-dashboard-quick-links a > strong {
+.role-dashboard-quick-links a > strong,
+.role-dashboard-quick-links button > span,
+.role-dashboard-quick-links button > strong {
   grid-column: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.role-dashboard-quick-links a > span {
+.role-dashboard-quick-links a > span,
+.role-dashboard-quick-links button > span {
   color: var(--color-text-muted);
   font-size: 13px;
 }
 
-.role-dashboard-quick-links a > strong {
+.role-dashboard-quick-links a > strong,
+.role-dashboard-quick-links button > strong {
   font-size: 15px;
   font-weight: 700;
 }
 
-.role-dashboard-quick-links a > svg:last-child {
+.role-dashboard-quick-links a > svg:last-child,
+.role-dashboard-quick-links button > svg:last-child {
   grid-column: 3;
   grid-row: 1 / 3;
   width: 16px;
   color: var(--color-text-muted);
+}
+
+/* Weekly Sessions Adherence Modal */
+.weekly-sessions-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.weekly-sessions-modal-container {
+  width: 100%;
+  max-width: 680px;
+  max-height: calc(100vh - 48px);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.weekly-sessions-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 16px;
+}
+
+.weekly-sessions-modal-title-group h2 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 4px 0 2px 0;
+}
+
+.weekly-sessions-modal-title-group p {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.weekly-sessions-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.weekly-sessions-close-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.weekly-sessions-close-btn:hover {
+  background: #f1f5f9;
+  color: var(--color-text-primary);
+}
+
+.weekly-sessions-summary-card {
+  margin: 16px 24px 12px;
+  padding: 16px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weekly-sessions-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.weekly-sessions-metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weekly-sessions-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.weekly-sessions-metric-value {
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.weekly-sessions-metric-value strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.weekly-sessions-progress-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.weekly-sessions-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.weekly-sessions-controls {
+  padding: 0 24px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weekly-sessions-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.weekly-sessions-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.weekly-sessions-clear-search {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.weekly-sessions-filter-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.weekly-sessions-tab {
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.weekly-sessions-tab:hover {
+  background: #e2e8f0;
+}
+
+.weekly-sessions-tab.active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.weekly-sessions-list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weekly-sessions-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+}
+
+.weekly-sessions-patient-card {
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.weekly-sessions-patient-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.weekly-sessions-patient-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.weekly-sessions-patient-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weekly-sessions-patient-name a {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.weekly-sessions-patient-name a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.weekly-sessions-patient-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.weekly-sessions-patient-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weekly-sessions-patient-progress-track {
+  flex: 1;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.weekly-sessions-patient-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.weekly-sessions-patient-progress-bar.is-met {
+  background: #10b981;
+}
+
+.weekly-sessions-patient-progress-bar.is-in-progress {
+  background: #3b82f6;
+}
+
+.weekly-sessions-patient-progress-bar.is-zero {
+  background: #cbd5e1;
+}
+
+.weekly-sessions-patient-progress-percent {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.weekly-sessions-exercise-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.weekly-sessions-exercise-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 11.5px;
+}
+
+.weekly-sessions-exercise-pill-name {
+  font-weight: 600;
+  color: #334155;
+}
+
+.weekly-sessions-exercise-pill-days {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.weekly-sessions-exercise-pill-count {
+  color: #0f172a;
+  font-weight: 700;
+  padding-left: 4px;
+  border-left: 1px solid #cbd5e1;
+}
+
+.weekly-sessions-no-plan-notice {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.weekly-sessions-patient-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.weekly-sessions-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.weekly-sessions-action-link:hover {
+  text-decoration: underline;
+}
+
+.weekly-sessions-action-link.secondary {
+  color: var(--color-text-muted);
+}
+
+.weekly-sessions-action-link.secondary:hover {
+  color: var(--color-text-primary);
+}
+
+.weekly-sessions-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--color-border);
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weekly-sessions-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.weekly-sessions-footer-link:hover {
+  text-decoration: underline;
 }
 
 .role-dashboard-disclosure {
@@ -4539,7 +4954,10 @@ a.admin-metric:hover {
     grid-template-columns: 1fr;
   }
 
-  .role-dashboard-quick-links a + a {
+  .role-dashboard-quick-links a + a,
+  .role-dashboard-quick-links a + button,
+  .role-dashboard-quick-links button + a,
+  .role-dashboard-quick-links button + button {
     border-top: 1px solid var(--color-border);
     border-left: 0;
   }
