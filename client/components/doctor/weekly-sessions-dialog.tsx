@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, ClipboardList, Dumbbell, ExternalLink, Search, Sparkles, User, X } from "lucide-react";
+import { ChevronRight, ClipboardList, Dumbbell, ExternalLink, Search, Sparkles, User, X } from "lucide-react";
 import { type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -19,11 +19,6 @@ const WEEKDAY_LABELS: Record<number, string> = {
 function patientName(patient: ApiPatient) {
   const name = [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ");
   return name || patient.email;
-}
-
-function patientInitials(patient: ApiPatient) {
-  const name = patientName(patient);
-  return name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 }
 
 type FilterStatus = "ALL" | "MET" | "IN_PROGRESS" | "NOT_STARTED" | "NO_PLAN";
@@ -234,13 +229,11 @@ export function WeeklySessionsDialog({
           ) : (
             filteredStats.map(({ patient, assignments, completed, target, percent, status }) => {
               const fullName = patientName(patient);
-              const initials = patientInitials(patient);
 
               return (
                 <div key={patient.id} className="weekly-sessions-patient-card">
                   <div className="weekly-sessions-patient-header">
                     <div className="weekly-sessions-patient-profile">
-                      <span className="doctor-patient-avatar">{initials}</span>
                       <div>
                         <div className="weekly-sessions-patient-name">
                           <Link href={`/doctor/patients/${patient.id}`} onClick={onClose}>
@@ -255,29 +248,6 @@ export function WeeklySessionsDialog({
                           )}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="weekly-sessions-status-badge-wrap">
-                      {status === "MET" && (
-                        <span className="badge badge-success" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          <CheckCircle2 style={{ width: 12, height: 12 }} /> Goal Met ({completed}/{target})
-                        </span>
-                      )}
-                      {status === "IN_PROGRESS" && (
-                        <span className="badge badge-blue">
-                          In Progress ({completed}/{target})
-                        </span>
-                      )}
-                      {status === "NOT_STARTED" && (
-                        <span className="badge badge-amber">
-                          0 of {target} Sessions
-                        </span>
-                      )}
-                      {status === "NO_PLAN" && (
-                        <span className="badge" style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}>
-                          No Active Plan
-                        </span>
-                      )}
                     </div>
                   </div>
 
