@@ -3211,6 +3211,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .weekly-sessions-patient-name a {
@@ -3230,24 +3231,25 @@ body {
   color: var(--color-text-muted);
 }
 
-.weekly-sessions-patient-status-row {
+.weekly-sessions-header-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-shrink: 0;
 }
 
 .weekly-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  width: 100%;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  width: auto;
+  white-space: nowrap;
 }
 
 .weekly-status-icon-wrap {
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -3257,20 +3259,19 @@ body {
 
 .weekly-status-info {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
 }
 
 .weekly-status-title {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
 }
 
 .weekly-status-sub {
-  font-size: 11.5px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 1;
 }
 
