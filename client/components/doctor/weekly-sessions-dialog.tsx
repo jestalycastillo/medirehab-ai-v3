@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ClipboardList, Dumbbell, ExternalLink, Search, Sparkles, User, X } from "lucide-react";
+import { CalendarX, CheckCircle2, ChevronRight, CircleAlert, ClipboardList, Clock, Dumbbell, ExternalLink, Search, Sparkles, User, X } from "lucide-react";
 import { type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
@@ -251,21 +251,51 @@ export function WeeklySessionsDialog({
                     </div>
                   </div>
 
-                  {/* Status label */}
+                  {/* Status UI */}
                   <div className="weekly-sessions-patient-status-row">
                     {status === "MET" && (
-                      <span className="badge badge-success">Completed</span>
+                      <div className="weekly-status-pill weekly-status-completed">
+                        <div className="weekly-status-icon-wrap">
+                          <CheckCircle2 style={{ width: 14, height: 14 }} />
+                        </div>
+                        <div className="weekly-status-info">
+                          <span className="weekly-status-title">Completed</span>
+                          <span className="weekly-status-sub">{completed} of {target} sessions done</span>
+                        </div>
+                      </div>
                     )}
                     {status === "IN_PROGRESS" && (
-                      <span className="badge badge-blue">In progress</span>
+                      <div className="weekly-status-pill weekly-status-in-progress">
+                        <div className="weekly-status-icon-wrap">
+                          <Clock style={{ width: 14, height: 14 }} />
+                        </div>
+                        <div className="weekly-status-info">
+                          <span className="weekly-status-title">In Progress</span>
+                          <span className="weekly-status-sub">{completed} of {target} sessions done</span>
+                        </div>
+                      </div>
                     )}
                     {status === "NOT_STARTED" && (
-                      <span className="badge badge-amber">Not started</span>
+                      <div className="weekly-status-pill weekly-status-not-started">
+                        <div className="weekly-status-icon-wrap">
+                          <CircleAlert style={{ width: 14, height: 14 }} />
+                        </div>
+                        <div className="weekly-status-info">
+                          <span className="weekly-status-title">Not Started</span>
+                          <span className="weekly-status-sub">0 of {target} sessions completed</span>
+                        </div>
+                      </div>
                     )}
                     {status === "NO_PLAN" && (
-                      <span className="badge" style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}>
-                        No active plan
-                      </span>
+                      <div className="weekly-status-pill weekly-status-no-plan">
+                        <div className="weekly-status-icon-wrap">
+                          <CalendarX style={{ width: 14, height: 14 }} />
+                        </div>
+                        <div className="weekly-status-info">
+                          <span className="weekly-status-title">No Active Plan</span>
+                          <span className="weekly-status-sub">No exercises assigned for this week</span>
+                        </div>
+                      </div>
                     )}
                   </div>
 
