@@ -158,17 +158,6 @@ export function WeeklySessionsDialog({
               </span>
             </div>
           </div>
-
-          <div className="weekly-sessions-progress-track">
-            <div
-              className="weekly-sessions-progress-fill"
-              style={{ width: `${overallPercent}%` }}
-              role="progressbar"
-              aria-valuenow={overallPercent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            />
-          </div>
         </div>
 
         {/* Filter Controls & Search */}
