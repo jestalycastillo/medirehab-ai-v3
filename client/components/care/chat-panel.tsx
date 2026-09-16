@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type ChatMessage } from "@/lib/api";
+import { MessageCircle, Search, Send } from "lucide-react";
 
 const POLL_INTERVAL_MS = 2_000;
 
@@ -28,8 +29,15 @@ export function ChatPanel({
   const [query, setQuery] = useState("");
   const [counterpartLastSeenAt, setCounterpartLastSeenAt] = useState<string | null>(null);
   const [lastPolledAt, setLastPolledAt] = useState<number | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const messageCountRef = useRef(0);
+
+  const scrollMessagesToBottom = (behavior: ScrollBehavior) => {
+    requestAnimationFrame(() => {
+      const container = messagesRef.current;
+      container?.scrollTo({ top: container.scrollHeight, behavior });
+    });
+  };
 
   const loadMessages = async (initial = false) => {
     try {
@@ -43,7 +51,7 @@ export function ChatPanel({
       }
       setError("");
       if (initial || result.messages.length > messageCountRef.current) {
-        requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: initial ? "auto" : "smooth", block: "end" }));
+        scrollMessagesToBottom(initial ? "instant" : "smooth");
       }
       messageCountRef.current = result.messages.length;
     } catch (err) {
@@ -74,7 +82,7 @@ export function ChatPanel({
       const result = await api.sendChatMessage(body, patientUserId);
       setMessages((current) => [...current, result.message]);
       setDraft("");
-      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
+      scrollMessagesToBottom("smooth");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to send message.");
     } finally {
@@ -88,33 +96,40 @@ export function ChatPanel({
   const isOnline = counterpartLastSeenAt !== null && lastPolledAt !== null && lastPolledAt - new Date(counterpartLastSeenAt).getTime() < 2 * 60_000;
 
   return (
-    <section className={`card${compact ? " quick-chat-panel" : ""}`} style={{ padding: compact ? "16px" : "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
-        <div>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Live Messages</h2>
-          <p style={{ color: "var(--color-text-muted)", fontSize: "13px", margin: "4px 0 0" }}>Chatting with {counterpartName} · {isOnline ? "Online" : "Offline"}</p>
+    <section className={`chat-panel${compact ? " quick-chat-panel" : ""}`} aria-label={`Conversation with ${counterpartName}`}>
+      <div className="chat-panel-heading">
+        <span className="chat-panel-avatar" aria-hidden="true">{counterpartName === "your doctor" ? "D" : counterpartName.charAt(0).toUpperCase()}</span>
+        <div className="chat-panel-heading-copy">
+          <h2>{counterpartName === "your doctor" ? "Your doctor" : counterpartName}</h2>
+          <p><span className={`chat-panel-status-dot${isOnline ? " chat-panel-status-dot-online" : ""}`} aria-hidden="true" />{isOnline ? "Available now" : "Currently offline"}</p>
         </div>
-        <span className="badge badge-blue">Live text</span>
       </div>
 
-      {error && <div style={{ marginBottom: "12px", padding: "10px 12px", borderRadius: "var(--radius-md)", backgroundColor: "#FEE2E2", color: "#991B1B", fontSize: "13px" }}>{error}</div>}
-      <input className="input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search messages" style={{ marginBottom: "10px" }} />
+      {error && <div className="chat-panel-error" role="alert">{error}</div>}
+      <label className="chat-panel-search">
+        <Search size={17} aria-hidden="true" />
+        <span className="sr-only">Search messages</span>
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search messages" />
+      </label>
 
-      <div aria-live="polite" style={{ minHeight: compact ? "160px" : "180px", maxHeight: compact ? "300px" : "360px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", padding: "4px 2px 12px" }}>
-        {loading ? <div style={{ color: "var(--color-text-muted)", padding: "32px 0", textAlign: "center" }}>Loading messages…</div> : visibleMessages.length === 0 ? <div style={{ color: "var(--color-text-muted)", padding: "32px 0", textAlign: "center" }}>{messages.length ? "No matching messages." : `Start the conversation with ${counterpartName}.`}</div> : visibleMessages.map((message) => {
+      <div ref={messagesRef} className="chat-panel-messages" aria-live="polite" aria-relevant="additions text">
+        {loading ? <div className="chat-panel-empty">Loading messages…</div> : visibleMessages.length === 0 ? <div className="chat-panel-empty"><MessageCircle size={24} aria-hidden="true" /><strong>{messages.length ? "No matching messages" : "No messages yet"}</strong><span>{messages.length ? "Try a different search." : `Start the conversation with ${counterpartName}.`}</span></div> : visibleMessages.map((message) => {
           const mine = role === "patient" ? message.sender.role === "PATIENT" : message.sender.role === "DOCTOR";
-          return <div key={message.id} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", padding: "10px 12px", borderRadius: "14px", backgroundColor: mine ? "var(--color-primary)" : "var(--color-page-bg)", color: mine ? "white" : "var(--color-text-primary)" }}>
-            {!mine && <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "4px" }}>{message.sender.displayName}</div>}
-            <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: "14px" }}>{message.body}</div>
-            <div style={{ marginTop: "5px", fontSize: "11px", opacity: 0.72, textAlign: "right" }}>{formatTime(message.createdAt)}{mine && message.readAt ? " · Read" : ""}</div>
+          return <div key={message.id} className={`chat-message${mine ? " chat-message-mine" : ""}`}>
+            {!mine && <strong className="chat-message-sender">{message.sender.displayName}</strong>}
+            <div className="chat-message-body">{message.body}</div>
+            <div className="chat-message-meta">{formatTime(message.createdAt)}{mine && message.readAt ? " · Read" : ""}</div>
           </div>;
         })}
-        <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={submit} style={{ display: "flex", gap: "10px", borderTop: "1px solid var(--color-border)", paddingTop: "14px" }}>
-        <textarea className="input" value={draft} maxLength={2000} rows={2} placeholder={`Message ${counterpartName}`} onChange={(event) => setDraft(event.target.value)} style={{ resize: "vertical", flex: 1, paddingTop: "10px" }} />
-        <button className="btn btn-primary" type="submit" disabled={!draft.trim() || sending} style={{ alignSelf: "flex-end" }}>{sending ? "Sending…" : "Send"}</button>
+      <form className="chat-panel-composer" onSubmit={submit}>
+        <label className="sr-only" htmlFor="chat-message-draft">Message {counterpartName}</label>
+        <textarea id="chat-message-draft" value={draft} maxLength={2000} rows={2} placeholder={`Message ${counterpartName}…`} onChange={(event) => setDraft(event.target.value)} />
+        <button type="submit" disabled={!draft.trim() || sending} aria-label={sending ? "Sending message" : "Send message"}>
+          <Send size={18} aria-hidden="true" />
+          <span>{sending ? "Sending…" : "Send"}</span>
+        </button>
       </form>
     </section>
   );
