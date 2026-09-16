@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, CalendarX, CheckCircle2, CircleAlert, ClipboardList, Clock, Dumbbell, Target, User, X } from "lucide-react";
+import { Calendar, CalendarX, Check, CircleAlert, ClipboardList, Clock, Dumbbell, Target, User, X } from "lucide-react";
 import { type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -220,33 +220,33 @@ export function WeeklySessionsDialog({
                     {/* Status UI in Top Right */}
                     <div className="weekly-sessions-header-status">
                       {status === "MET" && (
-                        <div className="weekly-status-pill weekly-status-completed">
+                        <div className="weekly-status-pill">
                           <div className="weekly-status-icon-wrap">
-                            <CheckCircle2 style={{ width: 13, height: 13 }} />
+                            <Check style={{ width: 12, height: 12 }} />
                           </div>
                           <span className="weekly-status-title">Completed</span>
                         </div>
                       )}
                       {status === "IN_PROGRESS" && (
-                        <div className="weekly-status-pill weekly-status-in-progress">
+                        <div className="weekly-status-pill">
                           <div className="weekly-status-icon-wrap">
-                            <Clock style={{ width: 13, height: 13 }} />
+                            <Clock style={{ width: 12, height: 12 }} />
                           </div>
                           <span className="weekly-status-title">In Progress</span>
                         </div>
                       )}
                       {status === "NOT_STARTED" && (
-                        <div className="weekly-status-pill weekly-status-not-started">
+                        <div className="weekly-status-pill">
                           <div className="weekly-status-icon-wrap">
-                            <CircleAlert style={{ width: 13, height: 13 }} />
+                            <CircleAlert style={{ width: 12, height: 12 }} />
                           </div>
                           <span className="weekly-status-title">Not Started</span>
                         </div>
                       )}
                       {status === "NO_PLAN" && (
-                        <div className="weekly-status-pill weekly-status-no-plan">
+                        <div className="weekly-status-pill">
                           <div className="weekly-status-icon-wrap">
-                            <CalendarX style={{ width: 13, height: 13 }} />
+                            <CalendarX style={{ width: 12, height: 12 }} />
                           </div>
                           <span className="weekly-status-title">No Plan</span>
                         </div>
@@ -284,16 +284,16 @@ export function WeeklySessionsDialog({
                                 <strong>{exCompleted}</strong> of {exTarget} {exTarget === 1 ? "session" : "sessions"}
                               </span>
                               {isMet ? (
-                                <span className="weekly-exercise-status-tag met">
-                                  Goal Met
+                                <span className="weekly-exercise-status-tag">
+                                  <Check style={{ width: 11, height: 11 }} /> Completed
                                 </span>
                               ) : isInProgress ? (
-                                <span className="weekly-exercise-status-tag in-progress">
-                                  In Progress
+                                <span className="weekly-exercise-status-tag">
+                                  <Clock style={{ width: 11, height: 11 }} /> In Progress
                                 </span>
                               ) : (
-                                <span className="weekly-exercise-status-tag zero">
-                                  Not Started
+                                <span className="weekly-exercise-status-tag">
+                                  <CircleAlert style={{ width: 11, height: 11 }} /> Not Started
                                 </span>
                               )}
                             </div>

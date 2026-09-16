@@ -3275,68 +3275,36 @@ body {
   line-height: 1;
 }
 
-/* Completed Variant */
-.weekly-status-completed {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-}
-.weekly-status-completed .weekly-status-icon-wrap {
-  background: #dcfce7;
-  color: #16a34a;
-}
-.weekly-status-completed .weekly-status-title {
-  color: #15803d;
-}
-.weekly-status-completed .weekly-status-sub {
-  color: #166534;
+.weekly-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  width: auto;
+  white-space: nowrap;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
 }
 
-/* In Progress Variant */
-.weekly-status-in-progress {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-}
-.weekly-status-in-progress .weekly-status-icon-wrap {
-  background: #dbeafe;
-  color: #2563eb;
-}
-.weekly-status-in-progress .weekly-status-title {
-  color: #1d4ed8;
-}
-.weekly-status-in-progress .weekly-status-sub {
-  color: #1e40af;
+.weekly-status-icon-wrap {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  color: #111827;
 }
 
-/* Not Started Variant */
-.weekly-status-not-started {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-}
-.weekly-status-not-started .weekly-status-icon-wrap {
-  background: #fef3c7;
-  color: #d97706;
-}
-.weekly-status-not-started .weekly-status-title {
-  color: #b45309;
-}
-.weekly-status-not-started .weekly-status-sub {
-  color: #92400e;
-}
-
-/* No Plan Variant */
-.weekly-status-no-plan {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-.weekly-status-no-plan .weekly-status-icon-wrap {
-  background: #f1f5f9;
-  color: #64748b;
-}
-.weekly-status-no-plan .weekly-status-title {
-  color: #475569;
-}
-.weekly-status-no-plan .weekly-status-sub {
-  color: #64748b;
+.weekly-status-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  color: #111827;
 }
 
 .weekly-sessions-exercise-list {
@@ -3402,29 +3370,15 @@ body {
 .weekly-exercise-status-tag {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
-}
-
-.weekly-exercise-status-tag.met {
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
-}
-
-.weekly-exercise-status-tag.in-progress {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e40af;
-}
-
-.weekly-exercise-status-tag.zero {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
 }
 
 .weekly-sessions-no-plan-notice {
