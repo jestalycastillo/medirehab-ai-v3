@@ -57,7 +57,7 @@ export default function DoctorPatientsPage() {
     message: "",
     isDestructive: false,
     isLoading: false,
-    action: async () => {},
+    action: async () => { },
   });
 
   const loadPatients = async () => {
@@ -192,9 +192,6 @@ export default function DoctorPatientsPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
         <div>
           <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
-          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Manage assigned patient accounts and rehabilitation access.
-          </p>
         </div>
       </div>
 

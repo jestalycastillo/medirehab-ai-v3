@@ -65,7 +65,6 @@ export default function DoctorExerciseAssignmentsPage() {
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div>
         <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Exercise Assignments</h1>
-        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>Select a patient to assign or review rehabilitation exercises.</p>
       </div>
 
       <div className="card" style={{ padding: "20px" }}>
