@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, CalendarX, Check, CircleAlert, ClipboardList, Clock, Dumbbell, Target, User, X } from "lucide-react";
+import { Calendar, Check, CircleAlert, ClipboardList, Clock, Dumbbell, Target, User, X } from "lucide-react";
 import { type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -215,42 +215,6 @@ export function WeeklySessionsDialog({
                           )}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Status UI in Top Right */}
-                    <div className="weekly-sessions-header-status">
-                      {status === "MET" && (
-                        <div className="weekly-status-pill">
-                          <div className="weekly-status-icon-wrap">
-                            <Check style={{ width: 12, height: 12 }} />
-                          </div>
-                          <span className="weekly-status-title">Completed</span>
-                        </div>
-                      )}
-                      {status === "IN_PROGRESS" && (
-                        <div className="weekly-status-pill">
-                          <div className="weekly-status-icon-wrap">
-                            <Clock style={{ width: 12, height: 12 }} />
-                          </div>
-                          <span className="weekly-status-title">In Progress</span>
-                        </div>
-                      )}
-                      {status === "NOT_STARTED" && (
-                        <div className="weekly-status-pill">
-                          <div className="weekly-status-icon-wrap">
-                            <CircleAlert style={{ width: 12, height: 12 }} />
-                          </div>
-                          <span className="weekly-status-title">Not Started</span>
-                        </div>
-                      )}
-                      {status === "NO_PLAN" && (
-                        <div className="weekly-status-pill">
-                          <div className="weekly-status-icon-wrap">
-                            <CalendarX style={{ width: 12, height: 12 }} />
-                          </div>
-                          <span className="weekly-status-title">No Plan</span>
-                        </div>
-                      )}
                     </div>
                   </div>
 
