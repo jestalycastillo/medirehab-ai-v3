@@ -90,6 +90,17 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  const loadUnreadCount = async () => {
+    try {
+      const res = await api.getMyNotifications();
+      const unread = res.notifications.filter((n) => !n.isRead).length;
+      setUnreadNotificationsCount(unread);
+    } catch {
+      // ignore
+    }
+  };
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -124,9 +135,13 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     if (loading || user?.role !== "DOCTOR" || user.mustChangePassword) return;
     const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
     heartbeat();
-    const interval = window.setInterval(heartbeat, 60_000);
+    loadUnreadCount();
+    const interval = window.setInterval(() => {
+      heartbeat();
+      loadUnreadCount();
+    }, 15_000);
     return () => window.clearInterval(interval);
-  }, [loading, user]);
+  }, [loading, user, pathname]);
 
   if (loading || !user || user.role !== "DOCTOR" || user.mustChangePassword) {
     return (
@@ -158,6 +173,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: "4px" }}>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/doctor/dashboard" && pathname.startsWith(item.href));
+            const isNotifications = item.href === "/doctor/notifications";
             return (
               <Link
                 key={item.href}
@@ -166,7 +182,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "12px",
+                  justifyContent: "space-between",
                   padding: "10px 12px",
                   borderRadius: "var(--radius-md)",
                   color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
@@ -176,10 +192,29 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                   transition: "all 0.15s ease",
                 }}
               >
-                <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
-                  {item.icon}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
+                    {item.icon}
+                  </div>
+                  <span>{item.name}</span>
                 </div>
-                {item.name}
+                {isNotifications && unreadNotificationsCount > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: "var(--color-primary)",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      minWidth: "20px",
+                      textAlign: "center",
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -230,15 +265,49 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Doctor Portal</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={isMobileMenuOpen}
-            style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
-          >
-            <MenuIcon />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Link
+              href="/doctor/notifications"
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-text-primary)",
+                textDecoration: "none",
+              }}
+              aria-label="Notifications"
+            >
+              <BellIcon />
+              {unreadNotificationsCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-7px",
+                    backgroundColor: "var(--color-primary)",
+                    color: "#ffffff",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    padding: "1px 5px",
+                    borderRadius: "999px",
+                    lineHeight: "1.2",
+                  }}
+                >
+                  {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                </span>
+              )}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isMobileMenuOpen}
+              style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
+            >
+              <MenuIcon />
+            </button>
+          </div>
         </header>
 
         {/* Mobile Menu Dropdown */}
@@ -252,6 +321,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/doctor/dashboard" && pathname.startsWith(item.href));
+                const isNotifications = item.href === "/doctor/notifications";
                 return (
                   <Link
                     key={item.href}
@@ -259,7 +329,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "12px",
+                      justifyContent: "space-between",
                       padding: "12px",
                       borderRadius: "var(--radius-md)",
                       color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
@@ -268,10 +338,29 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                       textDecoration: "none",
                     }}
                   >
-                    <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
-                      {item.icon}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
+                        {item.icon}
+                      </div>
+                      <span>{item.name}</span>
                     </div>
-                    {item.name}
+                    {isNotifications && unreadNotificationsCount > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: "var(--color-primary)",
+                          color: "#ffffff",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: "999px",
+                          minWidth: "20px",
+                          textAlign: "center",
+                          lineHeight: "1.3",
+                        }}
+                      >
+                        {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

@@ -13,7 +13,7 @@ export function NotificationPreferences() {
   useEffect(() => { void api.getNotificationPreferences().then((result) => setPreferences(result.preferences)); }, []);
   if (!preferences) return null;
   return <Card className="patient-preferences-card">
-    <CardHeader><div className="patient-settings-heading"><span><Bell /></span><div><CardTitle>Notifications</CardTitle><CardDescription>Choose which updates create an alert.</CardDescription></div></div></CardHeader>
+    <CardHeader><div className="patient-settings-heading"><span><Bell /></span><div><CardTitle>Notifications</CardTitle></div></div></CardHeader>
     <CardContent>
       <label className="patient-setting-choice"><input type="checkbox" checked={preferences.chatNotificationsEnabled} onChange={(event) => setPreferences({ ...preferences, chatNotificationsEnabled: event.target.checked })} /><span><strong>Chat messages</strong><small>Alerts for new messages from your care team.</small></span></label>
       <label className="patient-setting-choice"><input type="checkbox" checked={preferences.careNotificationsEnabled} onChange={(event) => setPreferences({ ...preferences, careNotificationsEnabled: event.target.checked })} /><span><strong>Care updates</strong><small>Plans, results, check-ins, and help requests.</small></span></label>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, BellRing, CalendarClock, Check, ChevronRight, CircleAlert, HandHeart, LoaderCircle, MessageCircle, Sparkles } from "lucide-react";
+import { Bell, BellRing, CalendarClock, Check, CheckCheck, ChevronRight, CircleAlert, HandHeart, LoaderCircle, MessageCircle, Sparkles } from "lucide-react";
 import { api, ApiError, type CareNotification } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +25,7 @@ export default function PatientNotificationsPage() {
   const [notifications, setNotifications] = useState<CareNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -56,13 +57,39 @@ export default function PatientNotificationsPage() {
     }
   };
 
+  const handleMarkAllRead = async () => {
+    setMarkingAll(true);
+    setError("");
+    try {
+      await api.markAllNotificationsRead();
+      setNotifications((current) =>
+        current.map((notification) => ({
+          ...notification,
+          isRead: true,
+          readAt: notification.readAt || new Date().toISOString(),
+        }))
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to mark all notifications as read.");
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   return (
     <div className="patient-page patient-notifications-page animate-fade-in">
       <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Care updates</span><h1>Notifications</h1><p>Messages, reminders, and feedback from your care team.</p></div>
-        {unreadCount > 0 && <span className="patient-unread-count"><BellRing /> {unreadCount} new</span>}
+        <div><span className="patient-page-eyebrow">Care updates</span><h1>Notifications</h1></div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {unreadCount > 0 && <span className="patient-unread-count"><BellRing /> {unreadCount} new</span>}
+          {unreadCount > 0 && (
+            <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
+              {markingAll ? <LoaderCircle className="recorder-spin" /> : <CheckCheck />} Mark all as read
+            </Button>
+          )}
+        </div>
       </header>
 
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
