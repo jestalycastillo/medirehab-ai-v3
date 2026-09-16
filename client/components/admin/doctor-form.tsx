@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { type ApiDoctor, type DoctorProfile } from "@/lib/api";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 
 export function DoctorForm({
   isOpen,
@@ -15,9 +16,11 @@ export function DoctorForm({
   isLoading: boolean;
 }) {
   const [formData, setFormData] = useState<Partial<ApiDoctor & DoctorProfile>>({});
+  const modalRef = usePortalModalFocus(isOpen, onCancel);
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         email: initialData.email,
         firstName: initialData.profile?.firstName || "",
@@ -44,71 +47,61 @@ export function DoctorForm({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: "20px",
-      }}
-      onClick={onCancel}
-    >
+    <div className="portal-modal-overlay" onClick={onCancel}>
       <div
-        className="card animate-slide-up"
-        style={{ width: "100%", maxWidth: "500px", padding: "24px", maxHeight: "90vh", overflowY: "auto" }}
+        ref={modalRef} tabIndex={-1}
+        className="portal-modal-panel portal-modal-form animate-slide-up"
+        role="dialog" aria-modal="true" aria-labelledby="doctor-form-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 20px 0", color: "var(--color-text-primary)" }}>
-          {initialData ? "Edit Doctor" : "Create Doctor"}
-        </h3>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="portal-modal-header">
+          <span className="role-dashboard-eyebrow">Doctor account</span>
+          <h2 id="doctor-form-title">{initialData ? "Edit doctor" : "Create doctor"}</h2>
+          <p>{initialData ? "Update the clinician’s profile details." : "Add a clinician to your care team."}</p>
+        </div>
+        <form onSubmit={handleSubmit} className="portal-modal-form-content">
+          <div className="portal-modal-body">
           {!initialData && (
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Email</label>
-              <input type="email" name="email" className="input" value={formData.email || ""} onChange={handleChange} required />
+              <label htmlFor="doctor-form-email">Email</label>
+              <input id="doctor-form-email" type="email" name="email" className="input" autoComplete="email" value={formData.email || ""} onChange={handleChange} required />
             </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <div className="portal-modal-grid">
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>First Name</label>
-              <input type="text" name="firstName" className="input" value={formData.firstName || ""} onChange={handleChange} required />
+              <label htmlFor="doctor-form-first">First name</label>
+              <input id="doctor-form-first" type="text" name="firstName" className="input" autoComplete="given-name" value={formData.firstName || ""} onChange={handleChange} required />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Last Name</label>
-              <input type="text" name="lastName" className="input" value={formData.lastName || ""} onChange={handleChange} required />
-            </div>
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Specialization</label>
-            <input type="text" name="specialization" className="input" value={formData.specialization || ""} onChange={handleChange} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>License Number</label>
-              <input type="text" name="licenseNumber" className="input" value={formData.licenseNumber || ""} onChange={handleChange} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Contact Number</label>
-              <input type="text" name="contactNumber" className="input" value={formData.contactNumber || ""} onChange={handleChange} />
+              <label htmlFor="doctor-form-last">Last name</label>
+              <input id="doctor-form-last" type="text" name="lastName" className="input" autoComplete="family-name" value={formData.lastName || ""} onChange={handleChange} required />
             </div>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Clinic Schedule</label>
-            <input type="text" name="clinicSchedule" className="input" value={formData.clinicSchedule || ""} onChange={handleChange} />
+            <label htmlFor="doctor-form-specialization">Specialization</label>
+            <input id="doctor-form-specialization" type="text" name="specialization" className="input" value={formData.specialization || ""} onChange={handleChange} />
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
+          <div className="portal-modal-grid">
+            <div>
+              <label htmlFor="doctor-form-license">License number</label>
+              <input id="doctor-form-license" type="text" name="licenseNumber" className="input" value={formData.licenseNumber || ""} onChange={handleChange} />
+            </div>
+            <div>
+              <label htmlFor="doctor-form-contact">Contact number</label>
+              <input id="doctor-form-contact" type="text" name="contactNumber" className="input" autoComplete="tel" value={formData.contactNumber || ""} onChange={handleChange} />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="doctor-form-schedule">Clinic schedule</label>
+            <input id="doctor-form-schedule" type="text" name="clinicSchedule" className="input" value={formData.clinicSchedule || ""} onChange={handleChange} />
+          </div>
+          </div>
+          <div className="portal-modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isLoading} style={{ minWidth: "100px" }}>
-              {isLoading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Save"}
+            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+              {isLoading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : initialData ? "Save changes" : "Create doctor"}
             </button>
           </div>
         </form>

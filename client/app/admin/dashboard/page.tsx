@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Activity, ChevronRight, CircleAlert, Dumbbell, LoaderCircle, Stethoscope, UsersRound } from "lucide-react";
+import { Activity, ChevronRight, CircleAlert, Dumbbell, LoaderCircle, Plus, Stethoscope, UsersRound } from "lucide-react";
 import { api, type ApiDoctor, type ApiExercise, type ApiPatient, type AuditLog, type CareSession, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,7 +128,10 @@ export default function AdminDashboard() {
           <h1>Platform overview</h1>
           <p>Manage care accounts and keep the exercise library ready.</p>
         </div>
-        <Button nativeButton={false} render={<Link href="/admin/doctors" />}><Stethoscope aria-hidden="true" /> Manage doctors</Button>
+        <div className="role-dashboard-actions">
+          <Button variant="outline" nativeButton={false} render={<Link href="/admin/doctors" />}><Stethoscope aria-hidden="true" /> Manage doctors</Button>
+          <Button nativeButton={false} render={<Link href="/admin/patients?create=1" />}><Plus aria-hidden="true" /> Create patient</Button>
+        </div>
       </header>
 
       <Card className="admin-overview-card">

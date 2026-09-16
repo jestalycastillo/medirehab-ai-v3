@@ -5,6 +5,7 @@ import { api, type ApiDoctor, type DoctorProfile, ApiError } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import { DoctorForm } from "@/components/admin/doctor-form";
 
 function PlusIcon() {
@@ -58,6 +59,7 @@ export default function DoctorsPage() {
   const [editingDoctor, setEditingDoctor] = useState<ApiDoctor | undefined>(undefined);
   const [formLoading, setFormLoading] = useState(false);
   const [viewingDoctor, setViewingDoctor] = useState<ApiDoctor | null>(null);
+  const detailModalRef = usePortalModalFocus(Boolean(viewingDoctor), () => setViewingDoctor(null));
 
   const [tempPassword, setTempPassword] = useState("");
   const [isTempPasswordOpen, setIsTempPasswordOpen] = useState(false);
@@ -323,11 +325,10 @@ export default function DoctorsPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table className="admin-directory-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
-                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Name</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Email</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Doctor</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Specialization</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Status</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Actions</th>
@@ -336,7 +337,7 @@ export default function DoctorsPage() {
               <tbody>
                 {filteredDoctors.length === 0 ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={4}>
                       <div className="admin-directory-empty">
                         <ActiveAccountsIcon />
                         <strong>{searchTerm ? "No matching doctors" : accountTab === "ARCHIVED" ? "No archived doctors" : "No current doctors"}</strong>
@@ -347,8 +348,8 @@ export default function DoctorsPage() {
                   </tr>
                 ) : (
                   filteredDoctors.map((doctor) => (
-                    <tr key={doctor.id} style={{ borderBottom: "1px solid var(--color-page-bg)", transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-primary-soft)"} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}>
-                      <td style={{ padding: "12px 16px", fontWeight: 500, color: "var(--color-text-primary)" }}>
+                    <tr key={doctor.id} className="directory-data-row">
+                      <td data-label="Doctor" style={{ padding: "12px 16px", fontWeight: 500, color: "var(--color-text-primary)" }}>
                         <button
                           type="button"
                           onClick={() => openDoctorPersona(doctor)}
@@ -356,17 +357,15 @@ export default function DoctorsPage() {
                         >
                           {doctor.profile ? `Dr. ${doctor.profile.firstName} ${doctor.profile.lastName}` : "Unknown"}
                         </button>
+                        <div className="directory-row-meta">{doctor.email}</div>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-                        {doctor.email}
-                      </td>
-                      <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
+                      <td data-label="Specialization" style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
                         {doctor.profile?.specialization || "-"}
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td data-label="Status" style={{ padding: "12px 16px" }}>
                         <StatusBadge isActive={doctor.isActive} archivedAt={doctor.archivedAt} />
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                      <td data-label="Actions" style={{ padding: "12px 16px", textAlign: "right" }}>
                         <details className="list-row-actions">
                           <summary>More</summary>
                           <div>
@@ -412,27 +411,17 @@ export default function DoctorsPage() {
       />
 
       {viewingDoctor && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "20px",
-          }}
-          onClick={() => setViewingDoctor(null)}
-        >
+        <div className="portal-modal-overlay" onClick={() => setViewingDoctor(null)}>
           <div
-            className="card animate-slide-up"
-            style={{ width: "100%", maxWidth: "720px", padding: "24px", maxHeight: "90vh", overflowY: "auto" }}
+            ref={detailModalRef} tabIndex={-1}
+            className="portal-modal-panel portal-modal-detail animate-slide-up"
+            role="dialog" aria-modal="true" aria-labelledby="doctor-detail-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
+            <div className="portal-modal-header portal-modal-detail-heading">
               <div>
-                <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px 0", color: "var(--color-text-primary)" }}>
+                <span className="role-dashboard-eyebrow">Doctor account</span>
+                <h2 id="doctor-detail-title">
                   {doctorName(viewingDoctor)}
                 </h2>
                 <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
@@ -442,17 +431,14 @@ export default function DoctorsPage() {
               </div>
               <button
                 className="btn btn-secondary"
-                style={{ minWidth: "auto", height: "36px", padding: "0 12px" }}
                 onClick={() => setViewingDoctor(null)}
               >
                 Close
               </button>
             </div>
 
-            <h3 style={{ fontSize: "16px", fontWeight: 600, margin: "0 0 16px 0", color: "var(--color-text-primary)" }}>
-              Persona Information
-            </h3>
-
+            <div className="portal-modal-detail-body">
+            <h3>Profile information</h3>
             <div className="doctor-form-grid">
               <DetailField label="First Name" value={viewingDoctor.profile?.firstName} />
               <DetailField label="Last Name" value={viewingDoctor.profile?.lastName} />
@@ -460,6 +446,7 @@ export default function DoctorsPage() {
               <DetailField label="License Number" value={viewingDoctor.profile?.licenseNumber} />
               <DetailField label="Contact Number" value={viewingDoctor.profile?.contactNumber} />
               <DetailField label="Clinic Schedule" value={viewingDoctor.profile?.clinicSchedule} />
+            </div>
             </div>
           </div>
         </div>

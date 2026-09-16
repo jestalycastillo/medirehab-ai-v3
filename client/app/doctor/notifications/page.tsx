@@ -21,7 +21,12 @@ export default function DoctorNotificationsPage() {
   };
 
   useEffect(() => {
-    loadNotifications();
+    let mounted = true;
+    void api.getMyNotifications()
+      .then((res) => { if (mounted) setNotifications(res.notifications); })
+      .catch((err) => { if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load notifications."); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const handleMarkRead = async (notificationId: string) => {
@@ -38,13 +43,16 @@ export default function DoctorNotificationsPage() {
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div>
-        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Notifications</h1>
-        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header">
+        <div>
+          <span className="role-dashboard-eyebrow">Doctor / Notifications</span>
+          <h1>Notifications</h1>
+          <p>
           Keep track of new patient sessions, check-ins, and reminder items.
-        </p>
-      </div>
+          </p>
+        </div>
+      </header>
 
       {error && (
         <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
@@ -52,7 +60,7 @@ export default function DoctorNotificationsPage() {
         </div>
       )}
 
-      <div className="card" style={{ padding: "24px" }}>
+      <div className="card care-page-panel">
         <NotificationsPanel notifications={notifications} onMarkRead={handleMarkRead} />
       </div>
     </div>

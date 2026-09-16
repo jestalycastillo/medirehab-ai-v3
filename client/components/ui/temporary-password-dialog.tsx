@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 
 function CopyIcon() {
   return (
@@ -29,6 +30,7 @@ export function TemporaryPasswordDialog({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const modalRef = usePortalModalFocus(isOpen && Boolean(password), onClose, false);
 
   if (!isOpen || !password) return null;
 
@@ -40,66 +42,42 @@ export function TemporaryPasswordDialog({
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: "20px",
-      }}
-    >
-      <div
-        className="card animate-slide-up"
-        style={{ width: "100%", maxWidth: "440px", padding: "32px", textAlign: "center" }}
-      >
-        <div style={{ marginBottom: "20px", color: "var(--color-primary)", display: "flex", justifyContent: "center" }}>
+    <div className="portal-modal-overlay">
+      <div ref={modalRef} tabIndex={-1} className="portal-modal-panel portal-modal-password animate-slide-up" role="dialog" aria-modal="true" aria-labelledby="temporary-password-title">
+        <div className="portal-modal-header">
+          <span className="role-dashboard-eyebrow">Account created</span>
+          <h2 id="temporary-password-title">Temporary password</h2>
+          <p>Share this with the account holder so they can sign in.</p>
+        </div>
+        <div className="portal-modal-body">
+        <div className="portal-modal-password-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </div>
-        <h3 style={{ fontSize: "20px", fontWeight: 600, margin: "0 0 12px 0", color: "var(--color-text-primary)" }}>
-          Temporary Password Generated
-        </h3>
-        <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+        <p className="portal-modal-password-note">
           Please save this password. It will not be shown again. The user will be required to change it upon their first login.
         </p>
 
-        <div
-          style={{
-            backgroundColor: "var(--color-page-bg)",
-            border: "1px dashed var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            padding: "16px",
-            marginBottom: "24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <code style={{ fontSize: "18px", fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "0.05em" }}>
+        <div className="portal-modal-password-value">
+          <code>
             {password}
           </code>
           <button
-            className="btn btn-secondary"
-            style={{ height: "32px", padding: "0 12px", gap: "6px" }}
+            type="button" className="btn btn-secondary"
             onClick={handleCopy}
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
-
-        <button className="btn btn-primary btn-full" onClick={onClose}>
+        </div>
+        <div className="portal-modal-footer">
+        <button type="button" className="btn btn-primary" onClick={onClose}>
           I have saved it
         </button>
+        </div>
       </div>
     </div>
   );

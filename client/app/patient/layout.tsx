@@ -181,7 +181,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
             <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Patient Portal</span>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}>
+          <button type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isMobileMenuOpen} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}>
             <MenuIcon />
           </button>
         </header>

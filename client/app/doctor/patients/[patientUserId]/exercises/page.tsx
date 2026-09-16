@@ -114,16 +114,19 @@ export default function PatientExercisesPage() {
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div>
-        <Link href={`/doctor/patients/${patientUserId}`} style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600, fontSize: "14px" }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header">
+        <div>
+        <Link className="care-page-back" href={`/doctor/patients/${patientUserId}`}>
           Back to patient
         </Link>
-        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "8px 0" }}>Exercise Assignments</h1>
-        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
+        <span className="role-dashboard-eyebrow">Doctor / Care plan</span>
+        <h1>Exercise assignments</h1>
+        <p>
           Manage rehabilitation exercises for {patientName(patient)}.
         </p>
-      </div>
+        </div>
+      </header>
 
       <section className="doctor-two-column">
         <ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} />

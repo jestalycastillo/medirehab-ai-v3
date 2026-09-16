@@ -188,18 +188,23 @@ export default function DoctorPatientsPage() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
-          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
+          <span className="role-dashboard-eyebrow">Doctor / Patients</span>
+          <h1>Patients</h1>
+          <p>
             Manage assigned patient accounts and rehabilitation access.
           </p>
         </div>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+      <div className="card care-page-panel">
+        <div className="admin-subpage-panel-heading">
+          <div><span className="role-dashboard-eyebrow">Directory</span><h2>Patient accounts</h2></div>
+          <p>{activeAccountCount} current · {archivedAccountCount} archived</p>
+        </div>
+        <div className="admin-directory-toolbar">
           <div className="account-tabs" role="group" aria-label="Patient account status">
             <button
               type="button"
@@ -226,9 +231,7 @@ export default function DoctorPatientsPage() {
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
-        </div>
-
-        <div className="doctor-toolbar" style={{ marginBottom: "20px" }}>
+        <div className="doctor-toolbar care-page-filters">
           <input
             type="text"
             className="input"
@@ -244,6 +247,7 @@ export default function DoctorPatientsPage() {
               <option value="INACTIVE">Inactive</option>
             </select>
           )}
+        </div>
         </div>
 
         {error && (

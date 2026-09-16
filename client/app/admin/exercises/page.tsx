@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExerciseForm } from "@/components/admin/exercise-form";
 import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 
 function EditIcon() {
   return (
@@ -67,6 +68,7 @@ export default function ExercisesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ApiExercise | undefined>(undefined);
   const [viewingExercise, setViewingExercise] = useState<ApiExercise | undefined>(undefined);
+  const detailModalRef = usePortalModalFocus(Boolean(viewingExercise), () => setViewingExercise(undefined));
   const [formLoading, setFormLoading] = useState(false);
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -369,37 +371,26 @@ export default function ExercisesPage() {
 
       {/* Details Display Modal */}
       {viewingExercise && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "20px",
-          }}
-          onClick={() => setViewingExercise(undefined)}
-        >
+        <div className="portal-modal-overlay" onClick={() => setViewingExercise(undefined)}>
           <div
-            className="card animate-slide-up"
-            style={{ width: "100%", maxWidth: "600px", padding: "24px", maxHeight: "90vh", overflowY: "auto" }}
+            ref={detailModalRef} tabIndex={-1}
+            className="portal-modal-panel portal-modal-detail animate-slide-up"
+            role="dialog" aria-modal="true" aria-labelledby="exercise-detail-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
-              <h3 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
+            <div className="portal-modal-header portal-modal-detail-heading">
+              <div><span className="role-dashboard-eyebrow">Exercise library</span><h2 id="exercise-detail-title">
                 {viewingExercise.name}
-              </h3>
+              </h2></div>
               <button
                 className="btn btn-secondary"
-                style={{ padding: "4px 8px", minWidth: "auto", height: "auto" }}
                 onClick={() => setViewingExercise(undefined)}
               >
                 Close
               </button>
             </div>
 
+            <div className="portal-modal-detail-body">
             <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", lineHeight: "1.6", marginBottom: "20px", whiteSpace: "pre-wrap" }}>
               {viewingExercise.description || "No description provided."}
             </p>
@@ -432,6 +423,7 @@ export default function ExercisesPage() {
                 No images uploaded for this exercise.
               </div>
             )}
+            </div>
           </div>
         </div>
       )}

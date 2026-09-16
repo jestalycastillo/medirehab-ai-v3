@@ -209,11 +209,12 @@ export default function PatientDetailPage() {
   const activeAssignment = assignments.find((assignment) => assignment.activeAt && lastLoadedAt - new Date(assignment.activeAt).getTime() < 2 * 60_000);
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header doctor-detail-header">
         <div>
-          <Link href="/doctor/patients" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600, fontSize: "14px" }}>Back to patients</Link>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "8px 0" }}>{patientName(patient)}</h1>
+          <Link className="care-page-back" href="/doctor/patients">Back to patients</Link>
+          <span className="role-dashboard-eyebrow">Doctor / Patient record</span>
+          <h1>{patientName(patient)}</h1>
           <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
             <StatusBadge isActive={patient.isActive} archivedAt={patient.archivedAt} />
             <span style={{ color: "var(--color-text-muted)", fontSize: "14px" }}>{patient.email}</span>
@@ -233,12 +234,13 @@ export default function PatientDetailPage() {
             </div>
           </details>
         </div>
-      </div>
+      </header>
 
       <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} referenceTime={lastLoadedAt} onResolve={handleResolveHelp} />
 
-      <section className="card" style={{ padding: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Assigned exercises ({assignments.length})</h2>
+      <section className="card care-page-panel">
+          <span className="role-dashboard-eyebrow">Care plan</span>
+          <h2>Assigned exercises ({assignments.length})</h2>
           {assignments.length === 0 ? (
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>No exercises assigned yet.</p>
           ) : (
@@ -254,7 +256,7 @@ export default function PatientDetailPage() {
           )}
       </section>
 
-      <section className="card" style={{ padding: "24px" }}>
+      <section className="card care-page-panel">
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
           <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
           <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>

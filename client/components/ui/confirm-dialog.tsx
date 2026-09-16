@@ -1,3 +1,5 @@
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
+
 export function ConfirmDialog({
   isOpen,
   title,
@@ -19,37 +21,23 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const modalRef = usePortalModalFocus(isOpen, onCancel);
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: "20px",
-      }}
-      onClick={onCancel}
-    >
+    <div className="portal-modal-overlay" onClick={onCancel}>
       <div
-        className="card animate-slide-up"
-        style={{ width: "100%", maxWidth: "400px", padding: "24px" }}
+        ref={modalRef} tabIndex={-1}
+        className="portal-modal-panel portal-modal-confirm animate-slide-up"
+        role="alertdialog" aria-modal="true" aria-labelledby="confirm-dialog-title" aria-describedby="confirm-dialog-message"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 12px 0", color: "var(--color-text-primary)" }}>
-          {title}
-        </h3>
-        <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: "0 0 24px 0" }}>
-          {message}
-        </p>
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+        <div className="portal-modal-header">
+          <span className="role-dashboard-eyebrow">Please confirm</span>
+          <h2 id="confirm-dialog-title">{title}</h2>
+        </div>
+        <div className="portal-modal-copy"><p id="confirm-dialog-message">{message}</p></div>
+        <div className="portal-modal-footer">
           <button className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
             {cancelLabel}
           </button>
