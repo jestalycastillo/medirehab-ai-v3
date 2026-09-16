@@ -191,7 +191,7 @@ export function WeeklySessionsDialog({
               className={`weekly-sessions-tab ${filterStatus === "MET" ? "active" : ""}`}
               onClick={() => setFilterStatus("MET")}
             >
-              Goals Met ({counts.met})
+              Completed ({counts.met})
             </button>
             <button
               type="button"
@@ -227,7 +227,7 @@ export function WeeklySessionsDialog({
               <p>No patients match the selected filter or search query.</p>
             </div>
           ) : (
-            filteredStats.map(({ patient, assignments, completed, target, percent, status }) => {
+            filteredStats.map(({ patient, assignments, completed, target, status }) => {
               const fullName = patientName(patient);
 
               return (
@@ -251,20 +251,23 @@ export function WeeklySessionsDialog({
                     </div>
                   </div>
 
-                  {/* Individual Patient Progress Bar */}
-                  {target > 0 && (
-                    <div className="weekly-sessions-patient-progress-row">
-                      <div className="weekly-sessions-patient-progress-track">
-                        <div
-                          className={`weekly-sessions-patient-progress-bar ${
-                            status === "MET" ? "is-met" : status === "IN_PROGRESS" ? "is-in-progress" : "is-zero"
-                          }`}
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                      <span className="weekly-sessions-patient-progress-percent">{percent}%</span>
-                    </div>
-                  )}
+                  {/* Status label */}
+                  <div className="weekly-sessions-patient-status-row">
+                    {status === "MET" && (
+                      <span className="badge badge-success">Completed</span>
+                    )}
+                    {status === "IN_PROGRESS" && (
+                      <span className="badge badge-blue">In progress</span>
+                    )}
+                    {status === "NOT_STARTED" && (
+                      <span className="badge badge-amber">Not started</span>
+                    )}
+                    {status === "NO_PLAN" && (
+                      <span className="badge" style={{ backgroundColor: "#f1f5f9", color: "#64748b" }}>
+                        No active plan
+                      </span>
+                    )}
+                  </div>
 
                   {/* Exercise assignments breakdown */}
                   {assignments.length > 0 ? (

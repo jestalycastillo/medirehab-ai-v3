@@ -3230,44 +3230,10 @@ body {
   color: var(--color-text-muted);
 }
 
-.weekly-sessions-patient-progress-row {
+.weekly-sessions-patient-status-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.weekly-sessions-patient-progress-track {
-  flex: 1;
-  height: 6px;
-  background: #f1f5f9;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.weekly-sessions-patient-progress-bar {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.3s;
-}
-
-.weekly-sessions-patient-progress-bar.is-met {
-  background: #10b981;
-}
-
-.weekly-sessions-patient-progress-bar.is-in-progress {
-  background: #3b82f6;
-}
-
-.weekly-sessions-patient-progress-bar.is-zero {
-  background: #cbd5e1;
-}
-
-.weekly-sessions-patient-progress-percent {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  min-width: 32px;
-  text-align: right;
+  gap: 8px;
 }
 
 .weekly-sessions-exercise-pills {
