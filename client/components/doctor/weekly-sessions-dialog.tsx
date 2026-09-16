@@ -306,17 +306,6 @@ export function WeeklySessionsDialog({
                       <span>No exercise prescriptions assigned for this patient.</span>
                     </div>
                   )}
-
-                  {/* Action Link */}
-                  <div className="weekly-sessions-patient-actions">
-                    <Link
-                      href={`/doctor/patients/${patient.id}`}
-                      className="weekly-sessions-action-link"
-                      onClick={onClose}
-                    >
-                      View Profile
-                    </Link>
-                  </div>
                 </div>
               );
             })

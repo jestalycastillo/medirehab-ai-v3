@@ -3278,8 +3278,8 @@ body {
 .weekly-status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
+  gap: 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   width: auto;
   white-space: nowrap;
@@ -3353,7 +3353,7 @@ body {
 .weekly-exercise-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -3370,8 +3370,8 @@ body {
 .weekly-exercise-status-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: 8px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
