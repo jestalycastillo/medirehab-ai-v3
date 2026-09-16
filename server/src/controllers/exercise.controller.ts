@@ -1,5 +1,7 @@
 import { Role } from "@prisma/client";
 import { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import {
     archiveExercise,
     archivePatientExerciseAssignment,
@@ -38,6 +40,31 @@ const SUPPORTED_EXERCISE_RECORDING_TYPES = new Set([
     "video/webm",
     "video/x-msvideo"
 ]);
+
+const saveSessionVideoFile = async (
+    videoBuffer: Buffer,
+    contentType: string,
+    clientSessionId?: string
+): Promise<string> => {
+    const videosDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads", "videos");
+    if (!fs.existsSync(videosDir)) {
+        await fs.promises.mkdir(videosDir, { recursive: true });
+    }
+    const extMap: Record<string, string> = {
+        "video/webm": ".webm",
+        "video/mp4": ".mp4",
+        "video/quicktime": ".mov",
+        "video/x-msvideo": ".avi",
+        "application/octet-stream": ".webm"
+    };
+    const ext = extMap[contentType.toLowerCase()] || ".webm";
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const safeClientId = clientSessionId ? clientSessionId.replace(/[^a-zA-Z0-9_-]/g, "") : "clip";
+    const filename = `session-${safeClientId}-${uniqueSuffix}${ext}`;
+    const filePath = path.join(videosDir, filename);
+    await fs.promises.writeFile(filePath, videoBuffer);
+    return `/uploads/videos/${filename}`;
+};
 
 const getAuthenticatedUserId = (req: Request): string => {
     if (!req.user?.userId) {
@@ -353,6 +380,7 @@ export const evaluateExerciseAssignment = async (
                 evaluatedModelKey: existingSession.evaluatedModelKey,
                 selectedSide: existingSession.selectedSide,
                 visitId: existingSession.visitId,
+                videoUrl: existingSession.videoUrl,
                 sessionId: existingSession.id,
                 adherenceQualified: existingSession.adherenceQualified,
                 qualificationReason: existingSession.qualificationReason,
@@ -392,6 +420,7 @@ export const evaluateExerciseAssignment = async (
             contentType,
             selectedSide
         );
+        const videoUrl = await saveSessionVideoFile(videoBuffer, contentType, clientSessionId);
         const session = await recordExerciseSession(
             authenticatedUserId,
             assignmentId,
@@ -402,6 +431,7 @@ export const evaluateExerciseAssignment = async (
                 durationSeconds,
                 clientSessionId,
                 evaluatedModelKey: result.evaluatedModelKey,
+                videoUrl,
                 ...(visitId ? { visitId } : {}),
                 ...(result.selectedSide ? { selectedSide: result.selectedSide } : {})
             }
@@ -414,6 +444,7 @@ export const evaluateExerciseAssignment = async (
             ...result,
             sessionId: session.id,
             visitId: session.visitId,
+            videoUrl: session.videoUrl ?? videoUrl,
             adherenceQualified: session.adherenceQualified,
             qualificationReason: session.qualificationReason,
             duplicate: session.duplicate

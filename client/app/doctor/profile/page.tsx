@@ -93,7 +93,6 @@ export default function DoctorProfilePage() {
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "760px" }}>
       <div>
         <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Profile</h1>
-        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>Manage your doctor profile and account password.</p>
       </div>
 
       {error && (

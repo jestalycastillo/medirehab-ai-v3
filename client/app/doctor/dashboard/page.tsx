@@ -115,7 +115,6 @@ export default function DoctorDashboardPage() {
         <div>
           <span className="role-dashboard-eyebrow">Doctor dashboard</span>
           <h1>{doctorName ? `Hello, Dr. ${doctorName}` : "Hello, Doctor"}</h1>
-          <p>Start with the patients who need you most.</p>
         </div>
         <Button nativeButton={false} render={<Link href="/doctor/exercise-assignments" />}>
           <ClipboardPlus aria-hidden="true" /> Assign exercise
@@ -125,7 +124,6 @@ export default function DoctorDashboardPage() {
       <Card className="doctor-attention-card">
         <CardHeader className="doctor-attention-header">
           <div>
-            <span className="role-dashboard-eyebrow">Start here</span>
             <CardTitle>Patients needing attention</CardTitle>
             <CardDescription>
               {dashboard.attention.length > 0

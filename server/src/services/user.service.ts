@@ -35,7 +35,22 @@ const doctorUserSelect = {
 
 const patientUserSelect = {
     ...baseUserSelect,
-    patientProfile: true
+    patientProfile: {
+        include: {
+            assignedDoctor: {
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                            isActive: true,
+                            archivedAt: true
+                        }
+                    }
+                }
+            }
+        }
+    }
 } satisfies Prisma.UserSelect;
 
 const adminPatientUserSelect = {
@@ -306,7 +321,22 @@ export const getMyProfile = async (userId: string) => {
             archivedAt: true,
             mustChangePassword: true,
             passwordChangedAt: true,
-            patientProfile: true,
+            patientProfile: {
+                include: {
+                    assignedDoctor: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    email: true,
+                                    isActive: true,
+                                    archivedAt: true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             doctorProfile: true
         }
     });

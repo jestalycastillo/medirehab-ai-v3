@@ -77,6 +77,17 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  const loadUnreadCount = async () => {
+    try {
+      const res = await api.getMyNotifications();
+      const unread = res.notifications.filter((n) => !n.isRead).length;
+      setUnreadNotificationsCount(unread);
+    } catch {
+      // ignore
+    }
+  };
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -112,9 +123,13 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
 
     const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
     heartbeat();
-    const interval = window.setInterval(heartbeat, 60_000);
+    loadUnreadCount();
+    const interval = window.setInterval(() => {
+      heartbeat();
+      loadUnreadCount();
+    }, 15_000);
     return () => window.clearInterval(interval);
-  }, [loading, user]);
+  }, [loading, user, pathname]);
 
   if (loading || !user || user.role !== "PATIENT" || user.mustChangePassword) {
     return (
@@ -143,6 +158,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: "4px" }}>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/patient/dashboard" && pathname.startsWith(item.href));
+            const isNotifications = item.href === "/patient/notifications";
             return (
               <Link
                 key={item.href}
@@ -151,7 +167,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "12px",
+                  justifyContent: "space-between",
                   padding: "10px 12px",
                   borderRadius: "var(--radius-md)",
                   color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
@@ -160,8 +176,27 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
                   textDecoration: "none",
                 }}
               >
-                <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>{item.icon}</div>
-                {item.name}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>{item.icon}</div>
+                  <span>{item.name}</span>
+                </div>
+                {isNotifications && unreadNotificationsCount > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: "var(--color-primary)",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      minWidth: "20px",
+                      textAlign: "center",
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                  </span>
+                )}
               </Link>
             );
           })}

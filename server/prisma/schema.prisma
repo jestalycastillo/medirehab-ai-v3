@@ -185,6 +185,7 @@ model ExerciseSession {
   evaluatedModelKey String?
   selectedSide      String?
   visitId           String?
+  videoUrl          String?
   aiFeedback       Json?
   painLevel        Int?
   difficultyLevel  Int?

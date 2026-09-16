@@ -133,23 +133,22 @@ export default function AdminDashboard() {
 
       <Card className="admin-overview-card">
         <CardHeader>
-          <span className="role-dashboard-eyebrow">Start here</span>
           <CardTitle>Needs setup</CardTitle>
           <CardDescription>{setupIssueCount > 0 ? `${setupIssueCount} item${setupIssueCount === 1 ? "" : "s"} to check` : "No account setup issues"}</CardDescription>
         </CardHeader>
         <CardContent className="admin-setup-list">
-            {setupIssueCount === 0 ? (
-              <div className="admin-setup-clear"><strong>Everything is ready</strong><p>Active patients have a doctor and accounts are ready to use.</p></div>
-            ) : (
-              <>
-                {dashboard.patientsWithoutDoctor.length > 0 && (
-                  <Link href="/admin/patients"><span>Patients without a doctor</span><strong>{dashboard.patientsWithoutDoctor.length}</strong><ChevronRight /></Link>
-                )}
-                {dashboard.inactiveDoctors.length > 0 && (
-                  <Link href="/admin/doctors"><span>Inactive doctors</span><strong>{dashboard.inactiveDoctors.length}</strong><ChevronRight /></Link>
-                )}
-              </>
-            )}
+          {setupIssueCount === 0 ? (
+            <div className="admin-setup-clear"><strong>Everything is ready</strong><p>Active patients have a doctor and accounts are ready to use.</p></div>
+          ) : (
+            <>
+              {dashboard.patientsWithoutDoctor.length > 0 && (
+                <Link href="/admin/patients"><span>Patients without a doctor</span><strong>{dashboard.patientsWithoutDoctor.length}</strong><ChevronRight /></Link>
+              )}
+              {dashboard.inactiveDoctors.length > 0 && (
+                <Link href="/admin/doctors"><span>Inactive doctors</span><strong>{dashboard.inactiveDoctors.length}</strong><ChevronRight /></Link>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -162,39 +161,39 @@ export default function AdminDashboard() {
       <details className="role-dashboard-disclosure">
         <summary><span>Activity and recent changes</span><span>{dashboard.activityTotal} sessions this week</span><ChevronRight aria-hidden="true" /></summary>
         <div className="role-dashboard-disclosure-content">
-        <Card className="role-summary-card">
-          <CardHeader>
-            <div className="role-summary-heading">
-              <span className="role-summary-icon"><Activity /></span>
-              <div><CardTitle>Care activity</CardTitle><CardDescription>Exercise sessions in the last 7 days</CardDescription></div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="admin-activity-total"><strong>{dashboard.activityTotal}</strong><span>sessions completed</span></div>
-            <div className="admin-activity-bars" aria-label={`${dashboard.activityTotal} sessions in the last seven days`}>
-              {dashboard.activityDays.map((day) => (
-                <div key={day.label}><i style={{ height: `${Math.max(8, (day.value / dashboard.maxActivity) * 100)}%` }} /><strong>{day.value}</strong><span>{day.label}</span></div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="role-summary-card">
+            <CardHeader>
+              <div className="role-summary-heading">
+                <span className="role-summary-icon"><Activity /></span>
+                <div><CardTitle>Care activity</CardTitle><CardDescription>Exercise sessions in the last 7 days</CardDescription></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="admin-activity-total"><strong>{dashboard.activityTotal}</strong><span>sessions completed</span></div>
+              <div className="admin-activity-bars" aria-label={`${dashboard.activityTotal} sessions in the last seven days`}>
+                {dashboard.activityDays.map((day) => (
+                  <div key={day.label}><i style={{ height: `${Math.max(8, (day.value / dashboard.maxActivity) * 100)}%` }} /><strong>{day.value}</strong><span>{day.label}</span></div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card className="admin-audit-card">
-        <CardHeader className="admin-audit-header">
-          <div><CardTitle>Recent changes</CardTitle><CardDescription>The latest account and care updates</CardDescription></div>
-        </CardHeader>
-        <CardContent className="admin-audit-list">
-          {auditLogs.length === 0 ? (
-            <p className="role-no-update">No recorded changes yet.</p>
-          ) : auditLogs.slice(0, 5).map((log) => (
-            <div className="admin-audit-row" key={log.id}>
-              <span className={log.statusCode < 400 ? "admin-audit-success" : "admin-audit-failed"} />
-              <div><strong>{describeAudit(log)}</strong><small>{log.actor?.email ?? "Former user"}</small></div>
-              <time>{formatAuditTime(log.createdAt)}</time>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+          <Card className="admin-audit-card">
+            <CardHeader className="admin-audit-header">
+              <div><CardTitle>Recent changes</CardTitle><CardDescription>The latest account and care updates</CardDescription></div>
+            </CardHeader>
+            <CardContent className="admin-audit-list">
+              {auditLogs.length === 0 ? (
+                <p className="role-no-update">No recorded changes yet.</p>
+              ) : auditLogs.slice(0, 5).map((log) => (
+                <div className="admin-audit-row" key={log.id}>
+                  <span className={log.statusCode < 400 ? "admin-audit-success" : "admin-audit-failed"} />
+                  <div><strong>{describeAudit(log)}</strong><small>{log.actor?.email ?? "Former user"}</small></div>
+                  <time>{formatAuditTime(log.createdAt)}</time>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </details>
     </div>

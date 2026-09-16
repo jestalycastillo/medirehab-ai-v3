@@ -4827,3 +4827,240 @@ a.admin-metric:hover {
     @apply font-sans;
   }
 }
+
+.session-mirrored-video,
+video.session-mirrored-video,
+video.session-mirrored-video:fullscreen,
+video.session-mirrored-video:-webkit-full-screen,
+video.session-mirrored-video:-moz-full-screen,
+video.session-mirrored-video:-ms-fullscreen {
+  transform: scaleX(-1) !important;
+  -webkit-transform: scaleX(-1) !important;
+}
+
+/* ── Print & PDF Export Styles ── */
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-color: transparent !important;
+  }
+
+  html {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 16mm 18mm !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .portal-shell,
+  .portal-content,
+  main,
+  .admin-main-content,
+  .patient-content,
+  .patient-page-disclosure,
+  .patient-page-disclosure-content,
+  .care-disclosure,
+  .care-disclosure-content {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    float: none !important;
+  }
+
+  .no-print,
+  .patient-app-sidebar,
+  .admin-sidebar,
+  .doctor-sidebar,
+  .patient-nav,
+  .patient-search,
+  .patient-page-header,
+  .admin-mobile-header,
+  .admin-mobile-menu,
+  .patient-help-wrap,
+  .follow-along-reopen-btn,
+  .patient-exercise-grid,
+  .quick-chat-container,
+  .quick-chat-trigger,
+  .quick-chat-window,
+  .care-timeline,
+  .patient-history-content,
+  .score-summary,
+  header.patient-header,
+  header.doctor-header,
+  nav,
+  aside,
+  button,
+  .patient-page-disclosure > summary,
+  .care-disclosure > summary {
+    display: none !important;
+  }
+
+  details {
+    display: block !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  details > div,
+  details[open] > div,
+  .patient-page-disclosure-content,
+  .care-disclosure-content {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .progress-report-container {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .progress-doc-letterhead {
+    display: block !important;
+    border-bottom: 2px solid #000000 !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 14px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .progress-doc-section {
+    display: block !important;
+    margin-top: 14px !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  .progress-doc-section-heading {
+    color: #000000 !important;
+    font-size: 11pt !important;
+    font-weight: 800 !important;
+    border-bottom: 1px solid #000000 !important;
+    padding-bottom: 3px !important;
+    margin-bottom: 6px !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .progress-doc-meta-table td,
+  .progress-doc-summary-table td {
+    color: #000000 !important;
+    font-size: 9.5pt !important;
+    padding: 4px 6px !important;
+    border-color: #d1d5db !important;
+  }
+
+  .progress-report-table-wrap {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+
+  .progress-doc-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+    table-layout: auto !important;
+  }
+
+  .progress-doc-table thead {
+    display: table-header-group !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .progress-doc-table thead tr {
+    border-top: 1.5px solid #000000 !important;
+    border-bottom: 1.5px solid #000000 !important;
+    background: transparent !important;
+  }
+
+  .progress-doc-table th {
+    color: #000000 !important;
+    font-weight: 700 !important;
+    font-size: 9pt !important;
+    padding: 6px 4px !important;
+  }
+
+  .progress-doc-table tbody {
+    display: table-row-group !important;
+  }
+
+  .progress-doc-table tr,
+  .progress-report-table-row {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    background: transparent !important;
+  }
+
+  .progress-doc-table td {
+    padding: 6px 4px !important;
+    color: #000000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .progress-doc-attestation {
+    margin-top: 20px !important;
+    padding-top: 12px !important;
+    border-top: 1.5px solid #000000 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+
+

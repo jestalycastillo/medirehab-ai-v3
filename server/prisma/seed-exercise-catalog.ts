@@ -49,20 +49,22 @@ export async function seedExerciseCatalog(prisma: PrismaClient): Promise<void> {
             });
         }
 
-        // Replace only the catalog's old default images; preserve clinician-supplied images.
-        const oldDefaultPath = item.analysisModelKey === "shoulder_flexion"
-            ? "/exercises/shoulder_flexion.svg"
+        // Replace catalog's old default images; preserve clinician-supplied images.
+        const oldDefaultPaths = item.analysisModelKey === "shoulder_flexion"
+            ? ["/exercises/shoulder_flexion.svg", "/exercises/left_flexion.jpg", "/exercises/right_flexion.jpg"]
             : item.analysisModelKey === "shoulder_abduction"
-                ? "/exercises/arms_raise.jpg"
-                : null;
-        if (oldDefaultPath) {
+                ? ["/exercises/arms_raise.jpg"]
+                : [];
+        if (oldDefaultPaths.length > 0) {
             await prisma.exerciseImage.updateMany({
                 where: {
                     exerciseId: existing.id,
-                    imageName: item.image.imageName,
-                    filepath: oldDefaultPath
+                    filepath: { in: oldDefaultPaths }
                 },
-                data: { filepath: item.image.filepath }
+                data: {
+                    imageName: item.image.imageName,
+                    filepath: item.image.filepath
+                }
             });
         }
         console.log(`Exercise ready: ${item.name} (${item.analysisModelKey})`);
