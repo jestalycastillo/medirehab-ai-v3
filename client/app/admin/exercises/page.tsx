@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, type ApiExercise, ApiError, type ExerciseImage } from "@/lib/api";
+import { api, type ApiExercise, ApiError, type ExerciseImage, getExerciseImageUrl } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExerciseForm } from "@/components/admin/exercise-form";
@@ -269,7 +269,7 @@ export default function ExercisesPage() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(285px, 1fr))", gap: "20px" }}>
                 {filteredExercises.map((exercise) => {
-                  const mainImage = exercise.images && exercise.images.length > 0 ? exercise.images[0].filepath : null;
+                  const mainImage = getExerciseImageUrl(exercise) || (exercise.images && exercise.images.length > 0 ? exercise.images[0].filepath : null);
                   return (
                     <div
                       key={exercise.id}

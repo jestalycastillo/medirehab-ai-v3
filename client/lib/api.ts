@@ -1,5 +1,32 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+export function resolveMediaUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+  const apiOrigin = API_BASE.replace(/\/api\/?$/, "");
+  const cleanPath = url.startsWith("/") ? url : `/${url}`;
+  return `${apiOrigin}${cleanPath}`;
+}
+
+export function getExerciseImageUrl(exercise?: { name?: string; analysisModelKey?: string | null; images?: ExerciseImage[] } | null): string | null {
+  if (!exercise) return null;
+  const image = exercise.images?.[0]?.filepath;
+  if (image && !image.endsWith("left_flexion.jpg") && !image.endsWith("right_flexion.jpg") && !image.endsWith("shoulder_flexion.svg")) {
+    return image;
+  }
+  const key = (exercise.analysisModelKey || "").toLowerCase();
+  const name = (exercise.name || "").toLowerCase();
+  if (key.includes("flexion") || name.includes("flexion")) {
+    return "/exercises/shoulder_flexion.png";
+  }
+  if (key.includes("abduction") || name.includes("abduction")) {
+    return "/exercises/shoulder_abduction.png";
+  }
+  return image || null;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
@@ -92,6 +119,7 @@ export interface CareSession {
   evaluatedModelKey?: string | null;
   selectedSide?: "left" | "right" | null;
   visitId?: string | null;
+  videoUrl?: string | null;
   aiFeedback: string[];
   painLevel: number | null;
   difficultyLevel: number | null;
@@ -522,7 +550,7 @@ export const api = {
   },
 
   evaluateExercise(exerciseId: string, assignmentId: string, videoBlob: Blob, durationSeconds: number, clientSessionId: string, selectedSide?: "left" | "right", visitId?: string) {
-    return request<{ success: boolean; score: number; feedback?: string[]; evaluatedModelKey?: string; selectedSide?: "left" | "right" | null; visitId?: string | null; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
+    return request<{ success: boolean; score: number; feedback?: string[]; evaluatedModelKey?: string; selectedSide?: "left" | "right" | null; visitId?: string | null; videoUrl?: string | null; sessionId: string; message?: string; adherenceQualified: boolean; qualificationReason?: string | null; duplicate?: boolean }>(`/exercises/patients/exercises/${exerciseId}/assignments/${assignmentId}/evaluate`, {
       method: "POST",
       headers: {
         "Content-Type": videoBlob.type || "video/webm",
@@ -595,6 +623,12 @@ export const api = {
 
   markNotificationRead(notificationId: string) {
     return request<{ success: boolean; notification: CareNotification }>(`/care/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    });
+  },
+
+  markAllNotificationsRead() {
+    return request<{ success: boolean; notifications: CareNotification[] }>("/care/notifications/read-all", {
       method: "PATCH",
     });
   },
