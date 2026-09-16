@@ -102,7 +102,7 @@ export default function PatientProfilePage() {
   return (
     <div className="patient-page patient-profile-page animate-fade-in">
       <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Your account</span><h1>Profile & settings</h1><p>Keep your details, camera access, and notifications up to date.</p></div>
+        <div><span className="patient-page-eyebrow">Your account</span><h1>Profile & settings</h1></div>
       </header>
 
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
@@ -110,7 +110,7 @@ export default function PatientProfilePage() {
       <div className="patient-profile-grid">
         <Card className="patient-profile-main-card">
           <CardHeader>
-            <div className="patient-settings-heading"><span><UserRound /></span><div><CardTitle>Personal information</CardTitle><CardDescription>Your care team uses this information to support you.</CardDescription></div></div>
+            <div className="patient-settings-heading"><span><UserRound /></span><div><CardTitle>Personal information</CardTitle></div></div>
           </CardHeader>
           <CardContent className="patient-profile-form-content">
             {profileMessage && <div className="patient-settings-success"><ShieldCheck /> {profileMessage}</div>}
@@ -123,16 +123,26 @@ export default function PatientProfilePage() {
             <CardHeader><CardTitle>Account</CardTitle></CardHeader>
             <CardContent>
               <div className="patient-account-line"><span><Mail /></span><div><small>Email</small><strong>{user?.email}</strong></div></div>
-              <div className="patient-account-line"><span><Stethoscope /></span><div><small>Your doctor</small><strong>{doctorName ? `Dr. ${doctorName}` : "Not assigned yet"}</strong></div></div>
+              <div className="patient-account-line">
+                <span><Stethoscope /></span>
+                <div>
+                  <small>Your doctor</small>
+                  <strong>{doctorName ? `Dr. ${doctorName}` : "Not assigned yet"}</strong>
+                  {profile?.assignedDoctor?.specialization && (
+                    <span style={{ fontSize: "12px", color: "var(--color-text-muted)", display: "block", marginTop: "1px" }}>
+                      {profile.assignedDoctor.specialization}
+                    </span>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card className="patient-consent-card">
             <CardHeader>
-              <div className="patient-settings-heading"><span><ShieldCheck /></span><div><CardTitle>Camera & privacy</CardTitle><CardDescription>Required only when recording an exercise.</CardDescription></div></div>
+              <div className="patient-settings-heading"><span><ShieldCheck /></span><div><CardTitle>Camera & privacy</CardTitle></div></div>
             </CardHeader>
             <CardContent>
-              <p className="patient-consent-explanation">Exercise videos are processed for evaluation and are not stored by the MediRehab server.</p>
               <label className="patient-setting-choice"><input type="checkbox" checked={Boolean(consent?.privacyConsentAt)} onChange={(event) => setConsent((current) => ({ privacyConsentAt: event.target.checked ? new Date().toISOString() : null, recordingConsentAt: event.target.checked ? current?.recordingConsentAt ?? null : null }))} /><span><strong>Use my rehabilitation data</strong><small>Allows movement evaluation and progress tracking.</small></span></label>
               <label className="patient-setting-choice"><input type="checkbox" checked={Boolean(consent?.recordingConsentAt)} disabled={!consent?.privacyConsentAt} onChange={(event) => setConsent((current) => ({ privacyConsentAt: current?.privacyConsentAt ?? null, recordingConsentAt: event.target.checked ? new Date().toISOString() : null }))} /><span><strong>Allow exercise recording</strong><small>Lets the recorder ask for browser camera access.</small></span></label>
               {consentMessage && <div className="patient-settings-success"><ShieldCheck /> {consentMessage}</div>}
@@ -143,7 +153,7 @@ export default function PatientProfilePage() {
           <div className="patient-notification-preferences-wrap"><NotificationPreferences /></div>
 
           <details className="patient-security-card">
-            <summary><span><LockKeyhole /></span><span><strong>Password</strong><small>Change your account password</small></span><ChevronDown /></summary>
+            <summary><span><LockKeyhole /></span><span><strong>Password</strong></span><ChevronDown /></summary>
             <form onSubmit={handleChangePassword}>
               {passwordMessage && <div className="patient-settings-success"><ShieldCheck /> {passwordMessage}</div>}
               <label>Current password<input type="password" className="input" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label>
