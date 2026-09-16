@@ -3342,74 +3342,86 @@ body {
 .weekly-sessions-exercise-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.weekly-sessions-exercise-card {
+.weekly-exercise-row {
   padding: 8px 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.weekly-sessions-exercise-card-header {
+.weekly-exercise-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
-.weekly-sessions-exercise-title {
-  font-size: 12.5px;
+.weekly-exercise-name {
+  font-size: 13px;
   font-weight: 700;
   color: #0f172a;
 }
 
-.weekly-sessions-exercise-badges {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.weekly-exercise-badge {
+.weekly-exercise-schedule {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 6px;
   font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.2;
+  color: #64748b;
+  background: #ffffff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
 }
 
-.weekly-exercise-badge.badge-schedule {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+.weekly-exercise-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.weekly-exercise-count-badge {
+  font-size: 12px;
   color: #475569;
 }
 
-.weekly-exercise-badge.badge-target {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: #334155;
+.weekly-exercise-count-badge strong {
+  color: #0f172a;
+  font-weight: 700;
 }
 
-.weekly-exercise-badge.badge-completed {
+.weekly-exercise-status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.weekly-exercise-status-tag.met {
   background: #ecfdf5;
   border: 1px solid #a7f3d0;
   color: #065f46;
 }
 
-.weekly-exercise-badge.badge-progress {
+.weekly-exercise-status-tag.in-progress {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   color: #1e40af;
 }
 
-.weekly-exercise-badge.badge-zero {
+.weekly-exercise-status-tag.zero {
   background: #fffbeb;
   border: 1px solid #fde68a;
   color: #92400e;

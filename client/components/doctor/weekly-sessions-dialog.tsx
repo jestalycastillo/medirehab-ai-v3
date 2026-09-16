@@ -224,10 +224,7 @@ export function WeeklySessionsDialog({
                           <div className="weekly-status-icon-wrap">
                             <CheckCircle2 style={{ width: 13, height: 13 }} />
                           </div>
-                          <div className="weekly-status-info">
-                            <span className="weekly-status-title">Completed</span>
-                            <span className="weekly-status-sub">({completed} of {target} {target === 1 ? "session" : "sessions"})</span>
-                          </div>
+                          <span className="weekly-status-title">Completed</span>
                         </div>
                       )}
                       {status === "IN_PROGRESS" && (
@@ -235,10 +232,7 @@ export function WeeklySessionsDialog({
                           <div className="weekly-status-icon-wrap">
                             <Clock style={{ width: 13, height: 13 }} />
                           </div>
-                          <div className="weekly-status-info">
-                            <span className="weekly-status-title">In Progress</span>
-                            <span className="weekly-status-sub">({completed} of {target} {target === 1 ? "session" : "sessions"})</span>
-                          </div>
+                          <span className="weekly-status-title">In Progress</span>
                         </div>
                       )}
                       {status === "NOT_STARTED" && (
@@ -246,10 +240,7 @@ export function WeeklySessionsDialog({
                           <div className="weekly-status-icon-wrap">
                             <CircleAlert style={{ width: 13, height: 13 }} />
                           </div>
-                          <div className="weekly-status-info">
-                            <span className="weekly-status-title">Not Started</span>
-                            <span className="weekly-status-sub">(0 of {target} {target === 1 ? "session" : "sessions"})</span>
-                          </div>
+                          <span className="weekly-status-title">Not Started</span>
                         </div>
                       )}
                       {status === "NO_PLAN" && (
@@ -257,9 +248,7 @@ export function WeeklySessionsDialog({
                           <div className="weekly-status-icon-wrap">
                             <CalendarX style={{ width: 13, height: 13 }} />
                           </div>
-                          <div className="weekly-status-info">
-                            <span className="weekly-status-title">No Plan</span>
-                          </div>
+                          <span className="weekly-status-title">No Plan</span>
                         </div>
                       )}
                     </div>
@@ -278,45 +267,33 @@ export function WeeklySessionsDialog({
                         const isInProgress = exCompleted > 0 && exCompleted < exTarget;
 
                         return (
-                          <div key={assignment.id} className="weekly-sessions-exercise-card">
-                            <div className="weekly-sessions-exercise-card-header">
-                              <Dumbbell style={{ width: 14, height: 14, color: "var(--color-primary)" }} />
-                              <span className="weekly-sessions-exercise-title">
+                          <div key={assignment.id} className="weekly-exercise-row">
+                            <div className="weekly-exercise-left">
+                              <span className="weekly-exercise-name">
                                 {assignment.exercise?.name || "Exercise"}
                               </span>
+                              {exDays && (
+                                <span className="weekly-exercise-schedule">
+                                  <Calendar style={{ width: 11, height: 11 }} /> {exDays}
+                                </span>
+                              )}
                             </div>
 
-                            <div className="weekly-sessions-exercise-badges">
-                              {exDays && (
-                                <span className="weekly-exercise-badge badge-schedule">
-                                  <Calendar style={{ width: 12, height: 12 }} />
-                                  {exDays}
-                                </span>
-                              )}
-
-                              <span className="weekly-exercise-badge badge-target">
-                                <Target style={{ width: 12, height: 12 }} />
-                                Target: {exTarget} {exTarget === 1 ? "session" : "sessions"}
+                            <div className="weekly-exercise-right">
+                              <span className="weekly-exercise-count-badge">
+                                <strong>{exCompleted}</strong> of {exTarget} {exTarget === 1 ? "session" : "sessions"}
                               </span>
-
-                              {isMet && (
-                                <span className="weekly-exercise-badge badge-completed">
-                                  <CheckCircle2 style={{ width: 12, height: 12 }} />
-                                  {exCompleted} Completed · Goal Met
+                              {isMet ? (
+                                <span className="weekly-exercise-status-tag met">
+                                  Goal Met
                                 </span>
-                              )}
-
-                              {isInProgress && (
-                                <span className="weekly-exercise-badge badge-progress">
-                                  <Clock style={{ width: 12, height: 12 }} />
-                                  {exCompleted} of {exTarget} Completed
+                              ) : isInProgress ? (
+                                <span className="weekly-exercise-status-tag in-progress">
+                                  In Progress
                                 </span>
-                              )}
-
-                              {!isMet && !isInProgress && (
-                                <span className="weekly-exercise-badge badge-zero">
-                                  <CircleAlert style={{ width: 12, height: 12 }} />
-                                  0 of {exTarget} Completed
+                              ) : (
+                                <span className="weekly-exercise-status-tag zero">
+                                  Not Started
                                 </span>
                               )}
                             </div>
