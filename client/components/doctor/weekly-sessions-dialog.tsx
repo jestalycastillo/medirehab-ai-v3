@@ -107,11 +107,7 @@ export function WeeklySessionsDialog({
         {/* Header */}
         <div className="weekly-sessions-modal-header">
           <div className="weekly-sessions-modal-title-group">
-            <span className="weekly-sessions-badge">
-              <ClipboardList style={{ width: 14, height: 14 }} /> Telemetry
-            </span>
             <h2 id="weekly-sessions-title">This Week&apos;s Planned Sessions</h2>
-            <p>Session completion telemetry and prescription adherence for active patients.</p>
           </div>
           <button
             type="button"
@@ -230,7 +226,7 @@ export function WeeklySessionsDialog({
                           </div>
                           <div className="weekly-status-info">
                             <span className="weekly-status-title">Completed</span>
-                            <span className="weekly-status-sub">({completed}/{target})</span>
+                            <span className="weekly-status-sub">({completed} of {target} {target === 1 ? "session" : "sessions"})</span>
                           </div>
                         </div>
                       )}
@@ -241,7 +237,7 @@ export function WeeklySessionsDialog({
                           </div>
                           <div className="weekly-status-info">
                             <span className="weekly-status-title">In Progress</span>
-                            <span className="weekly-status-sub">({completed}/{target})</span>
+                            <span className="weekly-status-sub">({completed} of {target} {target === 1 ? "session" : "sessions"})</span>
                           </div>
                         </div>
                       )}
@@ -252,7 +248,7 @@ export function WeeklySessionsDialog({
                           </div>
                           <div className="weekly-status-info">
                             <span className="weekly-status-title">Not Started</span>
-                            <span className="weekly-status-sub">(0/{target})</span>
+                            <span className="weekly-status-sub">(0 of {target} {target === 1 ? "session" : "sessions"})</span>
                           </div>
                         </div>
                       )}
@@ -284,9 +280,9 @@ export function WeeklySessionsDialog({
                             <Dumbbell style={{ width: 13, height: 13, color: "var(--color-primary)" }} />
                             <span className="weekly-sessions-exercise-pill-name">{assignment.exercise?.name || "Exercise"}</span>
                             {exDays && <span className="weekly-sessions-exercise-pill-days">({exDays})</span>}
-                            <strong className="weekly-sessions-exercise-pill-count">
-                              {exCompleted}/{exTarget}
-                            </strong>
+                            <span className="weekly-sessions-exercise-pill-count">
+                              <strong>{exCompleted}</strong> of {exTarget} {exTarget === 1 ? "session" : "sessions"} completed
+                            </span>
                           </div>
                         );
                       })}
