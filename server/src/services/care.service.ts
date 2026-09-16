@@ -71,6 +71,7 @@ const sessionSelect = {
     evaluatedModelKey: true,
     selectedSide: true,
     visitId: true,
+    videoUrl: true,
     aiFeedback: true,
     painLevel: true,
     difficultyLevel: true,
@@ -341,6 +342,7 @@ export const recordExerciseSession = async (
         evaluatedModelKey?: string;
         selectedSide?: "left" | "right";
         visitId?: string;
+        videoUrl?: string;
     } = {}
 ) => {
     const roundedScore = roundScore(score);
@@ -397,6 +399,7 @@ export const recordExerciseSession = async (
                 evaluatedModelKey: options.evaluatedModelKey ?? null,
                 selectedSide: options.selectedSide ?? null,
                 visitId: options.visitId ?? null,
+                videoUrl: options.videoUrl ?? null,
                 aiFeedback,
                 ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
                 ...(options.clientSessionId !== undefined ? { clientSessionId: options.clientSessionId } : {}),
@@ -447,7 +450,8 @@ export const recordExerciseSession = async (
         meta: {
             assignmentId: assignment.id,
             sessionId: session.id,
-            score: roundedScore
+            score: roundedScore,
+            ...(session.videoUrl ? { videoUrl: session.videoUrl } : {})
         }
     });
 
@@ -781,4 +785,19 @@ export const markNotificationRead = async (
         },
         select: userNotificationSelect
     });
+};
+
+export const markAllNotificationsRead = async (userId: string) => {
+    await prisma.notification.updateMany({
+        where: {
+            userId,
+            isRead: false
+        },
+        data: {
+            isRead: true,
+            readAt: new Date()
+        }
+    });
+
+    return listNotificationsForUser(userId);
 };

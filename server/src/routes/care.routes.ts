@@ -6,6 +6,7 @@ import {
     getDoctorPatientSessions,
     getMyNotifications,
     getMySessions,
+    markAllMyNotificationsRead,
     markMyNotificationRead,
     submitCheckIn,
     updateSessionFeedback
@@ -74,6 +75,13 @@ router.get(
     authMiddleware,
     requirePasswordChanged,
     getMyNotifications
+);
+
+router.patch(
+    "/notifications/read-all",
+    authMiddleware,
+    requirePasswordChanged,
+    markAllMyNotificationsRead
 );
 
 router.patch(

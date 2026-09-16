@@ -98,18 +98,21 @@ async function main() {
         const duplicate = await recordExerciseSession(patientId, assignmentId, exercise.id, 70, ["Needs improvement"], { durationSeconds: 5, clientSessionId: `short-${suffix}` });
         assert.equal(duplicate.id, unqualified.id);
         assert.equal(duplicate.duplicate, true);
-        const session = await recordExerciseSession(patientId, assignmentId, exercise.id, 88.126, ["Controlled movement"], { durationSeconds: 12, clientSessionId: `valid-${suffix}` });
+        const session = await recordExerciseSession(patientId, assignmentId, exercise.id, 88.126, ["Controlled movement"], { durationSeconds: 12, clientSessionId: `valid-${suffix}`, videoUrl: "/uploads/videos/test-session.webm" });
         await completeExerciseActivity(patientId, assignmentId);
         assert.equal(session.score, 88.13);
         assert.equal(session.adherenceQualified, true);
+        assert.equal(session.videoUrl, "/uploads/videos/test-session.webm");
         await request(`/care/sessions/${session.id}/check-in`, { method: "POST", cookie: patientCookie, body: { painLevel: 7, difficultyLevel: 5, confidenceLevel: 3, note: "Needed one pause." } });
         await request(`/care/sessions/${session.id}/comments`, { method: "POST", cookie: doctor.cookie, expected: 201, body: { body: "Thank you. Keep the next session comfortable." } });
 
         const doctorSessions = await request(`/care/patients/${patientId}/sessions`, { cookie: doctor.cookie });
         assert.equal(doctorSessions.payload.sessions[0].score, 88.13);
         assert.equal(doctorSessions.payload.sessions[0].patientNote, "Needed one pause.");
+        assert.equal(doctorSessions.payload.sessions[0].videoUrl, "/uploads/videos/test-session.webm");
         const patientSessions = await request("/care/me/sessions", { cookie: patientCookie });
         assert.equal(patientSessions.payload.sessions[0].comments.length, 1);
+        assert.equal(patientSessions.payload.sessions[0].videoUrl, "/uploads/videos/test-session.webm");
         await request(`/care/patients/${patientId}/sessions`, { cookie: otherDoctor.cookie, expected: 404 });
 
         const assignedWithAdherence = await request("/exercises/me/assigned", { cookie: patientCookie });

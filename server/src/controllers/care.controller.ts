@@ -5,6 +5,7 @@ import {
     listSessionsForAdmin,
     listSessionsForDoctorPatient,
     listSessionsForPatient,
+    markAllNotificationsRead,
     markNotificationRead,
     submitCheckInForSession,
     updateSessionAiFeedback
@@ -196,5 +197,23 @@ export const markMyNotificationRead = async (
         });
     } catch (error) {
         handleCareError(error, res, "Unable to update notification.");
+    }
+};
+
+export const markAllMyNotificationsRead = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const user = getAuthenticatedUser(req);
+        const notifications = await markAllNotificationsRead(user.userId);
+
+        res.status(200).json({
+            success: true,
+            message: "All notifications marked as read.",
+            notifications
+        });
+    } catch (error) {
+        handleCareError(error, res, "Unable to update notifications.");
     }
 };
