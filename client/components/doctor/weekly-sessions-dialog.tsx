@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarX, CheckCircle2, ChevronRight, CircleAlert, ClipboardList, Clock, Dumbbell, ExternalLink, Search, Sparkles, User, X } from "lucide-react";
+import { CalendarX, CheckCircle2, CircleAlert, ClipboardList, Clock, Dumbbell, User, X } from "lucide-react";
 import { type ApiPatient, type ExerciseAssignment } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Mon",
@@ -38,7 +37,6 @@ export function WeeklySessionsDialog({
   weeklyCompleted: number;
   weeklyTarget: number;
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("ALL");
 
   const patientStats = useMemo(() => {
@@ -86,16 +84,10 @@ export function WeeklySessionsDialog({
   }, [patientStats]);
 
   const filteredStats = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
     return patientStats.filter((item) => {
-      const name = patientName(item.patient).toLowerCase();
-      const email = item.patient.email.toLowerCase();
-      const condition = (item.patient.profile?.medicalCondition || "").toLowerCase();
-      const matchesSearch = !query || name.includes(query) || email.includes(query) || condition.includes(query);
-      const matchesFilter = filterStatus === "ALL" || item.status === filterStatus;
-      return matchesSearch && matchesFilter;
+      return filterStatus === "ALL" || item.status === filterStatus;
     });
-  }, [filterStatus, patientStats, searchQuery]);
+  }, [filterStatus, patientStats]);
 
   if (!isOpen) return null;
 
@@ -155,29 +147,8 @@ export function WeeklySessionsDialog({
           </div>
         </div>
 
-        {/* Filter Controls & Search */}
+        {/* Filter Tabs */}
         <div className="weekly-sessions-controls">
-          <div className="weekly-sessions-search-box">
-            <Search style={{ width: 16, height: 16, color: "var(--color-text-muted)" }} />
-            <input
-              type="text"
-              placeholder="Search by patient name, email, or condition…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="weekly-sessions-search-input"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="weekly-sessions-clear-search"
-                aria-label="Clear search"
-              >
-                <X style={{ width: 14, height: 14 }} />
-              </button>
-            )}
-          </div>
-
           <div className="weekly-sessions-filter-tabs">
             <button
               type="button"
@@ -224,7 +195,7 @@ export function WeeklySessionsDialog({
           {filteredStats.length === 0 ? (
             <div className="weekly-sessions-empty">
               <User style={{ width: 32, height: 32, color: "var(--color-text-muted)", margin: "0 auto 8px" }} />
-              <p>No patients match the selected filter or search query.</p>
+              <p>No patients match the selected filter.</p>
             </div>
           ) : (
             filteredStats.map(({ patient, assignments, completed, target, status }) => {
@@ -326,41 +297,20 @@ export function WeeklySessionsDialog({
                     </div>
                   )}
 
-                  {/* Action Links */}
+                  {/* Action Link */}
                   <div className="weekly-sessions-patient-actions">
                     <Link
                       href={`/doctor/patients/${patient.id}`}
                       className="weekly-sessions-action-link"
                       onClick={onClose}
                     >
-                      View Profile & Sessions <ChevronRight style={{ width: 13, height: 13 }} />
-                    </Link>
-                    <Link
-                      href={`/doctor/patients/${patient.id}/exercises`}
-                      className="weekly-sessions-action-link secondary"
-                      onClick={onClose}
-                    >
-                      Manage Exercises <ExternalLink style={{ width: 12, height: 12 }} />
+                      View Profile
                     </Link>
                   </div>
                 </div>
               );
             })
           )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="weekly-sessions-modal-footer">
-          <Link
-            href="/doctor/exercise-assignments"
-            className="weekly-sessions-footer-link"
-            onClick={onClose}
-          >
-            <Sparkles style={{ width: 14, height: 14 }} /> Open All Exercise Assignments
-          </Link>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
         </div>
       </div>
     </div>
