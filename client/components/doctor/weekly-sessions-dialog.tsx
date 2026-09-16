@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarX, CheckCircle2, CircleAlert, ClipboardList, Clock, Dumbbell, User, X } from "lucide-react";
+import { Calendar, CalendarX, CheckCircle2, CircleAlert, ClipboardList, Clock, Dumbbell, Target, User, X } from "lucide-react";
 import { type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -267,22 +267,59 @@ export function WeeklySessionsDialog({
 
                   {/* Exercise assignments breakdown */}
                   {assignments.length > 0 ? (
-                    <div className="weekly-sessions-exercise-pills">
+                    <div className="weekly-sessions-exercise-list">
                       {assignments.map((assignment) => {
                         const exCompleted = assignment.adherence?.currentWeek?.completed ?? 0;
                         const exTarget = assignment.adherence?.currentWeek?.target ?? assignment.targetSessionsPerWeek ?? 0;
                         const exDays = (assignment.scheduledDays || [])
                           .map((d) => WEEKDAY_LABELS[d] || `Day ${d}`)
                           .join(", ");
+                        const isMet = exCompleted >= exTarget && exTarget > 0;
+                        const isInProgress = exCompleted > 0 && exCompleted < exTarget;
 
                         return (
-                          <div key={assignment.id} className="weekly-sessions-exercise-pill">
-                            <Dumbbell style={{ width: 13, height: 13, color: "var(--color-primary)" }} />
-                            <span className="weekly-sessions-exercise-pill-name">{assignment.exercise?.name || "Exercise"}</span>
-                            {exDays && <span className="weekly-sessions-exercise-pill-days">({exDays})</span>}
-                            <span className="weekly-sessions-exercise-pill-count">
-                              <strong>{exCompleted}</strong> of {exTarget} {exTarget === 1 ? "session" : "sessions"} completed
-                            </span>
+                          <div key={assignment.id} className="weekly-sessions-exercise-card">
+                            <div className="weekly-sessions-exercise-card-header">
+                              <Dumbbell style={{ width: 14, height: 14, color: "var(--color-primary)" }} />
+                              <span className="weekly-sessions-exercise-title">
+                                {assignment.exercise?.name || "Exercise"}
+                              </span>
+                            </div>
+
+                            <div className="weekly-sessions-exercise-badges">
+                              {exDays && (
+                                <span className="weekly-exercise-badge badge-schedule">
+                                  <Calendar style={{ width: 12, height: 12 }} />
+                                  {exDays}
+                                </span>
+                              )}
+
+                              <span className="weekly-exercise-badge badge-target">
+                                <Target style={{ width: 12, height: 12 }} />
+                                Target: {exTarget} {exTarget === 1 ? "session" : "sessions"}
+                              </span>
+
+                              {isMet && (
+                                <span className="weekly-exercise-badge badge-completed">
+                                  <CheckCircle2 style={{ width: 12, height: 12 }} />
+                                  {exCompleted} Completed · Goal Met
+                                </span>
+                              )}
+
+                              {isInProgress && (
+                                <span className="weekly-exercise-badge badge-progress">
+                                  <Clock style={{ width: 12, height: 12 }} />
+                                  {exCompleted} of {exTarget} Completed
+                                </span>
+                              )}
+
+                              {!isMet && !isInProgress && (
+                                <span className="weekly-exercise-badge badge-zero">
+                                  <CircleAlert style={{ width: 12, height: 12 }} />
+                                  0 of {exTarget} Completed
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}

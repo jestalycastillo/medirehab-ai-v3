@@ -3339,43 +3339,80 @@ body {
   color: #64748b;
 }
 
-.weekly-sessions-exercise-pills {
+.weekly-sessions-exercise-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.weekly-sessions-exercise-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+.weekly-sessions-exercise-card {
+  padding: 8px 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 11.5px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.weekly-sessions-exercise-pill-name {
+.weekly-sessions-exercise-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.weekly-sessions-exercise-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.weekly-sessions-exercise-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.weekly-exercise-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
   font-weight: 600;
+  line-height: 1.2;
+}
+
+.weekly-exercise-badge.badge-schedule {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.weekly-exercise-badge.badge-target {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
   color: #334155;
 }
 
-.weekly-sessions-exercise-pill-days {
-  color: #64748b;
-  font-size: 11px;
+.weekly-exercise-badge.badge-completed {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
 }
 
-.weekly-sessions-exercise-pill-count {
-  color: #475569;
-  font-size: 11.5px;
-  padding-left: 6px;
-  border-left: 1px solid #cbd5e1;
+.weekly-exercise-badge.badge-progress {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
 }
 
-.weekly-sessions-exercise-pill-count strong {
-  color: #0f172a;
-  font-weight: 700;
+.weekly-exercise-badge.badge-zero {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
 }
 
 .weekly-sessions-no-plan-notice {
