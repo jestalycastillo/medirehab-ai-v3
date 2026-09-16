@@ -5,15 +5,7 @@ import { api, type ApiExercise, ApiError, type ExerciseImage } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExerciseForm } from "@/components/admin/exercise-form";
-
-function PlusIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
+import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 
 function EditIcon() {
   return (
@@ -93,6 +85,7 @@ export default function ExercisesPage() {
 
   const loadExercises = async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await api.getExercises();
       setExercises(res.exercises);
@@ -199,20 +192,22 @@ export default function ExercisesPage() {
   });
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div className="role-dashboard admin-subpage exercise-catalog-page animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>
-            Exercises
-          </h1>
-          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Platform built-in exercise catalog and AI analysis models.
-          </p>
+          <span className="role-dashboard-eyebrow">Admin / Exercises</span>
+          <h1>Exercises</h1>
+          <p>Review movement guides, preview demos, and manage which exercises are available for care plans.</p>
         </div>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+      <section className="exercise-catalog-section" aria-label="Exercise catalog">
+        <div className="exercise-catalog-toolbar">
+          <div className="exercise-catalog-toolbar-copy">
+            <h2>Browse library</h2>
+            <p>{accountTab === "ACTIVE" ? "Exercises currently available to clinicians." : "Exercises removed from active care plans."}</p>
+          </div>
+          <div className="exercise-catalog-controls">
           <div className="account-tabs" role="group" aria-label="Exercise status">
             <button
               type="button"
@@ -242,17 +237,19 @@ export default function ExercisesPage() {
 
           <input
             type="text"
-            className="input"
+            className="input exercise-catalog-search"
+            aria-label="Search exercises by name"
             placeholder="Search by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ maxWidth: "300px" }}
           />
+          </div>
         </div>
 
         {error && (
-          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "20px" }}>
-            {error}
+          <div className="exercise-catalog-error" role="alert">
+            <div><strong>Could not load exercises</strong><p>{error}</p></div>
+            <button type="button" className="btn btn-secondary" onClick={loadExercises}>Try again</button>
           </div>
         )}
 
@@ -260,38 +257,28 @@ export default function ExercisesPage() {
           <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
             <div className="spinner"></div>
           </div>
-        ) : (
+        ) : error ? null : (
           <div>
             {filteredExercises.length === 0 ? (
-              <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)", border: "1px dashed var(--color-border)", borderRadius: "var(--radius-lg)" }}>
-                {accountTab === "ARCHIVED" ? "No archived exercises found." : "No active exercises found."}
+              <div className="exercise-catalog-empty">
+                <span className="exercise-catalog-empty-icon" aria-hidden="true"><ActiveExercisesIcon /></span>
+                <h2>{searchTerm ? "No matching exercises" : accountTab === "ARCHIVED" ? "No archived exercises" : "No available exercises"}</h2>
+                <p>{searchTerm ? `No ${accountTab === "ARCHIVED" ? "archived" : "available"} exercise matches “${searchTerm}”.` : accountTab === "ARCHIVED" ? "Archived exercises will appear here." : "Available exercises will appear here when the catalog is populated."}</p>
+                {searchTerm && <button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button>}
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(285px, 1fr))", gap: "20px" }}>
+              <div className="exercise-catalog-grid">
                 {filteredExercises.map((exercise) => {
                   const mainImage = exercise.images && exercise.images.length > 0 ? exercise.images[0].filepath : null;
                   return (
-                    <div
-                      key={exercise.id}
-                      className="card"
-                      style={{ display: "flex", flexDirection: "column", overflow: "hidden", border: "1px solid var(--color-border)", padding: 0, cursor: "pointer", transition: "transform 0.15s ease, box-shadow 0.15s ease" }}
-                      onClick={() => setViewingExercise(exercise)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = "var(--shadow-md)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div style={{ height: "160px", backgroundColor: "var(--color-page-bg)", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", borderBottom: "1px solid var(--color-border)" }}>
+                    <article key={exercise.id} className="exercise-catalog-card">
+                      <div className="exercise-catalog-media">
                         {mainImage ? (
-                          <img
-                            src={mainImage}
+                          <ExerciseThumbnail
+                            imagePath={mainImage}
                             alt={exercise.name}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            onError={(e) => {
+                            modelKey={exercise.analysisModelKey}
+                            onImageError={(e) => {
                               e.currentTarget.style.display = "none";
                               const fallbackParent = e.currentTarget.parentElement;
                               if (fallbackParent) {
@@ -315,64 +302,49 @@ export default function ExercisesPage() {
                           </svg>
                           <span style={{ fontSize: "12px", marginTop: "8px" }}>No image</span>
                         </div>
-                        <div style={{ position: "absolute", top: "12px", right: "12px" }}>
+                        <div className="exercise-catalog-status">
                           <StatusBadge isActive={!exercise.archivedAt} archivedAt={exercise.archivedAt} />
                         </div>
                       </div>
-                      <div style={{ padding: "16px", display: "flex", flexDirection: "column", flex: 1 }}>
-                        <h3 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>
+                      <div className="exercise-catalog-content">
+                        <h3>
                           {exercise.name || exercise.id}
                         </h3>
-                        <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: "0 0 16px 0", flex: 1, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", textOverflow: "ellipsis", minHeight: "60px" }}>
+                        <p>
                           {exercise.description || "-"}
                         </p>
-                        <div style={{ display: "flex", justifyContent: "flex-end", borderTop: "1px solid var(--color-page-bg)", paddingTop: "12px", marginTop: "auto" }}>
-                          <div style={{ display: "flex", gap: "8px" }}>
-                            <button
-                              title="Edit"
-                              style={{ background: "none", border: "none", color: "var(--color-text-secondary)", cursor: "pointer", padding: "4px" }}
-                              onClick={(e) => { e.stopPropagation(); setEditingExercise(exercise); setIsFormOpen(true); }}
-                            >
-                              <EditIcon />
+                        <div className="exercise-catalog-actions">
+                          <button type="button" className="btn btn-primary" onClick={() => setViewingExercise(exercise)}>
+                            View details
+                          </button>
+                          <button type="button" className="exercise-catalog-action" onClick={() => { setEditingExercise(exercise); setIsFormOpen(true); }}>
+                            <EditIcon /> Edit
+                          </button>
+                          {accountTab === "ACTIVE" && !exercise.archivedAt && (
+                            <button type="button" className="exercise-catalog-action" onClick={() => handleArchive(exercise)}>
+                              <ArchiveIcon /> Archive
                             </button>
-                            {accountTab === "ACTIVE" && !exercise.archivedAt && (
-                              <button
-                                title="Archive"
-                                style={{ background: "none", border: "none", color: "var(--color-danger)", cursor: "pointer", padding: "4px" }}
-                                onClick={(e) => { e.stopPropagation(); handleArchive(exercise); }}
-                              >
-                                <ArchiveIcon />
-                              </button>
-                            )}
-                            {accountTab === "ARCHIVED" && exercise.archivedAt && (
-                              <button
-                                title="Restore"
-                                style={{ background: "none", border: "none", color: "var(--color-text-secondary)", cursor: "pointer", padding: "4px" }}
-                                onClick={(e) => { e.stopPropagation(); handleRestore(exercise); }}
-                              >
-                                <RestoreIcon />
-                              </button>
-                            )}
-                            {accountTab === "ARCHIVED" && exercise.archivedAt && (
-                              <button
-                                title="Delete permanently"
-                                style={{ background: "none", border: "none", color: "var(--color-danger)", cursor: "pointer", padding: "4px" }}
-                                onClick={(e) => { e.stopPropagation(); handlePermanentDelete(exercise); }}
-                              >
-                                <TrashIcon />
-                              </button>
-                            )}
-                          </div>
+                          )}
+                          {accountTab === "ARCHIVED" && exercise.archivedAt && (
+                            <button type="button" className="exercise-catalog-action" onClick={() => handleRestore(exercise)}>
+                              <RestoreIcon /> Restore
+                            </button>
+                          )}
+                          {accountTab === "ARCHIVED" && exercise.archivedAt && (
+                            <button type="button" className="exercise-catalog-action exercise-catalog-action-danger" onClick={() => handlePermanentDelete(exercise)}>
+                              <TrashIcon /> Delete
+                            </button>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    </article>
                   );
                 })}
               </div>
             )}
           </div>
         )}
-      </div>
+      </section>
 
       <ExerciseForm
         isOpen={isFormOpen}

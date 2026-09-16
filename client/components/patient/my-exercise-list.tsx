@@ -3,6 +3,7 @@
 import { CalendarDays, ChevronDown, Dumbbell } from "lucide-react";
 import { type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
+import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 
 function formatDate(value?: string | null) {
   if (!value) return null;
@@ -16,9 +17,12 @@ function ExerciseImage({ assignment }: { assignment: ExerciseAssignment }) {
   return (
     <div className="patient-exercise-card-image">
       {image ? (
-        // Exercise images can come from the API or an administrator-provided URL.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={image.filepath} alt={image.imageName || `${assignment.exercise.name} guide`} onError={(event) => { event.currentTarget.style.display = "none"; }} />
+        <ExerciseThumbnail
+          imagePath={image.filepath}
+          alt={image.imageName || `${assignment.exercise.name} guide`}
+          modelKey={assignment.exercise.analysisModelKey}
+          onImageError={(event) => { event.currentTarget.style.display = "none"; }}
+        />
       ) : null}
       <div className="patient-exercise-card-placeholder" aria-hidden="true"><Dumbbell /><span>Exercise guide</span></div>
     </div>

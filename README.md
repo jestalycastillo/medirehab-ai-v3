@@ -1,4 +1,13 @@
 # MediRehab AI 3.0
+## UI attribution
+
+The client uses components from [shadcn/ui](https://github.com/shadcn-ui/ui)
+(`base-nova` style), adapted with MediRehab's colors and layouts. shadcn/ui is
+licensed under the [MIT License](https://github.com/shadcn-ui/ui/blob/main/LICENSE.md)
+(Copyright (c) 2023 shadcn). The MIT license requires its copyright and
+permission notice to be included in copies or substantial portions of the
+software.
+
 ## LIVE LINKS
 ##### Client: https://medirehab-ai.vercel.app
 ##### Server: https://medirehab-ai-server.onrender.com

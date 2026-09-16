@@ -12,6 +12,12 @@ const CATALOG = [
         description: "Stand upright with your arms at your sides. Select your target arm (left or right). Keeping your elbow straight, raise your arm outward to the side up to shoulder height, then lower it slowly with control.",
         analysisModelKey: "shoulder_abduction",
         image: { imageName: "Shoulder Abduction", filepath: "/exercises/shoulder_abduction.png" }
+    },
+    {
+        name: "Side Arms Raise",
+        description: "Stand upright with both arms at your sides. Raise both arms outward together to shoulder height, then lower them slowly with control.",
+        analysisModelKey: "side_arms_raise_v1",
+        image: { imageName: "Side Arms Raise", filepath: "/exercises/arms_raise.jpg" }
     }
 ] as const;
 

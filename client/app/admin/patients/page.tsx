@@ -269,13 +269,12 @@ export default function AdminPatientsPage() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div className="role-dashboard admin-subpage animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
-          <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
-            Assign patient accounts to active doctors.
-          </p>
+          <span className="role-dashboard-eyebrow">Admin / Patients</span>
+          <h1>Patients</h1>
+          <p>Assign patient accounts to active doctors.</p>
         </div>
         <button
           className="btn btn-primary"
@@ -286,10 +285,14 @@ export default function AdminPatientsPage() {
         >
           <PlusIcon /> Add Patient
         </button>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+      <section className="card admin-subpage-panel" aria-label="Patient accounts">
+        <div className="admin-subpage-panel-heading">
+          <div><span className="role-dashboard-eyebrow">Directory</span><h2>Patient accounts</h2></div>
+          <p>{activeAccountCount} current · {archivedAccountCount} archived</p>
+        </div>
+        <div className="admin-directory-toolbar">
           <div className="account-tabs" role="group" aria-label="Patient account status">
             <button
               type="button"
@@ -316,17 +319,17 @@ export default function AdminPatientsPage() {
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
-        </div>
-
-        <div className="doctor-toolbar" style={{ marginBottom: "20px" }}>
+          <div className="admin-directory-filters">
           <input
             className="input"
             type="text"
+            aria-label="Search patients by name, email, or condition"
             placeholder="Search name, email, or condition"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             style={{ maxWidth: "340px" }}
           />
+          </div>
         </div>
 
         {error && (
@@ -345,7 +348,7 @@ export default function AdminPatientsPage() {
           <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table className="admin-directory-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Patient</th>
@@ -359,8 +362,13 @@ export default function AdminPatientsPage() {
               <tbody>
                 {filteredPatients.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
-                      {accountTab === "ARCHIVED" ? "No archived patients found." : "No active patients found."}
+                    <td colSpan={accountTab === "ACTIVE" ? 6 : 5}>
+                      <div className="admin-directory-empty">
+                        <ActiveAccountsIcon />
+                        <strong>{searchTerm ? "No matching patients" : accountTab === "ARCHIVED" ? "No archived patients" : "No current patients"}</strong>
+                        <p>{searchTerm ? "Try a different name, email, or condition." : accountTab === "ARCHIVED" ? "Archived patient accounts will appear here." : "Add a patient to start managing care assignments."}</p>
+                        {searchTerm && <button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button>}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -441,7 +449,7 @@ export default function AdminPatientsPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
 
       <PatientForm
         isOpen={isFormOpen}

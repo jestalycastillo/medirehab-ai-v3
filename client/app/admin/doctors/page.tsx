@@ -235,15 +235,12 @@ export default function DoctorsPage() {
   const archivedAccountCount = doctors.filter((doctor) => doctor.archivedAt).length;
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div className="role-dashboard admin-subpage animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>
-            Doctors
-          </h1>
-          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Manage doctor accounts and profiles.
-          </p>
+          <span className="role-dashboard-eyebrow">Admin / Doctors</span>
+          <h1>Doctors</h1>
+          <p>Manage doctor accounts and profiles.</p>
         </div>
         <button
           className="btn btn-primary"
@@ -254,10 +251,14 @@ export default function DoctorsPage() {
         >
           <PlusIcon /> Add Doctor
         </button>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+      <section className="card admin-subpage-panel" aria-label="Doctor accounts">
+        <div className="admin-subpage-panel-heading">
+          <div><span className="role-dashboard-eyebrow">Directory</span><h2>Doctor accounts</h2></div>
+          <p>{activeAccountCount} current · {archivedAccountCount} archived</p>
+        </div>
+        <div className="admin-directory-toolbar">
           <div className="account-tabs" role="group" aria-label="Doctor account status">
             <button
               type="button"
@@ -284,12 +285,11 @@ export default function DoctorsPage() {
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
-        </div>
-
-        <div style={{ display: "flex", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+          <div className="admin-directory-filters admin-directory-filters-doctors">
           <input
             type="text"
             className="input"
+            aria-label="Search doctors by name or email"
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -298,6 +298,7 @@ export default function DoctorsPage() {
           {accountTab === "ACTIVE" && (
             <select
               className="input"
+              aria-label="Filter doctors by status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               style={{ maxWidth: "150px" }}
@@ -307,6 +308,7 @@ export default function DoctorsPage() {
               <option value="INACTIVE">Inactive</option>
             </select>
           )}
+          </div>
         </div>
 
         {error && (
@@ -321,7 +323,7 @@ export default function DoctorsPage() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table className="admin-directory-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Name</th>
@@ -334,8 +336,13 @@ export default function DoctorsPage() {
               <tbody>
                 {filteredDoctors.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
-                      {accountTab === "ARCHIVED" ? "No archived doctors found." : "No active doctor accounts found."}
+                    <td colSpan={5}>
+                      <div className="admin-directory-empty">
+                        <ActiveAccountsIcon />
+                        <strong>{searchTerm ? "No matching doctors" : accountTab === "ARCHIVED" ? "No archived doctors" : "No current doctors"}</strong>
+                        <p>{searchTerm ? "Try a different name or email." : accountTab === "ARCHIVED" ? "Archived doctor accounts will appear here." : "Add a doctor to begin building your care team."}</p>
+                        {searchTerm && <button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button>}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -378,7 +385,7 @@ export default function DoctorsPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
 
       <DoctorForm
         isOpen={isFormOpen}
