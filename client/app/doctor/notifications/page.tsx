@@ -89,12 +89,6 @@ export default function DoctorNotificationsPage() {
         )}
       </div>
 
-      {error && (
-        <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
-          {error}
-        </div>
-      </header>
-
       {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
       <div className="card" style={{ padding: "24px" }}>

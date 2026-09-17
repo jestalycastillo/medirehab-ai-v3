@@ -91,17 +91,8 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-
-  const loadUnreadCount = async () => {
-    try {
-      const res = await api.getMyNotifications();
-      const unread = res.notifications.filter((n) => !n.isRead).length;
-      setUnreadNotificationsCount(unread);
-    } catch {
-      // ignore
-    }
-  };
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -135,6 +126,14 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     if (loading || user?.role !== "DOCTOR" || user.mustChangePassword) return;
+    let active = true;
+    const loadUnreadCount = () => {
+      void api.getMyNotifications()
+        .then((res) => {
+          if (active) setUnreadNotificationsCount(res.notifications.filter((n) => !n.isRead).length);
+        })
+        .catch(() => undefined);
+    };
     const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
     heartbeat();
     loadUnreadCount();
@@ -142,7 +141,10 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
       heartbeat();
       loadUnreadCount();
     }, 15_000);
-    return () => window.clearInterval(interval);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [loading, user, pathname]);
 
   if (loading || !user || user.role !== "DOCTOR" || user.mustChangePassword) {

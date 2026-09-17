@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type ApiPatient, type PatientProfile } from "@/lib/api";
 import { ChatPanel } from "@/components/care/chat-panel";
 import { ArrowLeft, ChevronRight, MessageCircle, X } from "lucide-react";
