@@ -90,7 +90,7 @@ export default function DoctorDashboardPage() {
 
   if (loading) {
     return (
-      <div className="role-dashboard-loading" aria-label="Loading doctor dashboard">
+      <div className="role-dashboard-loading" role="status" aria-label="Loading doctor dashboard">
         <LoaderCircle className="recorder-spin" />
         <span>Loading your patients…</span>
       </div>
@@ -99,7 +99,7 @@ export default function DoctorDashboardPage() {
 
   if (error) {
     return (
-      <Card className="role-dashboard-error">
+      <Card className="role-dashboard-error" role="alert">
         <CardContent className="role-dashboard-error-content">
           <CircleAlert aria-hidden="true" />
           <div><CardTitle>We could not load your dashboard</CardTitle><CardDescription>{error}</CardDescription></div>

@@ -5,7 +5,9 @@ import { api, type ApiDoctor, type DoctorProfile, ApiError } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import { DoctorForm } from "@/components/admin/doctor-form";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function PlusIcon() {
   return (
@@ -50,6 +52,8 @@ export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<ApiDoctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [accountTab, setAccountTab] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
@@ -58,6 +62,7 @@ export default function DoctorsPage() {
   const [editingDoctor, setEditingDoctor] = useState<ApiDoctor | undefined>(undefined);
   const [formLoading, setFormLoading] = useState(false);
   const [viewingDoctor, setViewingDoctor] = useState<ApiDoctor | null>(null);
+  const detailModalRef = usePortalModalFocus(Boolean(viewingDoctor), () => setViewingDoctor(null));
 
   const [tempPassword, setTempPassword] = useState("");
   const [isTempPasswordOpen, setIsTempPasswordOpen] = useState(false);
@@ -80,6 +85,7 @@ export default function DoctorsPage() {
 
   const loadDoctors = async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await api.getDoctors();
       setDoctors(res.doctors);
@@ -98,7 +104,10 @@ export default function DoctorsPage() {
 
   const handleSaveDoctor = async (data: Partial<ApiDoctor & DoctorProfile>) => {
     setFormLoading(true);
+    setFormError("");
+    setSuccess("");
     try {
+      const wasEditing = Boolean(editingDoctor);
       if (editingDoctor) {
         await api.updateDoctor(editingDoctor.id, data);
       } else {
@@ -110,9 +119,9 @@ export default function DoctorsPage() {
       }
       await loadDoctors();
       setIsFormOpen(false);
+      setSuccess(wasEditing ? "Doctor updated." : "Doctor created.");
     } catch (err) {
-      if (err instanceof ApiError) alert(err.message);
-      else alert("Failed to save doctor");
+      setFormError(err instanceof ApiError ? err.message : "Failed to save doctor.");
     } finally {
       setFormLoading(false);
     }
@@ -130,9 +139,10 @@ export default function DoctorsPage() {
         try {
           await api.deleteDoctor(doctor.id);
           await loadDoctors();
+          setSuccess(`${doctorName(doctor)} archived.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -152,9 +162,10 @@ export default function DoctorsPage() {
         try {
           await api.permanentlyDeleteDoctor(doctor.id);
           await loadDoctors();
+          setSuccess(`${doctorName(doctor)} deleted permanently.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Delete failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -174,9 +185,10 @@ export default function DoctorsPage() {
         try {
           await api.updateDoctorStatus(doctor.id, true);
           await loadDoctors();
+          setSuccess(`${doctorName(doctor)} restored.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Restore failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -202,9 +214,10 @@ export default function DoctorsPage() {
           await api.resetDoctorPassword(doctor.id, nextPassword);
           setTempPassword(nextPassword);
           setIsTempPasswordOpen(true);
+          setSuccess(`${doctorName(doctor)}'s password was reset.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Password reset failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Password reset failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -235,29 +248,31 @@ export default function DoctorsPage() {
   const archivedAccountCount = doctors.filter((doctor) => doctor.archivedAt).length;
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div className="role-dashboard admin-subpage animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>
-            Doctors
-          </h1>
-          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Manage doctor accounts and profiles.
-          </p>
+          <span className="role-dashboard-eyebrow">Admin / Doctors</span>
+          <h1>Doctors</h1>
+          <p>Manage doctor accounts and profiles.</p>
         </div>
         <button
           className="btn btn-primary"
           onClick={() => {
             setEditingDoctor(undefined);
+            setFormError("");
             setIsFormOpen(true);
           }}
         >
           <PlusIcon /> Add Doctor
         </button>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+      <section className="card admin-subpage-panel" aria-label="Doctor accounts">
+        <div className="admin-subpage-panel-heading">
+          <div><span className="role-dashboard-eyebrow">Directory</span><h2>Doctor accounts</h2></div>
+          <p>{activeAccountCount} current · {archivedAccountCount} archived</p>
+        </div>
+        <div className="admin-directory-toolbar">
           <div className="account-tabs" role="group" aria-label="Doctor account status">
             <button
               type="button"
@@ -284,12 +299,11 @@ export default function DoctorsPage() {
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
-        </div>
-
-        <div style={{ display: "flex", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+          <div className="admin-directory-filters admin-directory-filters-doctors">
           <input
             type="text"
             className="input"
+            aria-label="Search doctors by name or email"
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -298,6 +312,7 @@ export default function DoctorsPage() {
           {accountTab === "ACTIVE" && (
             <select
               className="input"
+              aria-label="Filter doctors by status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               style={{ maxWidth: "150px" }}
@@ -307,25 +322,21 @@ export default function DoctorsPage() {
               <option value="INACTIVE">Inactive</option>
             </select>
           )}
+          </div>
         </div>
 
-        {error && (
-          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "20px" }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredDoctors.length} {accountTab === "ARCHIVED" ? "archived" : "current"} doctor{filteredDoctors.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-            <div className="spinner"></div>
-          </div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading doctors…</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
-                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Name</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Email</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Doctor</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Specialization</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Status</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Actions</th>
@@ -334,36 +345,39 @@ export default function DoctorsPage() {
               <tbody>
                 {filteredDoctors.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
-                      {accountTab === "ARCHIVED" ? "No archived doctors found." : "No active doctor accounts found."}
+                    <td colSpan={4}>
+                      <div className="admin-directory-empty">
+                        <ActiveAccountsIcon />
+                        <strong>{searchTerm ? "No matching doctors" : accountTab === "ARCHIVED" ? "No archived doctors" : "No current doctors"}</strong>
+                        <p>{searchTerm ? "Try a different name or email." : accountTab === "ARCHIVED" ? "Archived doctor accounts will appear here." : "Add a doctor to begin building your care team."}</p>
+                        {searchTerm && <button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button>}
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   filteredDoctors.map((doctor) => (
-                    <tr key={doctor.id} style={{ borderBottom: "1px solid var(--color-page-bg)", transition: "background-color 0.15s ease" }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-primary-soft)"} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}>
-                      <td style={{ padding: "12px 16px", fontWeight: 500, color: "var(--color-text-primary)" }}>
+                    <tr key={doctor.id} className="directory-data-row">
+                      <td data-label="Doctor" style={{ padding: "12px 16px", fontWeight: 500, color: "var(--color-text-primary)" }}>
                         <button
                           type="button"
+                          className="directory-name-button"
                           onClick={() => openDoctorPersona(doctor)}
-                          style={{ color: "var(--color-primary)", textDecoration: "none", background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 600, textAlign: "left" }}
                         >
                           {doctor.profile ? `Dr. ${doctor.profile.firstName} ${doctor.profile.lastName}` : "Unknown"}
                         </button>
+                        <div className="directory-row-meta">{doctor.email}</div>
                       </td>
-                      <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-                        {doctor.email}
-                      </td>
-                      <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
+                      <td data-label="Specialization" style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
                         {doctor.profile?.specialization || "-"}
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td data-label="Status" style={{ padding: "12px 16px" }}>
                         <StatusBadge isActive={doctor.isActive} archivedAt={doctor.archivedAt} />
                       </td>
-                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                      <td data-label="Actions" style={{ padding: "12px 16px", textAlign: "right" }}>
                         <details className="list-row-actions">
                           <summary>More</summary>
                           <div>
-                            <button onClick={() => { setEditingDoctor(doctor); setIsFormOpen(true); }}>Edit profile</button>
+                            <button onClick={() => { setEditingDoctor(doctor); setFormError(""); setIsFormOpen(true); }}>Edit profile</button>
                             <button onClick={() => handleResetPassword(doctor)}>Reset password</button>
                             {!doctor.archivedAt && <button onClick={() => handleArchive(doctor)}>Archive</button>}
                             {doctor.archivedAt && <button onClick={() => handleRestore(doctor)}>Restore</button>}
@@ -378,7 +392,7 @@ export default function DoctorsPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
 
       <DoctorForm
         isOpen={isFormOpen}
@@ -386,6 +400,7 @@ export default function DoctorsPage() {
         onSave={handleSaveDoctor}
         onCancel={() => setIsFormOpen(false)}
         isLoading={formLoading}
+        error={formError}
       />
 
       <ConfirmDialog
@@ -405,27 +420,17 @@ export default function DoctorsPage() {
       />
 
       {viewingDoctor && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "20px",
-          }}
-          onClick={() => setViewingDoctor(null)}
-        >
+        <div className="portal-modal-overlay" onClick={() => setViewingDoctor(null)}>
           <div
-            className="card animate-slide-up"
-            style={{ width: "100%", maxWidth: "720px", padding: "24px", maxHeight: "90vh", overflowY: "auto" }}
+            ref={detailModalRef} tabIndex={-1}
+            className="portal-modal-panel portal-modal-detail animate-slide-up"
+            role="dialog" aria-modal="true" aria-labelledby="doctor-detail-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
+            <div className="portal-modal-header portal-modal-detail-heading">
               <div>
-                <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px 0", color: "var(--color-text-primary)" }}>
+                <span className="role-dashboard-eyebrow">Doctor account</span>
+                <h2 id="doctor-detail-title">
                   {doctorName(viewingDoctor)}
                 </h2>
                 <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
@@ -435,17 +440,14 @@ export default function DoctorsPage() {
               </div>
               <button
                 className="btn btn-secondary"
-                style={{ minWidth: "auto", height: "36px", padding: "0 12px" }}
                 onClick={() => setViewingDoctor(null)}
               >
                 Close
               </button>
             </div>
 
-            <h3 style={{ fontSize: "16px", fontWeight: 600, margin: "0 0 16px 0", color: "var(--color-text-primary)" }}>
-              Persona Information
-            </h3>
-
+            <div className="portal-modal-detail-body">
+            <h3>Profile information</h3>
             <div className="doctor-form-grid">
               <DetailField label="First Name" value={viewingDoctor.profile?.firstName} />
               <DetailField label="Last Name" value={viewingDoctor.profile?.lastName} />
@@ -453,6 +455,7 @@ export default function DoctorsPage() {
               <DetailField label="License Number" value={viewingDoctor.profile?.licenseNumber} />
               <DetailField label="Contact Number" value={viewingDoctor.profile?.contactNumber} />
               <DetailField label="Clinic Schedule" value={viewingDoctor.profile?.clinicSchedule} />
+            </div>
             </div>
           </div>
         </div>

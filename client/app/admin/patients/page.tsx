@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { api, ApiError, type ApiDoctor, type ApiPatient, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PatientForm } from "@/components/doctor/patient-form";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function PlusIcon() {
   return (
@@ -59,6 +62,7 @@ export default function AdminPatientsPage() {
   const [doctors, setDoctors] = useState<ApiDoctor[]>([]);
   const [selectedDoctors, setSelectedDoctors] = useState<Record<string, string>>({});
   const [viewingPatient, setViewingPatient] = useState<ApiPatient | null>(null);
+  const detailModalRef = usePortalModalFocus(Boolean(viewingPatient), () => setViewingPatient(null));
   const [savingPatientId, setSavingPatientId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -69,6 +73,7 @@ export default function AdminPatientsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<ApiPatient | undefined>(undefined);
   const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState("");
   const [tempPassword, setTempPassword] = useState("");
   const [isTempPasswordOpen, setIsTempPasswordOpen] = useState(false);
 
@@ -107,6 +112,14 @@ export default function AdminPatientsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
+  }, []);
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("create") === "1") {
+      setEditingPatient(undefined);
+      setFormError("");
+      setIsFormOpen(true);
+    }
   }, []);
 
   const activeDoctors = doctors.filter((doctor) => doctor.isActive && !doctor.archivedAt);
@@ -154,7 +167,7 @@ export default function AdminPatientsPage() {
 
   const handleSavePatient = async (data: Partial<ApiPatient & PatientProfile>) => {
     setFormLoading(true);
-    setError("");
+    setFormError("");
     setSuccess("");
     try {
       if (editingPatient) {
@@ -172,7 +185,7 @@ export default function AdminPatientsPage() {
       setIsFormOpen(false);
       setEditingPatient(undefined);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to save patient.");
+      setFormError(err instanceof ApiError ? err.message : "Failed to save patient.");
     } finally {
       setFormLoading(false);
     }
@@ -190,8 +203,10 @@ export default function AdminPatientsPage() {
         try {
           await api.deletePatient(patient.id);
           await loadData();
+          setSuccess(`${patientName(patient)} archived.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Archive failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Archive failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -211,8 +226,10 @@ export default function AdminPatientsPage() {
         try {
           await api.permanentlyDeletePatient(patient.id);
           await loadData();
+          setSuccess(`${patientName(patient)} deleted permanently.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Delete failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Delete failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -232,8 +249,10 @@ export default function AdminPatientsPage() {
         try {
           await api.updatePatientStatus(patient.id, true);
           await loadData();
+          setSuccess(`${patientName(patient)} restored.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Restore failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Restore failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -259,8 +278,10 @@ export default function AdminPatientsPage() {
           await api.resetPatientPassword(patient.id, nextPassword);
           setTempPassword(nextPassword);
           setIsTempPasswordOpen(true);
+          setSuccess(`${patientName(patient)}'s password was reset.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Password reset failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Password reset failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -269,27 +290,31 @@ export default function AdminPatientsPage() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+    <div className="role-dashboard admin-subpage animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
-          <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>
-            Assign patient accounts to active doctors.
-          </p>
+          <span className="role-dashboard-eyebrow">Admin / Patients</span>
+          <h1>Patients</h1>
+          <p>Assign patient accounts to active doctors.</p>
         </div>
         <button
           className="btn btn-primary"
           onClick={() => {
             setEditingPatient(undefined);
+            setFormError("");
             setIsFormOpen(true);
           }}
         >
           <PlusIcon /> Add Patient
         </button>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
+      <section className="card admin-subpage-panel" aria-label="Patient accounts">
+        <div className="admin-subpage-panel-heading">
+          <div><span className="role-dashboard-eyebrow">Directory</span><h2>Patient accounts</h2></div>
+          <p>{activeAccountCount} current · {archivedAccountCount} archived</p>
+        </div>
+        <div className="admin-directory-toolbar">
           <div className="account-tabs" role="group" aria-label="Patient account status">
             <button
               type="button"
@@ -316,90 +341,85 @@ export default function AdminPatientsPage() {
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
-        </div>
-
-        <div className="doctor-toolbar" style={{ marginBottom: "20px" }}>
+          <div className="admin-directory-filters">
           <input
             className="input"
             type="text"
+            aria-label="Search patients by name, email, or condition"
             placeholder="Search name, email, or condition"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             style={{ maxWidth: "340px" }}
           />
+          </div>
         </div>
 
-        {error && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "16px" }}>
-            {error}
+        {!loading && accountTab === "ACTIVE" && activeDoctors.length === 0 && activeAccountCount > 0 && (
+          <div className="admin-feedback admin-feedback-warning" role="status">
+            <CircleAlert aria-hidden="true" />
+            <span>No active doctors are available for assignment. <Link href="/admin/doctors">Manage doctors</Link> to add or restore one.</span>
           </div>
         )}
 
-        {success && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#DCFCE7", color: "#166534", borderRadius: "var(--radius-md)", marginBottom: "16px" }}>
-            {success}
-          </div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredPatients.length} {accountTab === "ARCHIVED" ? "archived" : "current"} patient{filteredPatients.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <table className="admin-directory-table admin-directory-table-patients" style={{ width: "100%", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Patient</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Condition</th>
-                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Current Doctor</th>
+                  <th style={{ padding: "12px 16px", fontWeight: 600 }}>Doctor</th>
                   <th style={{ padding: "12px 16px", fontWeight: 600 }}>Status</th>
-                  {accountTab === "ACTIVE" && <th style={{ padding: "12px 16px", fontWeight: 600 }}>Assign Doctor</th>}
                   <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPatients.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
-                      {accountTab === "ARCHIVED" ? "No archived patients found." : "No active patients found."}
+                    <td colSpan={4}>
+                      <div className="admin-directory-empty">
+                        <ActiveAccountsIcon />
+                        <strong>{searchTerm ? "No matching patients" : accountTab === "ARCHIVED" ? "No archived patients" : "No current patients"}</strong>
+                        <p>{searchTerm ? "Try a different name, email, or condition." : accountTab === "ARCHIVED" ? "Archived patient accounts will appear here." : "Add a patient to start managing care assignments."}</p>
+                        {searchTerm && <button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button>}
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   filteredPatients.map((patient) => (
-                    <tr key={patient.id} style={{ borderBottom: "1px solid var(--color-page-bg)" }}>
-                      <td style={{ padding: "12px 16px" }}>
+                    <tr key={patient.id} className="directory-data-row">
+                      <td data-label="Patient" style={{ padding: "12px 16px" }}>
                         <button
                           type="button"
+                          className="directory-name-button"
                           onClick={() => openPatientPersona(patient)}
-                          style={{
-                            fontWeight: 600,
-                            color: "var(--color-primary)",
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
                         >
                           {patientName(patient)}
                         </button>
-                        <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{patient.email}</div>
+                        <div className="directory-row-meta">{patient.email}</div>
+                        {patient.profile?.medicalCondition && <div className="directory-row-meta">{patient.profile.medicalCondition}</div>}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-                        {patient.profile?.medicalCondition || "-"}
-                      </td>
-                      <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
+                      <td data-label="Doctor" style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>
                         {assignedDoctorName(patient)}
                       </td>
-                      <td style={{ padding: "12px 16px" }}>
+                      <td data-label="Status" style={{ padding: "12px 16px" }}>
                         <StatusBadge isActive={patient.isActive} archivedAt={patient.archivedAt} />
                       </td>
-                      {accountTab === "ACTIVE" && (
-                        <td style={{ padding: "12px 16px" }}>
+                      <td data-label="Actions" style={{ padding: "12px 16px", textAlign: "right" }}>
+                        <div className="directory-row-actions">
+                          {accountTab === "ACTIVE" && <>
                           <select
-                            className="input"
+                            className="input directory-doctor-select"
+                            aria-label={`Choose doctor for ${patientName(patient)}`}
                             value={selectedDoctors[patient.id] || ""}
                             onChange={(event) => setSelectedDoctors((prev) => ({ ...prev, [patient.id]: event.target.value }))}
-                            style={{ minWidth: "220px" }}
                           >
                             <option value="">Select doctor</option>
                             {activeDoctors.map((doctor) => (
@@ -408,24 +428,18 @@ export default function AdminPatientsPage() {
                               </option>
                             ))}
                           </select>
-                        </td>
-                      )}
-                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
-                          {accountTab === "ACTIVE" && (
-                            <button
+                          <button
                             className="btn btn-primary"
                             onClick={() => handleAssign(patient)}
                             disabled={savingPatientId === patient.id || !selectedDoctors[patient.id]}
-                            style={{ height: "36px", padding: "0 14px" }}
-                              >
-                                {savingPatientId === patient.id ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Assign"}
-                              </button>
-                          )}
+                          >
+                            {savingPatientId === patient.id ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Assigning…</> : "Assign"}
+                          </button>
+                          </>}
                           <details className="list-row-actions">
                             <summary>More</summary>
                             <div>
-                              {accountTab === "ACTIVE" && <button onClick={() => { setEditingPatient(patient); setIsFormOpen(true); }}>Edit profile</button>}
+                              {accountTab === "ACTIVE" && <button onClick={() => { setEditingPatient(patient); setFormError(""); setIsFormOpen(true); }}>Edit profile</button>}
                               <button onClick={() => handleResetPassword(patient)}>Reset password</button>
                               {!patient.archivedAt && <button onClick={() => handleArchive(patient)}>Archive</button>}
                               {patient.archivedAt && <button onClick={() => handleRestore(patient)}>Restore</button>}
@@ -441,7 +455,7 @@ export default function AdminPatientsPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
 
       <PatientForm
         isOpen={isFormOpen}
@@ -449,6 +463,7 @@ export default function AdminPatientsPage() {
         onSave={handleSavePatient}
         onCancel={() => { setIsFormOpen(false); setEditingPatient(undefined); }}
         isLoading={formLoading}
+        error={formError}
       />
 
       <ConfirmDialog
@@ -468,27 +483,17 @@ export default function AdminPatientsPage() {
       />
 
       {viewingPatient && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 23, 42, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 100,
-            padding: "20px",
-          }}
-          onClick={() => setViewingPatient(null)}
-        >
+        <div className="portal-modal-overlay" onClick={() => setViewingPatient(null)}>
           <div
-            className="card animate-slide-up"
-            style={{ width: "100%", maxWidth: "720px", padding: "24px", maxHeight: "90vh", overflowY: "auto" }}
+            ref={detailModalRef} tabIndex={-1}
+            className="portal-modal-panel portal-modal-detail animate-slide-up"
+            role="dialog" aria-modal="true" aria-labelledby="patient-detail-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
+            <div className="portal-modal-header portal-modal-detail-heading">
               <div>
-                <h2 style={{ fontSize: "22px", fontWeight: 700, margin: "0 0 6px 0", color: "var(--color-text-primary)" }}>
+                <span className="role-dashboard-eyebrow">Patient account</span>
+                <h2 id="patient-detail-title">
                   {patientName(viewingPatient)}
                 </h2>
                 <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
@@ -498,17 +503,14 @@ export default function AdminPatientsPage() {
               </div>
               <button
                 className="btn btn-secondary"
-                style={{ minWidth: "auto", height: "36px", padding: "0 12px" }}
                 onClick={() => setViewingPatient(null)}
               >
                 Close
               </button>
             </div>
 
-            <h3 style={{ fontSize: "16px", fontWeight: 600, margin: "0 0 16px 0", color: "var(--color-text-primary)" }}>
-              Persona Information
-            </h3>
-
+            <div className="portal-modal-detail-body">
+            <h3>Profile information</h3>
             <div className="doctor-form-grid">
               <DetailField label="First Name" value={viewingPatient.profile?.firstName} />
               <DetailField label="Last Name" value={viewingPatient.profile?.lastName} />
@@ -521,6 +523,7 @@ export default function AdminPatientsPage() {
             <div style={{ marginTop: "20px", display: "grid", gap: "16px" }}>
               <DetailField label="Address" value={viewingPatient.profile?.address} />
               <DetailField label="Medical Condition" value={viewingPatient.profile?.medicalCondition} />
+            </div>
             </div>
           </div>
         </div>

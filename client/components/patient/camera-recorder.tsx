@@ -7,9 +7,10 @@ import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config
 import { canRecordArm, canSwitchArm, getRecordingTimeState, resolveRecordingSide, type ArmSide } from "@/lib/camera-visit";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { RoboticSkeletonOverlay } from "./robotic-skeleton-overlay";
-import { FollowAlongVideo } from "./follow-along-video";
+import { AnimatedExerciseGuide } from "./animated-exercise-guide";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import {
     Camera,
     Check,
@@ -66,12 +67,13 @@ type CameraAccessIssue =
 
 export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave }: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isDemoStep, setIsDemoStep] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [isFinalizingRecording, setIsFinalizingRecording] = useState(false);
     const [isCameraStarting, setIsCameraStarting] = useState(false);
     const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
-    const [isSkeletonVisible, setIsSkeletonVisible] = useState(true);
+    const [isSkeletonVisible, setIsSkeletonVisible] = useState(false);
     const [countdown, setCountdown] = useState<number | null>(null);
     const [recordedClips, setRecordedClips] = useState<RecordedClip[]>([]);
     const [reviewClipKey, setReviewClipKey] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             : "45",
     );
     const timerDropdownRef = useRef<HTMLDivElement>(null);
+    const timerTriggerRef = useRef<HTMLButtonElement>(null);
     const selectedTargetDurationRef = useRef<number | null>(selectedTargetDuration);
 
     useEffect(() => {
@@ -119,6 +122,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const settingsRef = useRef<HTMLDivElement>(null);
+    const settingsTriggerRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -351,6 +355,20 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 },
                 audio: false
             });
+            mediaStream.getVideoTracks().forEach((track) => {
+                track.addEventListener("ended", () => {
+                    if (streamRef.current !== mediaStream) return;
+                    streamRef.current = null;
+                    setStream(null);
+                    if (isRecordingRef.current) {
+                        if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+                        setError("The camera disconnected during recording. Review the captured clip or retake it.");
+                    } else {
+                        setCameraAccessIssue("unavailable");
+                        setError("The camera disconnected or access was revoked. Check that it is connected and allowed in your browser, then try again.");
+                    }
+                });
+            });
             streamRef.current = mediaStream;
             setStream(mediaStream);
             if (videoRef.current) {
@@ -363,16 +381,16 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             if (errorName === "NotAllowedError" || errorName === "SecurityError") {
                 setCameraAccessIssue("permission");
-                setError("Camera access is blocked. Click reconnect and allow the browser prompt. If no prompt appears, use the camera or lock icon in the address bar to allow access for this site.");
+                setError("Camera permission was denied. Try again to request access. If your browser does not show a prompt, use the camera or lock icon in the address bar to allow this site, then try again.");
             } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
                 setCameraAccessIssue("unavailable");
-                setError("No camera was found. Connect or enable a camera, then click reconnect.");
+                setError("No camera was found. Connect or enable a camera, then try again. A permission prompt cannot appear until a camera is available.");
             } else if (errorName === "NotReadableError" || errorName === "TrackStartError") {
                 setCameraAccessIssue("unavailable");
-                setError("Your camera is busy or unavailable. Close other apps using it, then click reconnect.");
+                setError("Your camera is busy or unavailable. Close other apps using it, then try again.");
             } else {
                 setCameraAccessIssue("unavailable");
-                setError("Could not access your camera. Check the browser permission and make sure another application is not using it, then reconnect.");
+                setError("Could not access your camera. Check browser permission and make sure another application is not using it, then try again.");
             }
             return null;
         } finally {
@@ -449,7 +467,13 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         discardRecordingRef.current = false;
         visitIdRef.current = crypto.randomUUID();
         setSelectedSide(null);
+        setIsSkeletonVisible(false);
+        setIsDemoStep(true);
         setIsOpen(true);
+    };
+
+    const handleContinueToCamera = () => {
+        setIsDemoStep(false);
         void handleStartCamera();
     };
 
@@ -470,6 +494,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         setIsRecording(false);
         setIsFinalizingRecording(false);
         setIsCameraStarting(false);
+        setIsDemoStep(false);
         setIsOpen(false);
         setError(null);
         setCameraAccessIssue(null);
@@ -773,6 +798,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         window.location.reload();
     };
 
+    const recorderModalRef = usePortalModalFocus(isOpen, () => {
+        if (!isRecording && !isFinalizingRecording && !isEvaluating) handleClose();
+    });
+    const checkInModalRef = usePortalModalFocus(isCheckInOpen, handleCloseCheckIn);
+
     const updateCheckInField = (
         field: "painLevel" | "difficultyLevel" | "confidenceLevel",
         value: number
@@ -818,33 +848,50 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             {isOpen && (
                 <div
-                    className="recorder-fullscreen-container animate-fade-in"
+                    ref={recorderModalRef}
+                    tabIndex={-1}
+                    className={`recorder-fullscreen-container animate-fade-in ${isDemoStep ? "recorder-demo-active" : ""}`}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="exercise-recorder-title"
                 >
                     {/* Full-Screen Video Background Stage */}
                     <div className="recorder-fullscreen-stage">
-                        {error && cameraAccessIssue ? (
+                        {isDemoStep ? (
+                            <div className="recorder-demo-screen">
+                                <div className="recorder-demo-card">
+                                    <div className="recorder-demo-copy">
+                                        <span className="recorder-demo-eyebrow">Before you start</span>
+                                        <h3 id="exercise-recorder-title">Watch the movement</h3>
+                                        <p>Review the motion for {exerciseName}. When you are ready, continue to the camera to check your position before recording.</p>
+                                    </div>
+                                    <div className="recorder-demo-visual">
+                                        <AnimatedExerciseGuide
+                                            exerciseName={exerciseName}
+                                            selectedSide={targetSide}
+                                            analysisModelKey={analysisModelKey}
+                                        />
+                                    </div>
+                                    <div className="recorder-demo-actions">
+                                        <Button variant="outline" size="lg" onClick={handleClose}>Close</Button>
+                                        <Button size="lg" onClick={handleContinueToCamera}>
+                                            <Camera data-icon="inline-start" />
+                                            Continue to camera
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : error && cameraAccessIssue ? (
                             <div className="recorder-empty-state" role="alert">
-                                <button
-                                    type="button"
-                                    className="recorder-camera-reconnect"
-                                    onClick={handleCameraRecovery}
-                                    disabled={isCameraStarting}
-                                    aria-label={cameraAccessIssue === "consent" ? "Agree and allow camera access" : "Reconnect camera"}
-                                >
-                                    <span className="recorder-empty-icon recorder-empty-icon-error">
-                                        {isCameraStarting
-                                            ? <LoaderCircle className="recorder-spin" size={28} />
-                                            : <Camera size={28} />}
-                                    </span>
-                                    <h4>{cameraAccessIssue === "consent" ? "Allow camera access" : "We could not start your camera"}</h4>
-                                    <p>{error}</p>
-                                    <span className="recorder-reconnect-label">
-                                        {cameraAccessIssue === "consent" ? "I agree — turn on camera" : "Reconnect camera"}
-                                    </span>
-                                </button>
+                                <span className="recorder-empty-icon recorder-empty-icon-error">
+                                    <Camera size={28} />
+                                </span>
+                                <h4>{cameraAccessIssue === "consent" ? "Consent needed" : cameraAccessIssue === "permission" ? "Camera permission needed" : "We could not start your camera"}</h4>
+                                <p>{error}</p>
+                                <Button size="lg" className="recorder-retry-button" onClick={handleCameraRecovery} disabled={isCameraStarting}>
+                                    {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
+                                    {cameraAccessIssue === "consent" ? "I agree — request camera" : cameraAccessIssue === "permission" ? "Request camera access again" : "Try camera again"}
+                                </Button>
                             </div>
                         ) : recordedUrl ? (
                             /* Post-Recording Preview */
@@ -943,19 +990,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         <div className="recorder-floating-top-left">
                             <div className="recorder-floating-title-badge">
                                 <Video size={18} style={{ color: "#2dd4bf" }} />
-                                <h3 id="exercise-recorder-title">{exerciseName}</h3>
+                                <h3 id={isDemoStep ? undefined : "exercise-recorder-title"}>{exerciseName}</h3>
                             </div>
 
-                            {/* Floating Follow-Along Guide (Directly below exercise title) */}
-                            {stream && !recordedUrl && (
-                                <FollowAlongVideo
-                                    exerciseName={exerciseName}
-                                    selectedSide={targetSide}
-                                    analysisModelKey={analysisModelKey}
-                                    isRecording={isRecording}
-                                    isCountingDown={countdown !== null}
-                                />
-                            )}
                         </div>
 
                         <div className="recorder-floating-header-controls">
@@ -966,13 +1003,19 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             )}
 
                             {!recordedUrl && (
-                                <div className="recorder-timer-dropdown-container" ref={timerDropdownRef}>
+                                <div className="recorder-timer-dropdown-container" ref={timerDropdownRef} onKeyDown={(event) => {
+                                    if (event.key === "Escape" && isTimerDropdownOpen) {
+                                        event.stopPropagation();
+                                        setIsTimerDropdownOpen(false);
+                                        timerTriggerRef.current?.focus();
+                                    }
+                                }}>
                                     <button
+                                        ref={timerTriggerRef}
                                         type="button"
                                         className="recorder-timer-dropdown-trigger"
                                         onClick={() => setIsTimerDropdownOpen((prev) => !prev)}
                                         disabled={isRecording || isFinalizingRecording}
-                                        aria-haspopup="true"
                                         aria-expanded={isTimerDropdownOpen}
                                         title="Choose recording duration timer"
                                     >
@@ -992,7 +1035,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     </button>
 
                                     {isTimerDropdownOpen && (
-                                        <div className="recorder-timer-dropdown-menu" role="menu">
+                                        <div className="recorder-timer-dropdown-menu">
                                             <div className="recorder-timer-dropdown-header">Auto-Stop Timer</div>
                                             <button
                                                 type="button"
@@ -1001,7 +1044,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(null);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>No timer (Manual stop)</span>
                                                 {selectedTargetDuration === null && <Check size={14} />}
@@ -1013,7 +1055,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(20);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>20 seconds</span>
                                                 {selectedTargetDuration === 20 && <Check size={14} />}
@@ -1025,7 +1066,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(30);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>30 seconds</span>
                                                 {selectedTargetDuration === 30 && <Check size={14} />}
@@ -1037,7 +1077,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(60);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>1 minute (60s)</span>
                                                 {selectedTargetDuration === 60 && <Check size={14} />}
@@ -1083,7 +1122,25 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
                             {/* Settings Icon & Popover beside X close button */}
                             {!recordedUrl && (
-                                <div className="recorder-settings-inline-wrapper" ref={settingsRef}>
+                                <div className="recorder-settings-inline-wrapper" ref={settingsRef} onKeyDown={(event) => {
+                                    if (event.key === "Escape" && isSettingsOpen) {
+                                        event.stopPropagation();
+                                        setIsSettingsOpen(false);
+                                        settingsTriggerRef.current?.focus();
+                                    }
+                                }}>
+                                    <button
+                                        ref={settingsTriggerRef}
+                                        type="button"
+                                        className={`recorder-settings-trigger-btn ${isSettingsOpen ? "recorder-settings-trigger-active" : ""}`}
+                                        onClick={() => setIsSettingsOpen((prev) => !prev)}
+                                        aria-haspopup="dialog"
+                                        aria-expanded={isSettingsOpen}
+                                        aria-label="Open tracking and voice settings"
+                                        title="Tracking & Audio Settings"
+                                    >
+                                        <Settings size={22} className={isSettingsOpen ? "recorder-settings-icon-spin" : ""} />
+                                    </button>
                                     {isSettingsOpen && (
                                         <div className="recorder-settings-popover animate-scale-in" role="dialog" aria-label="Tracking and audio settings">
                                             <div className="recorder-settings-header">
@@ -1140,17 +1197,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                         </div>
                                     )}
 
-                                    <button
-                                        type="button"
-                                        className={`recorder-settings-trigger-btn ${isSettingsOpen ? "recorder-settings-trigger-active" : ""}`}
-                                        onClick={() => setIsSettingsOpen((prev) => !prev)}
-                                        aria-haspopup="dialog"
-                                        aria-expanded={isSettingsOpen}
-                                        aria-label="Open tracking and voice settings"
-                                        title="Tracking & Audio Settings"
-                                    >
-                                        <Settings size={22} className={isSettingsOpen ? "recorder-settings-icon-spin" : ""} />
-                                    </button>
                                 </div>
                             )}
 
@@ -1167,7 +1213,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         </div>
                     </header>
 
-                    {/* Floating Body Visibility Panel (Top-Right) */}
+                    {/* Show which required body points the camera can see. */}
                     {liveGuidanceEnabled && (
                         <aside className="recorder-floating-guidance" aria-label="Live body position guidance">
                             <ExerciseKeyPointFigure points={liveGuidance.keyPoints} />
@@ -1242,12 +1288,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     {/* Floating Bottom-Right Corner Action Controls */}
                     <div className="recorder-floating-bottom-right-actions">
 
-                        {error && cameraAccessIssue ? (
-                            <Button variant="outline" size="lg" className="recorder-primary-action-btn" onClick={handleCameraRecovery} disabled={isCameraStarting}>
-                                {isCameraStarting ? <LoaderCircle className="recorder-spin" /> : <Camera />}
-                                {cameraAccessIssue === "consent" ? "Allow Camera" : "Reconnect"}
-                            </Button>
-                        ) : recordedUrl ? (
+                        {isDemoStep || (error && cameraAccessIssue) ? null : recordedUrl ? (
                             <>
                                 <Button
                                     variant="outline"
@@ -1377,7 +1418,12 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     onClick={handleCloseCheckIn}
                 >
                     <div
+                        ref={checkInModalRef}
+                        tabIndex={-1}
                         className="card animate-slide-up"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="exercise-check-in-title"
                         style={{
                             width: "100%",
                             maxWidth: "640px",
@@ -1395,7 +1441,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: "6px" }}>
                                         Post Exercise Check-in
                                     </div>
-                                    <h3 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
+                                    <h3 id="exercise-check-in-title" style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
                                         How did that session feel?
                                     </h3>
                                     <p style={{ margin: "8px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
@@ -1407,7 +1453,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     type="button"
                                     onClick={handleCloseCheckIn}
                                     className="btn btn-secondary"
-                                    style={{ height: "36px", width: "36px", padding: 0, minWidth: 0 }}
+                                    style={{ height: "44px", width: "44px", padding: 0, minWidth: 0 }}
                                     aria-label="Close check-in"
                                 >
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

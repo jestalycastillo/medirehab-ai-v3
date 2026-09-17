@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type ChatMessage } from "@/lib/api";
+import { MessageCircle, Search, Send } from "lucide-react";
 
 const POLL_INTERVAL_MS = 2_000;
 
@@ -27,8 +28,15 @@ export function ChatPanel({
   const [error, setError] = useState("");
   const [counterpartLastSeenAt, setCounterpartLastSeenAt] = useState<string | null>(null);
   const [lastPolledAt, setLastPolledAt] = useState<number | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const messageCountRef = useRef(0);
+
+  const scrollMessagesToBottom = (behavior: ScrollBehavior) => {
+    requestAnimationFrame(() => {
+      const container = messagesRef.current;
+      container?.scrollTo({ top: container.scrollHeight, behavior });
+    });
+  };
 
   const loadMessages = async (initial = false) => {
     try {
@@ -42,7 +50,7 @@ export function ChatPanel({
       }
       setError("");
       if (initial || result.messages.length > messageCountRef.current) {
-        requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: initial ? "auto" : "smooth", block: "end" }));
+        scrollMessagesToBottom(initial ? "instant" : "smooth");
       }
       messageCountRef.current = result.messages.length;
     } catch (err) {
@@ -73,7 +81,7 @@ export function ChatPanel({
       const result = await api.sendChatMessage(body, patientUserId);
       setMessages((current) => [...current, result.message]);
       setDraft("");
-      requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }));
+      scrollMessagesToBottom("smooth");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to send message.");
     } finally {
@@ -108,18 +116,21 @@ export function ChatPanel({
       <div aria-live="polite" style={{ minHeight: compact ? "160px" : "180px", maxHeight: compact ? "300px" : "360px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", padding: "4px 2px 12px" }}>
         {loading ? <div style={{ color: "var(--color-text-muted)", padding: "32px 0", textAlign: "center" }}>Loading messages…</div> : messages.length === 0 ? <div style={{ color: "var(--color-text-muted)", padding: "32px 0", textAlign: "center" }}>Start the conversation with {counterpartName}.</div> : messages.map((message) => {
           const mine = role === "patient" ? message.sender.role === "PATIENT" : message.sender.role === "DOCTOR";
-          return <div key={message.id} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", padding: "10px 12px", borderRadius: "14px", backgroundColor: mine ? "var(--color-primary)" : "var(--color-page-bg)", color: mine ? "white" : "var(--color-text-primary)" }}>
-            {!mine && <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "4px" }}>{message.sender.displayName}</div>}
-            <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: "14px" }}>{message.body}</div>
-            <div style={{ marginTop: "5px", fontSize: "11px", opacity: 0.72, textAlign: "right" }}>{formatTime(message.createdAt)}{mine && message.readAt ? " · Read" : ""}</div>
+          return <div key={message.id} className={`chat-message${mine ? " chat-message-mine" : ""}`}>
+            {!mine && <strong className="chat-message-sender">{message.sender.displayName}</strong>}
+            <div className="chat-message-body">{message.body}</div>
+            <div className="chat-message-meta">{formatTime(message.createdAt)}{mine && message.readAt ? " · Read" : ""}</div>
           </div>;
         })}
-        <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={submit} style={{ display: "flex", gap: "10px", borderTop: "1px solid var(--color-border)", paddingTop: "14px" }}>
-        <textarea className="input" value={draft} maxLength={2000} rows={2} placeholder={`Message ${counterpartName}`} onChange={(event) => setDraft(event.target.value)} style={{ resize: "vertical", flex: 1, paddingTop: "10px" }} />
-        <button className="btn btn-primary" type="submit" disabled={!draft.trim() || sending} style={{ alignSelf: "flex-end" }}>{sending ? "Sending…" : "Send"}</button>
+      <form className="chat-panel-composer" onSubmit={submit}>
+        <label className="sr-only" htmlFor="chat-message-draft">Message {counterpartName}</label>
+        <textarea id="chat-message-draft" value={draft} maxLength={2000} rows={2} placeholder={`Message ${counterpartName}…`} onChange={(event) => setDraft(event.target.value)} />
+        <button type="submit" disabled={!draft.trim() || sending} aria-label={sending ? "Sending message" : "Send message"}>
+          <Send size={18} aria-hidden="true" />
+          <span>{sending ? "Sending…" : "Send"}</span>
+        </button>
       </form>
     </section>
   );

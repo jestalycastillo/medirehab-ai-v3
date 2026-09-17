@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type CareNotification } from "@/lib/api";
 import { NotificationsPanel } from "@/components/care/notifications-panel";
+import { CircleAlert } from "lucide-react";
 
 export default function DoctorNotificationsPage() {
   const [notifications, setNotifications] = useState<CareNotification[]>([]);
@@ -21,7 +22,12 @@ export default function DoctorNotificationsPage() {
   };
 
   useEffect(() => {
-    loadNotifications();
+    let mounted = true;
+    void api.getMyNotifications()
+      .then((res) => { if (mounted) setNotifications(res.notifications); })
+      .catch((err) => { if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load notifications."); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
   const handleMarkRead = async (notificationId: string) => {
@@ -45,7 +51,7 @@ export default function DoctorNotificationsPage() {
   };
 
   if (loading) {
-    return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+    return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading notifications…</div>;
   }
 
   return (
@@ -87,7 +93,9 @@ export default function DoctorNotificationsPage() {
         <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
           {error}
         </div>
-      )}
+      </header>
+
+      {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
       <div className="card" style={{ padding: "24px" }}>
         <NotificationsPanel

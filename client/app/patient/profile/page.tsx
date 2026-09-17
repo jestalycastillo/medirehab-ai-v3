@@ -94,7 +94,7 @@ export default function PatientProfilePage() {
   };
 
   if (loading) {
-    return <div className="patient-page-loading"><LoaderCircle className="recorder-spin" /><span>Loading your profile…</span></div>;
+    return <div className="patient-page-loading" role="status"><LoaderCircle className="recorder-spin" aria-hidden="true" /><span>Loading your profile…</span></div>;
   }
 
   const doctorName = [profile?.assignedDoctor?.firstName, profile?.assignedDoctor?.lastName].filter(Boolean).join(" ");
@@ -113,7 +113,7 @@ export default function PatientProfilePage() {
             <div className="patient-settings-heading"><span><UserRound /></span><div><CardTitle>Personal information</CardTitle></div></div>
           </CardHeader>
           <CardContent className="patient-profile-form-content">
-            {profileMessage && <div className="patient-settings-success"><ShieldCheck /> {profileMessage}</div>}
+            {profileMessage && <div className="patient-settings-success" role="status"><ShieldCheck aria-hidden="true" /> {profileMessage}</div>}
             <PatientProfileForm initialData={profile} onSave={handleSaveProfile} isLoading={savingProfile} />
           </CardContent>
         </Card>
@@ -145,7 +145,7 @@ export default function PatientProfilePage() {
             <CardContent>
               <label className="patient-setting-choice"><input type="checkbox" checked={Boolean(consent?.privacyConsentAt)} onChange={(event) => setConsent((current) => ({ privacyConsentAt: event.target.checked ? new Date().toISOString() : null, recordingConsentAt: event.target.checked ? current?.recordingConsentAt ?? null : null }))} /><span><strong>Use my rehabilitation data</strong><small>Allows movement evaluation and progress tracking.</small></span></label>
               <label className="patient-setting-choice"><input type="checkbox" checked={Boolean(consent?.recordingConsentAt)} disabled={!consent?.privacyConsentAt} onChange={(event) => setConsent((current) => ({ privacyConsentAt: current?.privacyConsentAt ?? null, recordingConsentAt: event.target.checked ? new Date().toISOString() : null }))} /><span><strong>Allow exercise recording</strong><small>Lets the recorder ask for browser camera access.</small></span></label>
-              {consentMessage && <div className="patient-settings-success"><ShieldCheck /> {consentMessage}</div>}
+              {consentMessage && <div className="patient-settings-success" role="status"><ShieldCheck aria-hidden="true" /> {consentMessage}</div>}
               <Button onClick={handleSaveConsent} disabled={savingConsent || !consent}>{savingConsent ? <LoaderCircle className="recorder-spin" /> : <ShieldCheck />} Save choices</Button>
             </CardContent>
           </Card>
@@ -155,7 +155,7 @@ export default function PatientProfilePage() {
           <details className="patient-security-card">
             <summary><span><LockKeyhole /></span><span><strong>Password</strong></span><ChevronDown /></summary>
             <form onSubmit={handleChangePassword}>
-              {passwordMessage && <div className="patient-settings-success"><ShieldCheck /> {passwordMessage}</div>}
+              {passwordMessage && <div className="patient-settings-success" role="status"><ShieldCheck aria-hidden="true" /> {passwordMessage}</div>}
               <label>Current password<input type="password" className="input" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required /></label>
               <label>New password<input type="password" className="input" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={8} required /></label>
               <label>Confirm new password<input type="password" className="input" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} required /></label>
