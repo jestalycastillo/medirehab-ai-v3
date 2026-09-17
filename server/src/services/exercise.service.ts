@@ -637,9 +637,30 @@ export const evaluateExercise = async (
         select: { score: true }
     });
 
-    const feedback = Array.isArray(evaluationResult.feedback)
+    let feedback = Array.isArray(evaluationResult.feedback)
         ? evaluationResult.feedback.filter((item): item is string => typeof item === "string")
         : [];
+
+    if (feedback.length === 0) {
+        const exerciseName = modelKey.includes("abduction") ? "Shoulder Abduction" : "Shoulder Flexion";
+        const arm = selectedSide ? `${selectedSide} arm` : "arm";
+        if (roundedScore >= 85) {
+            feedback = [
+                `Excellent form and control on your ${exerciseName} with your ${arm}.`,
+                "Target range of motion and movement trajectory were consistently achieved."
+            ];
+        } else if (roundedScore >= 70) {
+            feedback = [
+                `Good effort on your ${exerciseName}.`,
+                `Continue focusing on steady cadence and keeping your ${arm} aligned throughout the elevation.`
+            ];
+        } else {
+            feedback = [
+                `Completed session for ${exerciseName}.`,
+                `Focus on raising your ${arm} smoothly to shoulder height without leaning your torso.`
+            ];
+        }
+    }
 
     return { score: result.score, feedback, ...resolvedModel };
 };

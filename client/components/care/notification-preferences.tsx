@@ -29,7 +29,7 @@ export function NotificationPreferences() {
   }, []);
   if (!preferences && !error) return <div className="patient-page-loading" role="status">Loading notification choices…</div>;
   return <Card className="patient-preferences-card">
-    <CardHeader><div className="patient-settings-heading"><span><Bell /></span><div><CardTitle>Notifications</CardTitle><CardDescription>Choose which updates create an alert.</CardDescription></div></div></CardHeader>
+    <CardHeader><div className="patient-settings-heading"><span><Bell /></span><div><CardTitle>Notifications</CardTitle></div></div></CardHeader>
     <CardContent>
       {error && <div className="admin-feedback admin-feedback-error" role="alert">{error}</div>}
       {!preferences && error && <Button variant="outline" onClick={() => void retryLoad()}>Try again</Button>}

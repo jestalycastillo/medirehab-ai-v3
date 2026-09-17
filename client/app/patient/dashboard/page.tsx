@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, CalendarDays, ChevronRight, CircleAlert, Dumbbell, LoaderCircle } from "lucide-react";
-import { api, ApiError, type CareNotification, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
+import { api, ApiError, getExerciseImageUrl, type CareNotification, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
 import { formatScore } from "@/lib/score";
 import { CameraRecorder } from "@/components/patient/camera-recorder";
 import { Button } from "@/components/ui/button";
@@ -46,15 +46,16 @@ function formatNotificationTime(value: string) {
 
 function ExerciseVisual({ assignment }: { assignment: ExerciseAssignment | null }) {
   const image = assignment?.exercise?.images?.[0];
+  const imageSrc = getExerciseImageUrl(assignment?.exercise);
 
   return (
-    <div className="patient-exercise-visual" aria-hidden={!image}>
-      {image ? (
+    <div className="patient-exercise-visual" aria-hidden={!imageSrc}>
+      {imageSrc ? (
         // Exercise images can be served by the API or an administrator-provided URL.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={image.filepath}
-          alt={image.imageName || `${assignment?.exercise?.name || "Exercise"} guide`}
+          src={imageSrc}
+          alt={image?.imageName || `${assignment?.exercise?.name || "Exercise"} guide`}
           onError={(event) => { event.currentTarget.style.display = "none"; }}
         />
       ) : null}
@@ -166,7 +167,6 @@ export default function PatientDashboardPage() {
         <div>
           <span className="patient-dashboard-day">{WEEKDAY_LABELS[dashboard.todayNumber]}</span>
           <h1>Hello{firstName ? `, ${firstName}` : ""}</h1>
-          <p>Here is the one thing to focus on next.</p>
         </div>
         <Button variant="outline" className="patient-dashboard-all-link" nativeButton={false} render={<Link href="/patient/exercises" />}>
           All exercises
@@ -238,7 +238,6 @@ export default function PatientDashboardPage() {
                   targetDurationSeconds={dashboard.nextAssignment.targetDurationSeconds}
                   minimumDurationSeconds={dashboard.nextAssignment.minimumDurationSeconds}
                 />
-                <span>The camera only turns on after you click.</span>
               </div>
             </div>
           ) : null}
@@ -252,7 +251,6 @@ export default function PatientDashboardPage() {
               <span className="patient-summary-icon"><CalendarDays aria-hidden="true" /></span>
               <div>
                 <CardTitle>Your week</CardTitle>
-                <CardDescription>A simple view of your progress</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -277,9 +275,6 @@ export default function PatientDashboardPage() {
               <span className="patient-summary-icon"><Bell aria-hidden="true" /></span>
               <div>
                 <CardTitle>Updates</CardTitle>
-                <CardDescription>
-                  {dashboard.unreadNotifications.length > 0 ? `${dashboard.unreadNotifications.length} new for you` : "You are all caught up"}
-                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -287,8 +282,7 @@ export default function PatientDashboardPage() {
             {latestUpdate ? (
               <div className="patient-latest-update">
                 <strong>{latestUpdate.title}</strong>
-                <p>{latestUpdate.body}</p>
-                <span>{formatNotificationTime(latestUpdate.createdAt)}</span>
+                <p>{formatNotificationTime(latestUpdate.createdAt)}</p>
               </div>
             ) : (
               <p className="patient-no-update">Messages and reminders from your care team will appear here.</p>

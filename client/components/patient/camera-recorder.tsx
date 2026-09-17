@@ -44,7 +44,6 @@ type RecordedClip = {
     url: string;
     durationSeconds: number;
     clientSessionId: string;
-    guidanceFeedback: string[];
 };
 type ClipResult = { clientSessionId: string; side?: ArmSide; sessionId: string; score: number; adherenceQualified: boolean; qualificationReason?: string | null };
 
@@ -162,7 +161,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const recordingStartedAtRef = useRef(0);
     const recordingDurationSecondsRef = useRef(0);
     const clientSessionIdRef = useRef("");
-    const liveGuidanceFeedbackRef = useRef<string[]>([]);
     const isRecordingRef = useRef(false);
     const lastLiveCoachingAtRef = useRef(0);
     const liveCoachingRequestIdRef = useRef(0);
@@ -215,14 +213,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             return;
         }
 
-        if (!liveGuidanceFeedbackRef.current.includes(liveGuidance.message)) {
-            liveGuidanceFeedbackRef.current = [
-                ...liveGuidanceFeedbackRef.current,
-                liveGuidance.message,
-            ];
-        }
-
-        // Speak live movement guidance when instruction changes
+        // Speak live movement guidance voice over when instruction changes
         const now = Date.now();
         if (
             liveGuidance.message !== lastSpokenMessageRef.current &&
@@ -267,12 +258,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     }
 
                     setLiveCoachingMessage(response.message);
-                    if (!liveGuidanceFeedbackRef.current.includes(response.message)) {
-                        liveGuidanceFeedbackRef.current = [
-                            ...liveGuidanceFeedbackRef.current,
-                            response.message,
-                        ];
-                    }
                     if (
                         isVoiceEnabledRef.current &&
                         Date.now() - requestedAt <= MAX_AI_COACHING_SPEECH_LATENCY_MS &&
@@ -537,7 +522,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         lastSpokenMessageRef.current = "";
         lastSpokenAtRef.current = 0;
         stopLiveCoachingPlayback();
-        liveGuidanceFeedbackRef.current = [];
         visitIdRef.current = null;
     };
 
@@ -584,7 +568,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         if (!activeStream) return;
         chunksRef.current = [];
         setIsFinalizingRecording(false);
-        liveGuidanceFeedbackRef.current = [];
         setLiveCoachingMessage(null);
         stopDispositionRef.current = "review";
         recordingSideRef.current = targetSide ?? undefined;
@@ -640,7 +623,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         url,
                         durationSeconds: recordingDurationSecondsRef.current,
                         clientSessionId: clientSessionIdRef.current,
-                        guidanceFeedback: [...liveGuidanceFeedbackRef.current],
                     };
                     setRecordedClips((current) => [...current, clip]);
                     setIsFinalizingRecording(false);
@@ -773,21 +755,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     qualificationReason: res.qualificationReason,
                 });
                 setClipResults([...results]);
-                const sessionFeedback = [
-                    ...(res.feedback ?? []),
-                    ...clip.guidanceFeedback,
-                ].filter((message, index, messages) => messages.indexOf(message) === index);
-
-                if (sessionFeedback.length > 0) {
-                    try {
-                        await api.updateSessionFeedback(res.sessionId, sessionFeedback);
-                    } catch (feedbackError: unknown) {
-                        console.warn(
-                            "Failed to save live guidance feedback:",
-                            getErrorMessage(feedbackError, "Unknown error"),
-                        );
-                    }
-                }
             }
             setSessionIds(results.map((result) => result.sessionId));
             setEvaluationScore(results[0]?.score ?? null);
@@ -932,7 +899,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 <video
                                     key={recordedUrl}
                                     src={recordedUrl}
-                                    controls
+                                    autoPlay
+                                    loop
+                                    muted
                                     playsInline
                                     preload="auto"
                                     style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}

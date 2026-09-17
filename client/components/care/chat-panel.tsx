@@ -26,7 +26,6 @@ export function ChatPanel({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
   const [counterpartLastSeenAt, setCounterpartLastSeenAt] = useState<string | null>(null);
   const [lastPolledAt, setLastPolledAt] = useState<number | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -90,30 +89,32 @@ export function ChatPanel({
     }
   };
 
-  const visibleMessages = query.trim()
-    ? messages.filter((message) => message.body.toLowerCase().includes(query.trim().toLowerCase()))
-    : messages;
   const isOnline = counterpartLastSeenAt !== null && lastPolledAt !== null && lastPolledAt - new Date(counterpartLastSeenAt).getTime() < 2 * 60_000;
 
   return (
-    <section className={`chat-panel${compact ? " quick-chat-panel" : ""}`} aria-label={`Conversation with ${counterpartName}`}>
-      <div className="chat-panel-heading">
-        <span className="chat-panel-avatar" aria-hidden="true">{counterpartName === "your doctor" ? "D" : counterpartName.charAt(0).toUpperCase()}</span>
-        <div className="chat-panel-heading-copy">
-          <h2>{counterpartName === "your doctor" ? "Your doctor" : counterpartName}</h2>
-          <p><span className={`chat-panel-status-dot${isOnline ? " chat-panel-status-dot-online" : ""}`} aria-hidden="true" />{isOnline ? "Available now" : "Currently offline"}</p>
+    <section className={`card${compact ? " quick-chat-panel" : ""}`} style={{ padding: compact ? "16px" : "24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "16px" }}>
+        <div>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>{counterpartName}</h2>
+          <p style={{ color: "var(--color-text-muted)", fontSize: "13px", margin: "4px 0 0", display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: isOnline ? "#16a34a" : "#94a3b8",
+                display: "inline-block",
+              }}
+            />
+            {isOnline ? "Online" : "Offline"}
+          </p>
         </div>
       </div>
 
-      {error && <div className="chat-panel-error" role="alert">{error}</div>}
-      <label className="chat-panel-search">
-        <Search size={17} aria-hidden="true" />
-        <span className="sr-only">Search messages</span>
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search messages" />
-      </label>
+      {error && <div style={{ marginBottom: "12px", padding: "10px 12px", borderRadius: "var(--radius-md)", backgroundColor: "#FEE2E2", color: "#991B1B", fontSize: "13px" }}>{error}</div>}
 
-      <div ref={messagesRef} className="chat-panel-messages" aria-live="polite" aria-relevant="additions text">
-        {loading ? <div className="chat-panel-empty">Loading messages…</div> : visibleMessages.length === 0 ? <div className="chat-panel-empty"><MessageCircle size={24} aria-hidden="true" /><strong>{messages.length ? "No matching messages" : "No messages yet"}</strong><span>{messages.length ? "Try a different search." : `Start the conversation with ${counterpartName}.`}</span></div> : visibleMessages.map((message) => {
+      <div aria-live="polite" style={{ minHeight: compact ? "160px" : "180px", maxHeight: compact ? "300px" : "360px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", padding: "4px 2px 12px" }}>
+        {loading ? <div style={{ color: "var(--color-text-muted)", padding: "32px 0", textAlign: "center" }}>Loading messages…</div> : messages.length === 0 ? <div style={{ color: "var(--color-text-muted)", padding: "32px 0", textAlign: "center" }}>Start the conversation with {counterpartName}.</div> : messages.map((message) => {
           const mine = role === "patient" ? message.sender.role === "PATIENT" : message.sender.role === "DOCTOR";
           return <div key={message.id} className={`chat-message${mine ? " chat-message-mine" : ""}`}>
             {!mine && <strong className="chat-message-sender">{message.sender.displayName}</strong>}

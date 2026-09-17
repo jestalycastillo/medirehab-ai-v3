@@ -91,14 +91,10 @@ export default function DoctorProfilePage() {
   if (loading) return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading your profile…</div>;
 
   return (
-    <div className="role-dashboard care-page doctor-profile-page animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <span className="role-dashboard-eyebrow">Doctor / Profile</span>
-          <h1>Profile &amp; settings</h1>
-          <p>Manage your doctor profile and account password.</p>
-        </div>
-      </header>
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "760px" }}>
+      <div>
+        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Profile</h1>
+      </div>
 
       {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 

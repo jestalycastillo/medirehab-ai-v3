@@ -6,9 +6,11 @@ import { Bell, ChevronRight, CircleAlert, ClipboardPlus, LoaderCircle, UsersRoun
 import { api, ApiError, type ApiPatient, type CareNotification, type DoctorProfile, type ExerciseAssignment } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WeeklySessionsDialog } from "@/components/doctor/weekly-sessions-dialog";
 
 function patientName(patient: ApiPatient) {
-  return [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ") || "Unnamed patient";
+  const name = [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ");
+  return name || "Unnamed patient";
 }
 
 function patientInitials(patient: ApiPatient) {
@@ -23,6 +25,7 @@ export default function DoctorDashboardPage() {
   const [notifications, setNotifications] = useState<CareNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isSessionsModalOpen, setIsSessionsModalOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -115,7 +118,6 @@ export default function DoctorDashboardPage() {
         <div>
           <span className="role-dashboard-eyebrow">Doctor dashboard</span>
           <h1>{doctorName ? `Hello, Dr. ${doctorName}` : "Hello, Doctor"}</h1>
-          <p>Start with the patients who need you most.</p>
         </div>
         <Button nativeButton={false} render={<Link href="/doctor/exercise-assignments" />}>
           <ClipboardPlus aria-hidden="true" /> Assign exercise
@@ -125,7 +127,6 @@ export default function DoctorDashboardPage() {
       <Card className="doctor-attention-card">
         <CardHeader className="doctor-attention-header">
           <div>
-            <span className="role-dashboard-eyebrow">Start here</span>
             <CardTitle>Patients needing attention</CardTitle>
             <CardDescription>
               {dashboard.attention.length > 0
@@ -159,9 +160,28 @@ export default function DoctorDashboardPage() {
 
       <nav className="role-dashboard-quick-links" aria-label="Doctor overview">
         <Link href="/doctor/patients"><UsersRound aria-hidden="true" /><span>Patients</span><strong>{dashboard.activePatients.length} active</strong><ChevronRight aria-hidden="true" /></Link>
-        <Link href="/doctor/patients"><ClipboardPlus aria-hidden="true" /><span>Sessions this week</span><strong>{dashboard.weeklyCompleted} of {dashboard.weeklyTarget} planned</strong><ChevronRight aria-hidden="true" /></Link>
+        <button
+          type="button"
+          className="role-dashboard-quick-link-btn"
+          onClick={() => setIsSessionsModalOpen(true)}
+          title="Click to view weekly session telemetry"
+        >
+          <ClipboardPlus aria-hidden="true" />
+          <span>Sessions this week</span>
+          <strong>{dashboard.weeklyCompleted} of {dashboard.weeklyTarget} planned</strong>
+          <ChevronRight aria-hidden="true" />
+        </button>
         <Link href="/doctor/notifications"><Bell aria-hidden="true" /><span>Updates</span><strong>{dashboard.unreadNotifications.length > 0 ? `${dashboard.unreadNotifications.length} unread` : latestUpdate?.title ?? "No new updates"}</strong><ChevronRight aria-hidden="true" /></Link>
       </nav>
+
+      <WeeklySessionsDialog
+        isOpen={isSessionsModalOpen}
+        onClose={() => setIsSessionsModalOpen(false)}
+        patients={dashboard.activePatients}
+        assignmentsByPatient={assignmentsByPatient}
+        weeklyCompleted={dashboard.weeklyCompleted}
+        weeklyTarget={dashboard.weeklyTarget}
+      />
     </div>
   );
 }

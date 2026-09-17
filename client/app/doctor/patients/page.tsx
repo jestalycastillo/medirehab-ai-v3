@@ -60,7 +60,7 @@ export default function DoctorPatientsPage() {
     message: "",
     isDestructive: false,
     isLoading: false,
-    action: async () => {},
+    action: async () => { },
   });
 
   const loadPatients = async () => {
@@ -202,11 +202,7 @@ export default function DoctorPatientsPage() {
     <div className="role-dashboard care-page animate-fade-in">
       <header className="role-dashboard-header">
         <div>
-          <span className="role-dashboard-eyebrow">Doctor / Patients</span>
-          <h1>Patients</h1>
-          <p>
-            Manage assigned patient accounts and rehabilitation access.
-          </p>
+          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
         </div>
       </header>
 

@@ -256,9 +256,8 @@ export default function PatientDetailPage() {
 
       <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} referenceTime={lastLoadedAt} onResolve={handleResolveHelp} />
 
-      <section className="card care-page-panel">
-          <span className="role-dashboard-eyebrow">Care plan</span>
-          <h2>Assigned exercises ({assignments.length})</h2>
+      <section className="card no-print" style={{ padding: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Assigned exercises ({assignments.length})</h2>
           {assignments.length === 0 ? (
             <p style={{ margin: 0, color: "var(--color-text-muted)" }}>No exercises assigned yet.</p>
           ) : (
@@ -274,7 +273,7 @@ export default function PatientDetailPage() {
           )}
       </section>
 
-      <section className="card care-page-panel">
+      <section className="card no-print" style={{ padding: "24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
           <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
           <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
@@ -282,7 +281,7 @@ export default function PatientDetailPage() {
         <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
       </section>
 
-      <ScoreSummary sessions={sessions} />
+      <div className="no-print"><ScoreSummary sessions={sessions} /></div>
 
       <details className="care-disclosure">
         <summary>Patient profile</summary>
@@ -323,8 +322,8 @@ export default function PatientDetailPage() {
         </div>
       </details>
 
-      <details className="care-disclosure">
-        <summary>Detailed progress report</summary>
+      <details className="care-disclosure progress-report-disclosure">
+        <summary>Patient Rehabilitation Progress Report</summary>
         <div className="care-disclosure-content"><ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} /></div>
       </details>
 

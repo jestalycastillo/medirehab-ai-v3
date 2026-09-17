@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, ChevronDown, Dumbbell } from "lucide-react";
-import { type ExerciseAssignment } from "@/lib/api";
+import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
 import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 
@@ -14,14 +14,16 @@ const WEEKDAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4
 
 function ExerciseImage({ assignment }: { assignment: ExerciseAssignment }) {
   const image = assignment.exercise?.images?.[0];
+  const imageSrc = getExerciseImageUrl(assignment.exercise);
   return (
     <div className="patient-exercise-card-image">
-      {image ? (
-        <ExerciseThumbnail
-          imagePath={image.filepath}
-          alt={image.imageName || `${assignment.exercise.name} guide`}
-          modelKey={assignment.exercise.analysisModelKey}
-          onImageError={(event) => { event.currentTarget.style.display = "none"; }}
+      {imageSrc ? (
+        // Exercise images can come from the API or an administrator-provided URL.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageSrc}
+          alt={image?.imageName || `${assignment.exercise.name} guide`}
+          onError={(event) => { event.currentTarget.style.display = "none"; }}
         />
       ) : null}
       <div className="patient-exercise-card-placeholder" aria-hidden="true"><Dumbbell /><span>Exercise guide</span></div>

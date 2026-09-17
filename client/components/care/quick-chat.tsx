@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { api, ApiError, type ApiPatient } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { api, ApiError, type ApiPatient, type PatientProfile } from "@/lib/api";
 import { ChatPanel } from "@/components/care/chat-panel";
 import { ArrowLeft, ChevronRight, MessageCircle, X } from "lucide-react";
 
@@ -13,22 +13,35 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
   const [isOpen, setIsOpen] = useState(false);
   const [patients, setPatients] = useState<ApiPatient[] | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<ApiPatient | null>(null);
+  const [doctorName, setDoctorName] = useState("Your Doctor");
   const [error, setError] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!isOpen || role !== "doctor" || patients !== null) return;
+    if (!isOpen) return;
 
-    api.getPatients()
-      .then((result) => {
-        setPatients(result.patients.filter((patient) => patient.isActive && !patient.archivedAt));
-        setError("");
-      })
-      .catch((err) => {
-        setPatients([]);
-        setError(err instanceof ApiError ? err.message : "Unable to load patients.");
-      });
+    if (role === "doctor" && patients === null) {
+      api.getPatients()
+        .then((result) => {
+          setPatients(result.patients.filter((patient) => patient.isActive && !patient.archivedAt));
+          setError("");
+        })
+        .catch((err) => {
+          setPatients([]);
+          setError(err instanceof ApiError ? err.message : "Unable to load patients.");
+        });
+    }
+
+    if (role === "patient") {
+      api.getProfile()
+        .then((result) => {
+          const doc = (result.user?.profile as PatientProfile | undefined)?.assignedDoctor;
+          const name = [doc?.firstName, doc?.lastName].filter(Boolean).join(" ");
+          if (name) setDoctorName(`Dr. ${name}`);
+        })
+        .catch(() => {});
+    }
   }, [isOpen, patients, role]);
 
   useEffect(() => {
@@ -65,13 +78,12 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
           </div>
 
           {role === "patient" ? (
-            <ChatPanel role="patient" counterpartName="your doctor" compact />
+            <ChatPanel role="patient" counterpartName={doctorName} compact />
           ) : selectedPatient ? (
             <ChatPanel role="doctor" patientUserId={selectedPatient.id} counterpartName={patientName(selectedPatient)} compact />
           ) : (
             <div className="quick-chat-patient-list">
-              <p className="quick-chat-help">Choose a patient to open the conversation.</p>
-              {error && <div className="quick-chat-error" role="alert">{error}</div>}
+              {error && <div className="quick-chat-error">{error}</div>}
               {patients === null ? (
                 <div className="quick-chat-empty">Loading patients…</div>
               ) : patients.length === 0 ? (
