@@ -32,7 +32,7 @@ export function usePortalModalFocus(isOpen: boolean, onClose: () => void, closeO
         if (items.length === 0) { event.preventDefault(); panel.focus(); return; }
         const first = items[0];
         const last = items[items.length - 1];
-        if (event.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === panel || !panel.contains(document.activeElement))) {
           event.preventDefault(); last.focus();
         } else if (!event.shiftKey && (document.activeElement === last || !panel.contains(document.activeElement))) {
           event.preventDefault(); first.focus();

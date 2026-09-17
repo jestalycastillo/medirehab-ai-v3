@@ -3,7 +3,7 @@
 import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { QuickChat } from "@/components/care/quick-chat";
 
@@ -76,15 +76,18 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    setLogoutError("");
     try {
       await logout();
     } catch {
-      window.alert("Unable to sign out. Please check your connection and try again.");
+      setLogoutError("Unable to sign out. Please check your connection and try again.");
     } finally {
       setIsLoggingOut(false);
     }
@@ -118,8 +121,8 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
 
   if (loading || !user || user.role !== "PATIENT" || user.mustChangePassword) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div className="spinner" style={{ width: "32px", height: "32px" }} />
+      <div className="patient-page-loading" role="status" style={{ minHeight: "100vh" }}>
+        <div className="spinner" style={{ width: "32px", height: "32px" }} aria-hidden="true" />Loading patient portal…
       </div>
     );
   }
@@ -147,6 +150,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className="admin-nav-item"
                 style={{
                   display: "flex",
@@ -181,18 +185,23 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
             <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Patient Portal</span>
           </div>
-          <button type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isMobileMenuOpen} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}>
+          <button ref={mobileMenuButtonRef} type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isMobileMenuOpen} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}>
             <MenuIcon />
           </button>
         </header>
 
         {isMobileMenuOpen && (
-          <div className="admin-mobile-menu" style={{ display: "none", backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)", padding: "8px 16px 16px" }}>
+          <div className="admin-mobile-menu" onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsMobileMenuOpen(false);
+              mobileMenuButtonRef.current?.focus();
+            }
+          }} style={{ display: "none", backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)", padding: "8px 16px 16px" }}>
             <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/patient/dashboard" && pathname.startsWith(item.href));
                 return (
-                  <Link key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "var(--radius-md)", color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)", backgroundColor: isActive ? "var(--color-primary-light)" : "transparent", fontWeight: isActive ? 600 : 500, textDecoration: "none" }}>
+                  <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "var(--radius-md)", color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)", backgroundColor: isActive ? "var(--color-primary-light)" : "transparent", fontWeight: isActive ? 600 : 500, textDecoration: "none" }}>
                     <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>{item.icon}</div>
                     {item.name}
                   </Link>
@@ -207,6 +216,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
         )}
 
         <main style={{ flex: 1, padding: "32px", overflowY: "auto" }} className="admin-main-content">
+          {logoutError && <div className="admin-feedback admin-feedback-error" role="alert">{logoutError}</div>}
           {children}
         </main>
       </div>

@@ -2,7 +2,7 @@
 
 import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { QuickChat } from "@/components/care/quick-chat";
@@ -89,15 +89,18 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
+    setLogoutError("");
     try {
       await logout();
     } catch {
-      window.alert("Unable to sign out. Please check your connection and try again.");
+      setLogoutError("Unable to sign out. Please check your connection and try again.");
     } finally {
       setIsLoggingOut(false);
     }
@@ -130,8 +133,8 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
   if (loading || !user || user.role !== "DOCTOR" || user.mustChangePassword) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div className="spinner" style={{ width: "32px", height: "32px" }} />
+      <div className="role-dashboard-loading" role="status" style={{ minHeight: "100vh" }}>
+        <div className="spinner" style={{ width: "32px", height: "32px" }} aria-hidden="true" />Loading doctor portal…
       </div>
     );
   }
@@ -162,6 +165,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className="admin-nav-item"
                 style={{
                   display: "flex",
@@ -187,6 +191,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
         <div style={{ padding: "24px 12px", borderTop: "1px solid var(--color-border)" }}>
           <button
+            ref={mobileMenuButtonRef}
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
@@ -243,7 +248,12 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
-          <div className="admin-mobile-menu" style={{
+          <div className="admin-mobile-menu" onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsMobileMenuOpen(false);
+              mobileMenuButtonRef.current?.focus();
+            }
+          }} style={{
             display: "none",
             backgroundColor: "var(--color-surface)",
             borderBottom: "1px solid var(--color-border)",
@@ -256,6 +266,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive ? "page" : undefined}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -304,6 +315,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         )}
 
         <main style={{ flex: 1, padding: "32px", overflowY: "auto" }} className="admin-main-content">
+          {logoutError && <div className="admin-feedback admin-feedback-error" role="alert">{logoutError}</div>}
           {children}
         </main>
       </div>

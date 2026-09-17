@@ -7,6 +7,7 @@ import { api, ApiError, type ApiExercise, type ApiPatient, type AssignmentPlanUp
 import { ExerciseAssignmentList } from "@/components/doctor/exercise-assignment-list";
 import { ExercisePicker } from "@/components/doctor/exercise-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function patientName(patient?: ApiPatient | null) {
   if (!patient) return "Patient";
@@ -22,6 +23,8 @@ export default function PatientExercisesPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [success, setSuccess] = useState("");
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: "",
@@ -57,17 +60,21 @@ export default function PatientExercisesPage() {
 
   const handleAssign = async (exerciseId: string) => {
     setBusy(true);
+    setActionError("");
     try {
       await api.assignExercise(patientUserId, exerciseId);
       await loadData();
+      setSuccess("Exercise assigned.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to assign exercise.");
+      setSuccess("");
+      setActionError(err instanceof ApiError ? err.message : "Failed to assign exercise.");
     } finally {
       setBusy(false);
     }
   };
 
   const handleRemove = (assignment: ExerciseAssignment) => {
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: "Remove Assignment",
@@ -79,8 +86,10 @@ export default function PatientExercisesPage() {
         try {
           await api.removeAssignedExercise(patientUserId, assignment.id);
           await loadData();
+          setSuccess("Exercise removed from the care plan.");
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Failed to remove assignment.");
+          setSuccess("");
+          setActionError(err instanceof ApiError ? err.message : "Failed to remove assignment.");
         } finally {
           setBusy(false);
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
@@ -91,21 +100,26 @@ export default function PatientExercisesPage() {
 
   const handleUpdatePlan = async (assignmentId: string, data: AssignmentPlanUpdate) => {
     setBusy(true);
+    setActionError("");
     try {
       await api.updateAssignmentPlan(patientUserId, assignmentId, data);
       await loadData();
+      setSuccess("Care plan updated.");
+      return true;
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to update care plan.");
+      setSuccess("");
+      setActionError(err instanceof ApiError ? err.message : "Failed to update care plan.");
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+  if (loading) return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading care plan…</div>;
 
   if (error) {
     return (
-      <div className="card" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "#FEF2F2" }}>
+      <div className="card" role="alert" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "var(--color-danger-surface)" }}>
         <h1 style={{ fontSize: "20px", color: "var(--color-danger)", margin: "0 0 8px 0" }}>Unable to load assignments</h1>
         <p style={{ margin: "0 0 16px 0", color: "var(--color-text-secondary)" }}>{error}</p>
         <Link className="btn btn-secondary" href="/doctor/patients">Back to patients</Link>
@@ -127,6 +141,9 @@ export default function PatientExercisesPage() {
         </p>
         </div>
       </header>
+
+      {actionError && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{actionError}</div>}
+      {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
 
       <section className="doctor-two-column">
         <ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} />

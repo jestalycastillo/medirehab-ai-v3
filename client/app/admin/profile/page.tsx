@@ -94,7 +94,7 @@ export default function AdminProfilePage() {
               <input id="admin-confirm-password" type="password" className="input" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />
             </div>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Update password"}
+              {loading ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Updating…</> : "Update password"}
             </button>
           </form>
         </section>

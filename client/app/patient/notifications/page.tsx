@@ -26,6 +26,7 @@ export default function PatientNotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -44,11 +45,13 @@ export default function PatientNotificationsPage() {
   const handleMarkRead = async (notificationId: string) => {
     setBusyId(notificationId);
     setError("");
+    setSuccess("");
     try {
       await api.markNotificationRead(notificationId);
       setNotifications((current) => current.map((notification) => notification.id === notificationId
         ? { ...notification, isRead: true, readAt: new Date().toISOString() }
         : notification));
+      setSuccess("Notification marked as read.");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to update notification.");
     } finally {
@@ -66,9 +69,10 @@ export default function PatientNotificationsPage() {
       </header>
 
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
+      {success && <div className="patient-settings-success" role="status"><Check aria-hidden="true" />{success}</div>}
 
       {loading ? (
-        <div className="patient-page-loading"><LoaderCircle className="recorder-spin" /><span>Loading your updates…</span></div>
+        <div className="patient-page-loading" role="status"><LoaderCircle className="recorder-spin" aria-hidden="true" /><span>Loading your updates…</span></div>
       ) : orderedNotifications.length === 0 ? (
         <Card className="patient-notification-empty"><CardContent><span><Check /></span><strong>You&apos;re all caught up</strong><p>New messages and reminders will appear here.</p></CardContent></Card>
       ) : (

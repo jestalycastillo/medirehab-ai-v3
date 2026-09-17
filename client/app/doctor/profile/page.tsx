@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError, type DoctorProfile } from "@/lib/api";
 import { NotificationPreferences } from "@/components/care/notification-preferences";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 export default function DoctorProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -87,7 +88,7 @@ export default function DoctorProfilePage() {
     }
   };
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+  if (loading) return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading your profile…</div>;
 
   return (
     <div className="role-dashboard care-page doctor-profile-page animate-fade-in">
@@ -99,9 +100,7 @@ export default function DoctorProfilePage() {
         </div>
       </header>
 
-      {error && (
-        <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>{error}</div>
-      )}
+      {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
       <NotificationPreferences />
 
@@ -123,7 +122,7 @@ export default function DoctorProfilePage() {
       <section className="card care-page-panel">
         <span className="role-dashboard-eyebrow">Professional details</span>
         <h2>Doctor profile</h2>
-        {profileMessage && <div style={{ padding: "12px 16px", backgroundColor: "#DCFCE7", color: "#166534", borderRadius: "var(--radius-md)", marginBottom: "18px" }}>{profileMessage}</div>}
+        {profileMessage && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{profileMessage}</div>}
         <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div className="doctor-form-grid">
             <div>
@@ -154,7 +153,7 @@ export default function DoctorProfilePage() {
             <input id="doctor-schedule" className="input" name="clinicSchedule" value={profile.clinicSchedule || ""} onChange={handleProfileChange} />
           </div>
           <button type="submit" className="btn btn-primary" disabled={savingProfile} style={{ alignSelf: "flex-start", minWidth: "130px" }}>
-            {savingProfile ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Save Profile"}
+            {savingProfile ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Saving…</> : "Save Profile"}
           </button>
         </form>
       </section>
@@ -162,7 +161,7 @@ export default function DoctorProfilePage() {
       <section className="card care-page-panel">
         <span className="role-dashboard-eyebrow">Security</span>
         <h2>Change password</h2>
-        {passwordMessage && <div style={{ padding: "12px 16px", backgroundColor: "#DCFCE7", color: "#166534", borderRadius: "var(--radius-md)", marginBottom: "18px" }}>{passwordMessage}</div>}
+        {passwordMessage && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{passwordMessage}</div>}
         <form onSubmit={handleChangePassword} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
             <label htmlFor="doctor-current-password" style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Current Password</label>
@@ -179,7 +178,7 @@ export default function DoctorProfilePage() {
             </div>
           </div>
           <button type="submit" className="btn btn-primary" disabled={savingPassword} style={{ alignSelf: "flex-start", minWidth: "150px" }}>
-            {savingPassword ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Update Password"}
+            {savingPassword ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Updating…</> : "Update Password"}
           </button>
         </form>
       </section>

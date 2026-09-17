@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import { DoctorForm } from "@/components/admin/doctor-form";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function PlusIcon() {
   return (
@@ -51,6 +52,8 @@ export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<ApiDoctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [accountTab, setAccountTab] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
@@ -82,6 +85,7 @@ export default function DoctorsPage() {
 
   const loadDoctors = async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await api.getDoctors();
       setDoctors(res.doctors);
@@ -100,7 +104,10 @@ export default function DoctorsPage() {
 
   const handleSaveDoctor = async (data: Partial<ApiDoctor & DoctorProfile>) => {
     setFormLoading(true);
+    setFormError("");
+    setSuccess("");
     try {
+      const wasEditing = Boolean(editingDoctor);
       if (editingDoctor) {
         await api.updateDoctor(editingDoctor.id, data);
       } else {
@@ -112,9 +119,9 @@ export default function DoctorsPage() {
       }
       await loadDoctors();
       setIsFormOpen(false);
+      setSuccess(wasEditing ? "Doctor updated." : "Doctor created.");
     } catch (err) {
-      if (err instanceof ApiError) alert(err.message);
-      else alert("Failed to save doctor");
+      setFormError(err instanceof ApiError ? err.message : "Failed to save doctor.");
     } finally {
       setFormLoading(false);
     }
@@ -132,9 +139,10 @@ export default function DoctorsPage() {
         try {
           await api.deleteDoctor(doctor.id);
           await loadDoctors();
+          setSuccess(`${doctorName(doctor)} archived.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -154,9 +162,10 @@ export default function DoctorsPage() {
         try {
           await api.permanentlyDeleteDoctor(doctor.id);
           await loadDoctors();
+          setSuccess(`${doctorName(doctor)} deleted permanently.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Delete failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -176,9 +185,10 @@ export default function DoctorsPage() {
         try {
           await api.updateDoctorStatus(doctor.id, true);
           await loadDoctors();
+          setSuccess(`${doctorName(doctor)} restored.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Restore failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -204,9 +214,10 @@ export default function DoctorsPage() {
           await api.resetDoctorPassword(doctor.id, nextPassword);
           setTempPassword(nextPassword);
           setIsTempPasswordOpen(true);
+          setSuccess(`${doctorName(doctor)}'s password was reset.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Password reset failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Password reset failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -248,6 +259,7 @@ export default function DoctorsPage() {
           className="btn btn-primary"
           onClick={() => {
             setEditingDoctor(undefined);
+            setFormError("");
             setIsFormOpen(true);
           }}
         >
@@ -313,16 +325,12 @@ export default function DoctorsPage() {
           </div>
         </div>
 
-        {error && (
-          <div style={{ padding: "16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "20px" }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredDoctors.length} {accountTab === "ARCHIVED" ? "archived" : "current"} doctor{filteredDoctors.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-            <div className="spinner"></div>
-          </div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading doctors…</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
@@ -352,8 +360,8 @@ export default function DoctorsPage() {
                       <td data-label="Doctor" style={{ padding: "12px 16px", fontWeight: 500, color: "var(--color-text-primary)" }}>
                         <button
                           type="button"
+                          className="directory-name-button"
                           onClick={() => openDoctorPersona(doctor)}
-                          style={{ color: "var(--color-primary)", textDecoration: "none", background: "none", border: "none", padding: 0, cursor: "pointer", fontWeight: 600, textAlign: "left" }}
                         >
                           {doctor.profile ? `Dr. ${doctor.profile.firstName} ${doctor.profile.lastName}` : "Unknown"}
                         </button>
@@ -369,7 +377,7 @@ export default function DoctorsPage() {
                         <details className="list-row-actions">
                           <summary>More</summary>
                           <div>
-                            <button onClick={() => { setEditingDoctor(doctor); setIsFormOpen(true); }}>Edit profile</button>
+                            <button onClick={() => { setEditingDoctor(doctor); setFormError(""); setIsFormOpen(true); }}>Edit profile</button>
                             <button onClick={() => handleResetPassword(doctor)}>Reset password</button>
                             {!doctor.archivedAt && <button onClick={() => handleArchive(doctor)}>Archive</button>}
                             {doctor.archivedAt && <button onClick={() => handleRestore(doctor)}>Restore</button>}
@@ -392,6 +400,7 @@ export default function DoctorsPage() {
         onSave={handleSaveDoctor}
         onCancel={() => setIsFormOpen(false)}
         isLoading={formLoading}
+        error={formError}
       />
 
       <ConfirmDialog

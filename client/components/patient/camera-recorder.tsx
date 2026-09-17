@@ -10,6 +10,7 @@ import { RoboticSkeletonOverlay } from "./robotic-skeleton-overlay";
 import { AnimatedExerciseGuide } from "./animated-exercise-guide";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import {
     Camera,
     Check,
@@ -104,6 +105,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             : "45",
     );
     const timerDropdownRef = useRef<HTMLDivElement>(null);
+    const timerTriggerRef = useRef<HTMLButtonElement>(null);
     const selectedTargetDurationRef = useRef<number | null>(selectedTargetDuration);
 
     useEffect(() => {
@@ -121,6 +123,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const settingsRef = useRef<HTMLDivElement>(null);
+    const settingsTriggerRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -828,6 +831,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         window.location.reload();
     };
 
+    const recorderModalRef = usePortalModalFocus(isOpen, () => {
+        if (!isRecording && !isFinalizingRecording && !isEvaluating) handleClose();
+    });
+    const checkInModalRef = usePortalModalFocus(isCheckInOpen, handleCloseCheckIn);
+
     const updateCheckInField = (
         field: "painLevel" | "difficultyLevel" | "confidenceLevel",
         value: number
@@ -873,6 +881,8 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             {isOpen && (
                 <div
+                    ref={recorderModalRef}
+                    tabIndex={-1}
                     className={`recorder-fullscreen-container animate-fade-in ${isDemoStep ? "recorder-demo-active" : ""}`}
                     role="dialog"
                     aria-modal="true"
@@ -1024,13 +1034,19 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             )}
 
                             {!recordedUrl && (
-                                <div className="recorder-timer-dropdown-container" ref={timerDropdownRef}>
+                                <div className="recorder-timer-dropdown-container" ref={timerDropdownRef} onKeyDown={(event) => {
+                                    if (event.key === "Escape" && isTimerDropdownOpen) {
+                                        event.stopPropagation();
+                                        setIsTimerDropdownOpen(false);
+                                        timerTriggerRef.current?.focus();
+                                    }
+                                }}>
                                     <button
+                                        ref={timerTriggerRef}
                                         type="button"
                                         className="recorder-timer-dropdown-trigger"
                                         onClick={() => setIsTimerDropdownOpen((prev) => !prev)}
                                         disabled={isRecording || isFinalizingRecording}
-                                        aria-haspopup="true"
                                         aria-expanded={isTimerDropdownOpen}
                                         title="Choose recording duration timer"
                                     >
@@ -1050,7 +1066,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     </button>
 
                                     {isTimerDropdownOpen && (
-                                        <div className="recorder-timer-dropdown-menu" role="menu">
+                                        <div className="recorder-timer-dropdown-menu">
                                             <div className="recorder-timer-dropdown-header">Auto-Stop Timer</div>
                                             <button
                                                 type="button"
@@ -1059,7 +1075,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(null);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>No timer (Manual stop)</span>
                                                 {selectedTargetDuration === null && <Check size={14} />}
@@ -1071,7 +1086,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(20);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>20 seconds</span>
                                                 {selectedTargetDuration === 20 && <Check size={14} />}
@@ -1083,7 +1097,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(30);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>30 seconds</span>
                                                 {selectedTargetDuration === 30 && <Check size={14} />}
@@ -1095,7 +1108,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                                     setSelectedTargetDuration(60);
                                                     setIsTimerDropdownOpen(false);
                                                 }}
-                                                role="menuitem"
                                             >
                                                 <span>1 minute (60s)</span>
                                                 {selectedTargetDuration === 60 && <Check size={14} />}
@@ -1141,7 +1153,25 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
                             {/* Settings Icon & Popover beside X close button */}
                             {!recordedUrl && (
-                                <div className="recorder-settings-inline-wrapper" ref={settingsRef}>
+                                <div className="recorder-settings-inline-wrapper" ref={settingsRef} onKeyDown={(event) => {
+                                    if (event.key === "Escape" && isSettingsOpen) {
+                                        event.stopPropagation();
+                                        setIsSettingsOpen(false);
+                                        settingsTriggerRef.current?.focus();
+                                    }
+                                }}>
+                                    <button
+                                        ref={settingsTriggerRef}
+                                        type="button"
+                                        className={`recorder-settings-trigger-btn ${isSettingsOpen ? "recorder-settings-trigger-active" : ""}`}
+                                        onClick={() => setIsSettingsOpen((prev) => !prev)}
+                                        aria-haspopup="dialog"
+                                        aria-expanded={isSettingsOpen}
+                                        aria-label="Open tracking and voice settings"
+                                        title="Tracking & Audio Settings"
+                                    >
+                                        <Settings size={22} className={isSettingsOpen ? "recorder-settings-icon-spin" : ""} />
+                                    </button>
                                     {isSettingsOpen && (
                                         <div className="recorder-settings-popover animate-scale-in" role="dialog" aria-label="Tracking and audio settings">
                                             <div className="recorder-settings-header">
@@ -1198,17 +1228,6 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                         </div>
                                     )}
 
-                                    <button
-                                        type="button"
-                                        className={`recorder-settings-trigger-btn ${isSettingsOpen ? "recorder-settings-trigger-active" : ""}`}
-                                        onClick={() => setIsSettingsOpen((prev) => !prev)}
-                                        aria-haspopup="dialog"
-                                        aria-expanded={isSettingsOpen}
-                                        aria-label="Open tracking and voice settings"
-                                        title="Tracking & Audio Settings"
-                                    >
-                                        <Settings size={22} className={isSettingsOpen ? "recorder-settings-icon-spin" : ""} />
-                                    </button>
                                 </div>
                             )}
 
@@ -1430,7 +1449,12 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     onClick={handleCloseCheckIn}
                 >
                     <div
+                        ref={checkInModalRef}
+                        tabIndex={-1}
                         className="card animate-slide-up"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="exercise-check-in-title"
                         style={{
                             width: "100%",
                             maxWidth: "640px",
@@ -1448,7 +1472,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: "6px" }}>
                                         Post Exercise Check-in
                                     </div>
-                                    <h3 style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
+                                    <h3 id="exercise-check-in-title" style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
                                         How did that session feel?
                                     </h3>
                                     <p style={{ margin: "8px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
@@ -1460,7 +1484,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     type="button"
                                     onClick={handleCloseCheckIn}
                                     className="btn btn-secondary"
-                                    style={{ height: "36px", width: "36px", padding: 0, minWidth: 0 }}
+                                    style={{ height: "44px", width: "44px", padding: 0, minWidth: 0 }}
                                     aria-label="Close check-in"
                                 >
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

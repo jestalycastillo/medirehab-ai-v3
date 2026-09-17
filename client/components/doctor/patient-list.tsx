@@ -51,7 +51,7 @@ export function PatientList({
             {patients.map((patient) => (
               <tr key={patient.id} className="directory-data-row">
                 <td style={{ padding: "12px 16px", fontWeight: 600 }}>
-                  <Link href={`/doctor/patients/${patient.id}`} style={{ color: "var(--color-primary)", textDecoration: "none" }}>
+                  <Link className="directory-person-link" href={`/doctor/patients/${patient.id}`}>
                     {patientName(patient)}
                   </Link>
                   <div className="directory-row-meta">{patient.email}</div>
@@ -85,7 +85,7 @@ export function PatientList({
           <div key={patient.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
               <div>
-                <Link href={`/doctor/patients/${patient.id}`} style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 700 }}>
+                <Link className="directory-person-link" href={`/doctor/patients/${patient.id}`}>
                   {patientName(patient)}
                 </Link>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{patient.email}</div>

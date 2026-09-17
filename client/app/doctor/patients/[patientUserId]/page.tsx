@@ -13,6 +13,7 @@ import { ScoreSummary } from "@/components/care/score-summary";
 import { formatAssignmentScoreSummary } from "@/lib/score";
 import { DoctorAlerts } from "@/components/care/doctor-alerts";
 import { ProgressReport } from "@/components/care/progress-report";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function buildGeneratedPassword() {
   return `Temp${Math.random().toString(36).slice(2, 8)}!9A`;
@@ -48,6 +49,9 @@ export default function PatientDetailPage() {
   const [lastLoadedAt, setLastLoadedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -95,12 +99,15 @@ export default function PatientDetailPage() {
 
   const handleSavePatient = async (data: Partial<ApiPatient & PatientProfile>) => {
     setFormLoading(true);
+    setFormError("");
+    setActionError("");
     try {
       await api.updatePatient(patientUserId, data);
       setIsFormOpen(false);
       await loadPatient();
+      setSuccess("Patient profile updated.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to update patient.");
+      setFormError(err instanceof ApiError ? err.message : "Failed to update patient.");
     } finally {
       setFormLoading(false);
     }
@@ -108,23 +115,27 @@ export default function PatientDetailPage() {
 
   const handleAddComment = async (sessionId: string, body: string) => {
     setCommentLoading(true);
+    setActionError("");
     try {
       await api.addDoctorComment(sessionId, body);
       await loadPatient();
+      setSuccess("Comment added.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to add comment.");
+      setActionError(err instanceof ApiError ? err.message : "Failed to add comment.");
     } finally {
       setCommentLoading(false);
     }
   };
 
   const handleResolveHelp = async (requestId: string) => {
-    try { await api.resolveHelpRequest(requestId); await loadPatient(); }
-    catch (err) { alert(err instanceof ApiError ? err.message : "Unable to resolve help request."); }
+    setActionError("");
+    try { await api.resolveHelpRequest(requestId); await loadPatient(); setSuccess("Help request resolved."); }
+    catch (err) { setActionError(err instanceof ApiError ? err.message : "Unable to resolve help request."); }
   };
 
   const resetPassword = () => {
     if (!patient) return;
+    setActionError("");
     const nextPassword = buildGeneratedPassword();
     setConfirmDialog({
       isOpen: true,
@@ -139,8 +150,9 @@ export default function PatientDetailPage() {
           await api.resetPatientPassword(patient.id, nextPassword);
           setTemporaryPassword(nextPassword);
           setIsTemporaryPasswordOpen(true);
+          setSuccess("Patient password reset.");
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Password reset failed.");
+          setActionError(err instanceof ApiError ? err.message : "Password reset failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -150,6 +162,7 @@ export default function PatientDetailPage() {
 
   const toggleStatus = () => {
     if (!patient) return;
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: `${patient.isActive ? "Deactivate" : "Activate"} Patient`,
@@ -162,8 +175,9 @@ export default function PatientDetailPage() {
         try {
           await api.updatePatientStatus(patient.id, !patient.isActive);
           await loadPatient();
+          setSuccess(`Patient ${patient.isActive ? "deactivated" : "activated"}.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Operation failed.");
+          setActionError(err instanceof ApiError ? err.message : "Status update failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -173,6 +187,7 @@ export default function PatientDetailPage() {
 
   const archivePatient = () => {
     if (!patient) return;
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: "Archive Patient",
@@ -186,7 +201,7 @@ export default function PatientDetailPage() {
           await api.deletePatient(patient.id);
           router.push("/doctor/patients");
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Archive failed.");
+          setActionError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -194,11 +209,11 @@ export default function PatientDetailPage() {
     });
   };
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+  if (loading) return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patient record…</div>;
 
   if (error || !patient) {
     return (
-      <div className="card" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "#FEF2F2" }}>
+      <div className="card" role="alert" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "var(--color-danger-surface)" }}>
         <h1 style={{ fontSize: "20px", color: "var(--color-danger)", margin: "0 0 8px 0" }}>Unable to load patient</h1>
         <p style={{ margin: "0 0 16px 0", color: "var(--color-text-secondary)" }}>{error || "Patient not found."}</p>
         <Link className="btn btn-secondary" href="/doctor/patients">Back to patients</Link>
@@ -227,7 +242,7 @@ export default function PatientDetailPage() {
           <details className="doctor-account-actions">
             <summary>Account options</summary>
             <div>
-              <button className="btn btn-secondary" onClick={() => setIsFormOpen(true)}>Edit profile</button>
+              <button className="btn btn-secondary" onClick={() => { setFormError(""); setIsFormOpen(true); }}>Edit profile</button>
               <button className="btn btn-secondary" onClick={resetPassword}>Reset password</button>
               <button className="btn btn-secondary" onClick={toggleStatus}>{patient.isActive ? "Deactivate" : "Activate"}</button>
               {!patient.archivedAt && <button className="btn btn-danger" onClick={archivePatient}>Archive</button>}
@@ -235,6 +250,9 @@ export default function PatientDetailPage() {
           </details>
         </div>
       </header>
+
+      {actionError && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{actionError}</div>}
+      {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
 
       <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} referenceTime={lastLoadedAt} onResolve={handleResolveHelp} />
 
@@ -310,7 +328,7 @@ export default function PatientDetailPage() {
         <div className="care-disclosure-content"><ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} /></div>
       </details>
 
-      <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} />
+      <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} error={formError} />
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}

@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { api, ApiError, type ApiDoctor, type ApiPatient, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PatientForm } from "@/components/doctor/patient-form";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function PlusIcon() {
   return (
@@ -201,8 +203,10 @@ export default function AdminPatientsPage() {
         try {
           await api.deletePatient(patient.id);
           await loadData();
+          setSuccess(`${patientName(patient)} archived.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Archive failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Archive failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -222,8 +226,10 @@ export default function AdminPatientsPage() {
         try {
           await api.permanentlyDeletePatient(patient.id);
           await loadData();
+          setSuccess(`${patientName(patient)} deleted permanently.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Delete failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Delete failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -243,8 +249,10 @@ export default function AdminPatientsPage() {
         try {
           await api.updatePatientStatus(patient.id, true);
           await loadData();
+          setSuccess(`${patientName(patient)} restored.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Restore failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Restore failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -270,8 +278,10 @@ export default function AdminPatientsPage() {
           await api.resetPatientPassword(patient.id, nextPassword);
           setTempPassword(nextPassword);
           setIsTempPasswordOpen(true);
+          setSuccess(`${patientName(patient)}'s password was reset.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Password reset failed");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Password reset failed");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -344,20 +354,21 @@ export default function AdminPatientsPage() {
           </div>
         </div>
 
-        {error && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "16px" }}>
-            {error}
+        {!loading && accountTab === "ACTIVE" && activeDoctors.length === 0 && activeAccountCount > 0 && (
+          <div className="admin-feedback admin-feedback-warning" role="status">
+            <CircleAlert aria-hidden="true" />
+            <span>No active doctors are available for assignment. <Link href="/admin/doctors">Manage doctors</Link> to add or restore one.</span>
           </div>
         )}
 
-        {success && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#DCFCE7", color: "#166534", borderRadius: "var(--radius-md)", marginBottom: "16px" }}>
-            {success}
-          </div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredPatients.length} {accountTab === "ARCHIVED" ? "archived" : "current"} patient{filteredPatients.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : (
           <div style={{ overflowX: "auto" }}>
             <table className="admin-directory-table admin-directory-table-patients" style={{ width: "100%", textAlign: "left" }}>
@@ -387,16 +398,8 @@ export default function AdminPatientsPage() {
                       <td data-label="Patient" style={{ padding: "12px 16px" }}>
                         <button
                           type="button"
+                          className="directory-name-button"
                           onClick={() => openPatientPersona(patient)}
-                          style={{
-                            fontWeight: 600,
-                            color: "var(--color-primary)",
-                            background: "none",
-                            border: "none",
-                            padding: 0,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
                         >
                           {patientName(patient)}
                         </button>
@@ -430,7 +433,7 @@ export default function AdminPatientsPage() {
                             onClick={() => handleAssign(patient)}
                             disabled={savingPatientId === patient.id || !selectedDoctors[patient.id]}
                           >
-                            {savingPatientId === patient.id ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Assign"}
+                            {savingPatientId === patient.id ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Assigning…</> : "Assign"}
                           </button>
                           </>}
                           <details className="list-row-actions">

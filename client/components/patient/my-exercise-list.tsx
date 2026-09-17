@@ -29,13 +29,13 @@ function ExerciseImage({ assignment }: { assignment: ExerciseAssignment }) {
   );
 }
 
-export function MyExerciseList({ assignments, compact = false }: { assignments: ExerciseAssignment[]; compact?: boolean }) {
+export function MyExerciseList({ assignments, compact = false, emptyMessage = "No exercises found", emptyDescription = "Your assigned exercises will appear here." }: { assignments: ExerciseAssignment[]; compact?: boolean; emptyMessage?: string; emptyDescription?: string }) {
   if (assignments.length === 0) {
     return (
-      <div className="patient-exercise-empty">
+      <div className="patient-exercise-empty" role="status">
         <span><Dumbbell /></span>
-        <strong>No exercises found</strong>
-        <p>Your assigned exercises will appear here.</p>
+        <strong>{emptyMessage}</strong>
+        <p>{emptyDescription}</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ export function MyExerciseList({ assignments, compact = false }: { assignments: 
               {primary && (
                 <div className="patient-exercise-goal">
                   <div><strong>{primary.completed} of {primary.target} done</strong><span>{primary.remaining > 0 ? `${primary.remaining} left ${assignment.adherence?.today ? "today" : "this week"}` : "Goal complete"}</span></div>
-                  <div className="patient-exercise-progress"><span style={{ width: `${progress}%` }} /></div>
+                  <div className="patient-exercise-progress" role="progressbar" aria-label={`${assignment.exercise?.name || "Exercise"} sessions complete`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-valuetext={`${primary.completed} of ${primary.target} sessions complete`}><span style={{ width: `${progress}%` }} /></div>
                 </div>
               )}
 

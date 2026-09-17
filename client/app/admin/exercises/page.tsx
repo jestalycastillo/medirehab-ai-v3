@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExerciseForm } from "@/components/admin/exercise-form";
 import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function EditIcon() {
   return (
@@ -62,6 +63,9 @@ export default function ExercisesPage() {
   const [exercises, setExercises] = useState<ApiExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [accountTab, setAccountTab] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
 
@@ -107,20 +111,23 @@ export default function ExercisesPage() {
   const handleSaveExercise = async (data: { name: string; description: string; images: ExerciseImage[] }) => {
     if (!editingExercise) return;
     setFormLoading(true);
+    setFormError("");
+    setActionError("");
     try {
       await api.updateExercise(editingExercise.id, data);
       await loadExercises();
       setIsFormOpen(false);
       setEditingExercise(undefined);
+      setSuccess("Exercise updated.");
     } catch (err) {
-      if (err instanceof ApiError) alert(err.message);
-      else alert("Failed to save exercise");
+      setFormError(err instanceof ApiError ? err.message : "Failed to save exercise.");
     } finally {
       setFormLoading(false);
     }
   };
 
   const handleArchive = (exercise: ApiExercise) => {
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: "Archive Exercise",
@@ -131,9 +138,10 @@ export default function ExercisesPage() {
         try {
           await api.deleteExercise(exercise.id);
           await loadExercises();
+          setSuccess(`${exercise.name} archived.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setActionError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -142,6 +150,7 @@ export default function ExercisesPage() {
   };
 
   const handlePermanentDelete = (exercise: ApiExercise) => {
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: "Delete Exercise Permanently",
@@ -152,9 +161,10 @@ export default function ExercisesPage() {
         try {
           await api.permanentlyDeleteExercise(exercise.id);
           await loadExercises();
+          setSuccess(`${exercise.name} deleted permanently.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setActionError(err instanceof ApiError ? err.message : "Delete failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -163,6 +173,7 @@ export default function ExercisesPage() {
   };
 
   const handleRestore = (exercise: ApiExercise) => {
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: "Restore Exercise",
@@ -173,9 +184,10 @@ export default function ExercisesPage() {
         try {
           await api.restoreExercise(exercise.id);
           await loadExercises();
+          setSuccess(`${exercise.name} restored.`);
         } catch (err) {
-          if (err instanceof ApiError) alert(err.message);
-          else alert("Operation failed");
+          setSuccess("");
+          setActionError(err instanceof ApiError ? err.message : "Restore failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -254,11 +266,12 @@ export default function ExercisesPage() {
             <button type="button" className="btn btn-secondary" onClick={loadExercises}>Try again</button>
           </div>
         )}
+        {actionError && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{actionError}</div>}
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+        {!loading && !error && <p className="admin-directory-result-count" role="status">Showing {filteredExercises.length} {accountTab === "ARCHIVED" ? "archived" : "available"} exercise{filteredExercises.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "40px" }}>
-            <div className="spinner"></div>
-          </div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading exercises…</div>
         ) : error ? null : (
           <div>
             {filteredExercises.length === 0 ? (
@@ -319,7 +332,7 @@ export default function ExercisesPage() {
                           <button type="button" className="btn btn-primary" onClick={() => setViewingExercise(exercise)}>
                             View details
                           </button>
-                          <button type="button" className="exercise-catalog-action" onClick={() => { setEditingExercise(exercise); setIsFormOpen(true); }}>
+                          <button type="button" className="exercise-catalog-action" onClick={() => { setEditingExercise(exercise); setFormError(""); setIsFormOpen(true); }}>
                             <EditIcon /> Edit
                           </button>
                           {accountTab === "ACTIVE" && !exercise.archivedAt && (
@@ -357,6 +370,7 @@ export default function ExercisesPage() {
           setEditingExercise(undefined);
         }}
         isLoading={formLoading}
+        error={formError}
       />
 
       <ConfirmDialog

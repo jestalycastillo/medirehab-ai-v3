@@ -8,12 +8,14 @@ export function ExerciseForm({
   onSave,
   onCancel,
   isLoading,
+  error,
 }: {
   isOpen: boolean;
   initialData?: ApiExercise;
   onSave: (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[] }) => void;
   onCancel: () => void;
   isLoading: boolean;
+  error?: string;
 }) {
   const [formData, setFormData] = useState<{
     name: string;
@@ -27,6 +29,7 @@ export function ExerciseForm({
     images: [],
   });
   const modalRef = usePortalModalFocus(isOpen, onCancel);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     if (initialData) {
@@ -87,6 +90,8 @@ export function ExerciseForm({
         </div>
         <form onSubmit={handleSubmit} className="portal-modal-form-content">
           <div className="portal-modal-body">
+          {error && <div className="portal-modal-error" role="alert">{error}</div>}
+          {uploadError && <div className="portal-modal-error" role="alert">{uploadError}</div>}
           <div>
             <label htmlFor="exercise-form-name">Exercise name</label>
             <input id="exercise-form-name" type="text" name="name" className="input" value={formData.name} onChange={handleChange} required />
@@ -132,6 +137,7 @@ export function ExerciseForm({
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {formData.images.map((img, i) => {
                 const uploadFile = async (file: File) => {
+                  setUploadError("");
                   handleImageChange(i, "filepath", "Uploading...");
 
                   const formDataObj = new FormData();
@@ -148,11 +154,11 @@ export function ExerciseForm({
                       handleImageChange(i, "filepath", data.filepath);
                     } else {
                       handleImageChange(i, "filepath", "");
-                      alert(data.message || "Upload failed.");
+                      setUploadError(data.message || "Upload failed.");
                     }
                   } catch {
                     handleImageChange(i, "filepath", "");
-                    alert("Upload failed. Make sure backend is running.");
+                    setUploadError("Upload failed. Make sure backend is running.");
                   }
                 };
 
@@ -268,7 +274,7 @@ export function ExerciseForm({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isLoading}>
-              {isLoading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Save changes"}
+              {isLoading ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Saving…</> : "Save changes"}
             </button>
           </div>
         </form>

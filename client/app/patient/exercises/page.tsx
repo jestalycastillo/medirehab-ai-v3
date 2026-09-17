@@ -57,8 +57,12 @@ export default function PatientExercisesPage() {
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
 
       {loading ? (
-        <div className="patient-page-loading"><LoaderCircle className="recorder-spin" /><span>Loading your exercises…</span></div>
-      ) : <MyExerciseList assignments={filteredAssignments} />}
+        <div className="patient-page-loading" role="status"><LoaderCircle className="recorder-spin" aria-hidden="true" /><span>Loading your exercises…</span></div>
+      ) : <>
+        {assignments.length > 3 && <p className="admin-directory-result-count" role="status">Showing {filteredAssignments.length} exercise{filteredAssignments.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
+        <MyExerciseList assignments={filteredAssignments} emptyMessage={searchTerm.trim() ? "No matching exercises" : "No exercises assigned yet"} emptyDescription={searchTerm.trim() ? "Try another exercise name, or clear your search." : "Your doctor will add exercises here when your plan is ready."} />
+        {searchTerm.trim() && filteredAssignments.length === 0 && <button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button>}
+      </>}
 
       {!loading && assignments.length > 0 && (
         <details className="patient-page-disclosure">

@@ -8,12 +8,14 @@ export function DoctorForm({
   onSave,
   onCancel,
   isLoading,
+  error,
 }: {
   isOpen: boolean;
   initialData?: ApiDoctor;
   onSave: (data: Partial<ApiDoctor & DoctorProfile>) => void;
   onCancel: () => void;
   isLoading: boolean;
+  error?: string;
 }) {
   const [formData, setFormData] = useState<Partial<ApiDoctor & DoctorProfile>>({});
   const modalRef = usePortalModalFocus(isOpen, onCancel);
@@ -61,6 +63,7 @@ export function DoctorForm({
         </div>
         <form onSubmit={handleSubmit} className="portal-modal-form-content">
           <div className="portal-modal-body">
+          {error && <div className="portal-modal-error" role="alert">{error}</div>}
           {!initialData && (
             <div>
               <label htmlFor="doctor-form-email">Email</label>
@@ -101,7 +104,7 @@ export function DoctorForm({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isLoading}>
-              {isLoading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : initialData ? "Save changes" : "Create doctor"}
+              {isLoading ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Saving…</> : initialData ? "Save changes" : "Create doctor"}
             </button>
           </div>
         </form>

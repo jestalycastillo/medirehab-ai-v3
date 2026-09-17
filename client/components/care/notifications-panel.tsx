@@ -16,16 +16,15 @@ function formatDate(value?: string) {
 export function NotificationsPanel({
   notifications,
   onMarkRead,
-  title = "Notifications",
 }: {
   notifications: CareNotification[];
   onMarkRead?: (notificationId: string) => Promise<void> | void;
-  title?: string;
 }) {
   if (notifications.length === 0) {
     return (
-      <div style={{ padding: "28px 20px", textAlign: "center", color: "var(--color-text-muted)" }}>
-        No notifications yet.
+      <div className="care-page-empty" role="status">
+        <strong>No notifications yet</strong>
+        <p>Messages and care updates will appear here.</p>
       </div>
     );
   }
@@ -39,7 +38,7 @@ export function NotificationsPanel({
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)",
             padding: "16px",
-            backgroundColor: notification.isRead ? "var(--color-surface)" : "#EFF6FF",
+            backgroundColor: notification.isRead ? "var(--color-surface)" : "var(--color-primary-soft)",
             display: "flex",
             flexDirection: "column",
             gap: "10px",

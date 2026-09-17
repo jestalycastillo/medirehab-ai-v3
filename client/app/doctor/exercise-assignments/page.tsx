@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, ApiError, type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { CircleAlert } from "lucide-react";
 
 function patientName(patient: ApiPatient) {
   return [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ") || patient.email;
@@ -76,6 +77,7 @@ export default function DoctorExerciseAssignmentsPage() {
           <input
             type="text"
             className="input"
+            aria-label="Search patients by name or email"
             placeholder="Search patient name or email"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -83,14 +85,13 @@ export default function DoctorExerciseAssignmentsPage() {
           />
         </div>
 
-        {error && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>{error}</div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredPatients.length} patient{filteredPatients.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : filteredPatients.length === 0 ? (
-          <div className="care-page-empty">{searchTerm ? "No patients match your search." : "No patients assigned yet."}</div>
+          <div className="care-page-empty" role="status">{searchTerm ? <><strong>No patients match your search.</strong><button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button></> : "No patients assigned yet."}</div>
         ) : (
           <div className="care-assignment-grid">
             {filteredPatients.map((patient) => (

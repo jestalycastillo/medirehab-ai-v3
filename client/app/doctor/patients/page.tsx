@@ -6,6 +6,7 @@ import { PatientForm } from "@/components/doctor/patient-form";
 import { PatientList } from "@/components/doctor/patient-list";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function ActiveAccountsIcon() {
   return (
@@ -35,6 +36,8 @@ export default function DoctorPatientsPage() {
   const [patients, setPatients] = useState<ApiPatient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [accountTab, setAccountTab] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
@@ -106,13 +109,15 @@ export default function DoctorPatientsPage() {
   const handleSavePatient = async (data: Partial<ApiPatient & PatientProfile>) => {
     if (!editingPatient) return;
     setFormLoading(true);
+    setFormError("");
     try {
       await api.updatePatient(editingPatient.id, data);
       setIsFormOpen(false);
       setEditingPatient(undefined);
       await loadPatients();
+      setSuccess("Patient updated.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to save patient.");
+      setFormError(err instanceof ApiError ? err.message : "Failed to save patient.");
     } finally {
       setFormLoading(false);
     }
@@ -136,8 +141,10 @@ export default function DoctorPatientsPage() {
         try {
           await api.updatePatientStatus(patient.id, !patient.isActive);
           await loadPatients();
+          setSuccess(`${patientName(patient)} ${patient.isActive ? "deactivated" : "activated"}.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Operation failed.");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Status update failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -156,8 +163,10 @@ export default function DoctorPatientsPage() {
         try {
           await api.deletePatient(patient.id);
           await loadPatients();
+          setSuccess(`${patientName(patient)} archived.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Archive failed.");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -178,8 +187,10 @@ export default function DoctorPatientsPage() {
           await api.resetPatientPassword(patient.id, nextPassword);
           setTemporaryPassword(nextPassword);
           setIsTemporaryPasswordOpen(true);
+          setSuccess(`${patientName(patient)}'s password was reset.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Password reset failed.");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Password reset failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -235,13 +246,14 @@ export default function DoctorPatientsPage() {
           <input
             type="text"
             className="input"
+            aria-label="Search patients by name, email, or condition"
             placeholder="Search name, email, or condition"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             style={{ maxWidth: "340px" }}
           />
           {accountTab === "ACTIVE" && (
-            <select className="input" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} style={{ maxWidth: "170px" }}>
+            <select className="input" aria-label="Filter patients by status" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} style={{ maxWidth: "170px" }}>
               <option value="ALL">All status</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
@@ -250,18 +262,16 @@ export default function DoctorPatientsPage() {
         </div>
         </div>
 
-        {error && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "20px" }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredPatients.length} {accountTab === "ARCHIVED" ? "archived" : "current"} patient{filteredPatients.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : (
           <PatientList
             patients={filteredPatients}
-            onEdit={(patient) => { setEditingPatient(patient); setIsFormOpen(true); }}
+            onEdit={(patient) => { setEditingPatient(patient); setFormError(""); setIsFormOpen(true); }}
             onToggleStatus={handleToggleStatus}
             onArchive={handleArchive}
             onResetPassword={handleResetPassword}
@@ -276,6 +286,7 @@ export default function DoctorPatientsPage() {
         onSave={handleSavePatient}
         onCancel={() => { setIsFormOpen(false); setEditingPatient(undefined); }}
         isLoading={formLoading}
+        error={formError}
       />
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

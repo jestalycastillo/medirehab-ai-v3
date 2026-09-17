@@ -20,7 +20,7 @@ export function ExerciseAssignmentList({
 }: {
   assignments: ExerciseAssignment[];
   onRemove: (assignment: ExerciseAssignment) => void;
-  onUpdatePlan: (assignmentId: string, data: AssignmentPlanUpdate) => Promise<void> | void;
+  onUpdatePlan: (assignmentId: string, data: AssignmentPlanUpdate) => Promise<boolean>;
   isBusy?: boolean;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -30,8 +30,9 @@ export function ExerciseAssignmentList({
         <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Assigned Exercises</h2>
       </div>
       {assignments.length === 0 ? (
-        <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--color-text-muted)" }}>
-          No exercises assigned yet.
+        <div className="care-page-empty" role="status">
+          <strong>No exercises assigned yet</strong>
+          <p>Choose an available exercise to build this patient&apos;s plan.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -55,7 +56,7 @@ export function ExerciseAssignmentList({
                   event.preventDefault();
                   const form = new FormData(event.currentTarget);
                   const optionalNumber = (name: string) => String(form.get(name) || "") ? Number(form.get(name)) : null;
-                  await onUpdatePlan(assignment.id, {
+                  const saved = await onUpdatePlan(assignment.id, {
                     targetSessionsPerWeek: Number(form.get("targetSessionsPerWeek")),
                     targetSessionsPerDay: String(form.get("targetSessionsPerDay") || "") ? Number(form.get("targetSessionsPerDay")) : null,
                     scheduledDays: form.getAll("scheduledDays").map(Number),
@@ -68,11 +69,11 @@ export function ExerciseAssignmentList({
                     reviewDate: String(form.get("reviewDate") || "") || null,
                     doctorInstructions: String(form.get("doctorInstructions") || "") || null,
                   });
-                  setEditingId(null);
+                  if (saved) setEditingId(null);
                 }} style={{ marginTop: "12px", display: "grid", gap: "8px" }}>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per week<input className="input" name="targetSessionsPerWeek" type="number" min="1" max="14" defaultValue={assignment.targetSessionsPerWeek ?? 3} /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per day <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(optional; enables daily tracking)</span><input className="input" name="targetSessionsPerDay" type="number" min="1" max="5" defaultValue={assignment.targetSessionsPerDay ?? ""} placeholder="Use weekly target" /></label>
-                  <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>Scheduled days <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(none means any day)</span></legend><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{WEEKDAYS.map(([day, label]) => <label key={day} style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px" }}><input type="checkbox" name="scheduledDays" value={day} defaultChecked={assignment.scheduledDays?.includes(day)} />{label}</label>)}</div></fieldset>
+                  <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>Scheduled days <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(none means any day)</span></legend><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{WEEKDAYS.map(([day, label]) => <label className="plan-day-choice" key={day}><input type="checkbox" name="scheduledDays" value={day} defaultChecked={assignment.scheduledDays?.includes(day)} />{label}</label>)}</div></fieldset>
                   <div className="doctor-form-grid">
                     <label style={{ fontSize: "12px", fontWeight: 700 }}>Sets<input className="input" name="targetSets" type="number" min="1" max="20" defaultValue={assignment.targetSets ?? ""} /></label>
                     <label style={{ fontSize: "12px", fontWeight: 700 }}>Reps per set<input className="input" name="targetRepsPerSet" type="number" min="1" max="100" defaultValue={assignment.targetRepsPerSet ?? ""} /></label>
@@ -88,8 +89,8 @@ export function ExerciseAssignmentList({
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                 <span className="badge badge-blue">{formatAssignmentScoreSummary(assignment)}</span>
-                <button className="btn btn-secondary" onClick={() => setEditingId(editingId === assignment.id ? null : assignment.id)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>Plan</button>
-                <button className="btn btn-danger" onClick={() => onRemove(assignment)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>
+                <button className="btn btn-secondary" onClick={() => setEditingId(editingId === assignment.id ? null : assignment.id)} disabled={isBusy} aria-expanded={editingId === assignment.id} aria-label={`${editingId === assignment.id ? "Close" : "Edit"} plan for ${assignment.exercise?.name || "exercise"}`} style={{ padding: "0 14px" }}>Plan</button>
+                <button className="btn btn-danger" onClick={() => onRemove(assignment)} disabled={isBusy} aria-label={`Remove ${assignment.exercise?.name || "exercise"}`} style={{ padding: "0 14px" }}>
                   Remove
                 </button>
               </div>

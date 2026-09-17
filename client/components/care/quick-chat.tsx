@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type ApiPatient } from "@/lib/api";
 import { ChatPanel } from "@/components/care/chat-panel";
 import { ArrowLeft, ChevronRight, MessageCircle, X } from "lucide-react";
@@ -14,6 +14,8 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
   const [patients, setPatients] = useState<ApiPatient[] | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<ApiPatient | null>(null);
   const [error, setError] = useState("");
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isOpen || role !== "doctor" || patients !== null) return;
@@ -31,11 +33,17 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
 
   useEffect(() => {
     if (!isOpen) return;
+    const trigger = triggerRef.current;
+    const frame = requestAnimationFrame(() => closeButtonRef.current?.focus());
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setIsOpen(false);
     };
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", closeOnEscape);
+      trigger?.focus();
+    };
   }, [isOpen]);
 
   return (
@@ -44,7 +52,7 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
         <div className="quick-chat-drawer" role="dialog" aria-modal="false" aria-label="Messages">
           <div className="quick-chat-toolbar">
             {role === "doctor" && selectedPatient ? (
-              <button type="button" className="quick-chat-toolbar-button" onClick={() => setSelectedPatient(null)} aria-label="Back to patients">
+              <button type="button" className="quick-chat-toolbar-button" onClick={() => { setSelectedPatient(null); requestAnimationFrame(() => closeButtonRef.current?.focus()); }} aria-label="Back to patients">
                 <ArrowLeft size={18} aria-hidden="true" /> Patients
               </button>
             ) : (
@@ -53,7 +61,7 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
                 <div><strong>Messages</strong><small>{role === "doctor" ? "Patient conversations" : "Your care team"}</small></div>
               </div>
             )}
-            <button type="button" className="quick-chat-close" onClick={() => setIsOpen(false)} aria-label="Close messages"><X size={19} aria-hidden="true" /></button>
+            <button ref={closeButtonRef} type="button" className="quick-chat-close" onClick={() => setIsOpen(false)} aria-label="Close messages"><X size={19} aria-hidden="true" /></button>
           </div>
 
           {role === "patient" ? (
@@ -69,7 +77,7 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
               ) : patients.length === 0 ? (
                 <div className="quick-chat-empty">No active patients are assigned to you.</div>
               ) : patients.map((patient) => (
-                <button key={patient.id} type="button" className="quick-chat-patient" onClick={() => setSelectedPatient(patient)}>
+                <button key={patient.id} type="button" className="quick-chat-patient" onClick={() => { setSelectedPatient(patient); requestAnimationFrame(() => closeButtonRef.current?.focus()); }}>
                   <span className="quick-chat-avatar">{patientName(patient).charAt(0).toUpperCase()}</span>
                   <span>
                     <strong>{patientName(patient)}</strong>
@@ -83,7 +91,7 @@ export function QuickChat({ role }: { role: "patient" | "doctor" }) {
         </div>
       )}
 
-      <button type="button" className="quick-chat-trigger" onClick={() => setIsOpen((current) => !current)} aria-expanded={isOpen} aria-label={isOpen ? "Close messages" : "Open messages"} title={isOpen ? "Close messages" : "Messages"}>
+      <button ref={triggerRef} type="button" className="quick-chat-trigger" onClick={() => setIsOpen((current) => !current)} aria-expanded={isOpen} aria-label={isOpen ? "Close messages" : "Open messages"} title={isOpen ? "Close messages" : "Messages"}>
         {isOpen ? <X size={27} aria-hidden="true" /> : <MessageCircle size={29} strokeWidth={2.1} aria-hidden="true" />}
       </button>
     </div>

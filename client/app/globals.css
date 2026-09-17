@@ -14,11 +14,20 @@
   --color-primary-soft: #ECF9F7;
   --color-text-primary: #10211F;
   --color-text-secondary: #3D5855;
-  --color-text-muted: #647875;
+  --color-text-muted: #5B706D;
   --color-border: #D7E7E3;
+  --color-control-border: #80938F;
   --color-success: #157F5B;
+  --color-success-strong: #166534;
+  --color-success-surface: #DCFCE7;
+  --color-success-border: #A8D9BD;
   --color-warning: #B45309;
+  --color-warning-strong: #713F12;
+  --color-warning-surface: #FFF7ED;
+  --color-warning-border: #D7AC72;
   --color-danger: #B42318;
+  --color-danger-surface: #FEF2F2;
+  --color-danger-border: #E6B3AD;
 
   /* ── Typography ── */
   --font-sans: var(--font-inter);
@@ -116,7 +125,7 @@ body {
   line-height: 1.5;
   color: var(--color-text-primary);
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-md);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -126,7 +135,7 @@ body {
 }
 
 .input:hover {
-  border-color: #CBD5E1;
+  border-color: var(--color-primary);
 }
 
 .input:focus {
@@ -183,12 +192,12 @@ body {
 .btn-secondary {
   background-color: var(--color-surface);
   color: var(--color-text-primary);
-  border-color: var(--color-border);
+  border-color: var(--color-control-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background-color: var(--color-page-bg);
-  border-color: #CBD5E1;
+  border-color: var(--color-primary);
 }
 
 .btn-danger {
@@ -1057,27 +1066,38 @@ body {
 }
 
 .recorder-toggle-switch {
-  width: 38px;
-  height: 22px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  background: #cbd5e1;
+  background: transparent;
   position: relative;
   cursor: pointer;
   border: none;
-  padding: 2px;
+  padding: 0;
   flex-shrink: 0;
-  transition: background-color 0.2s ease;
   display: inline-flex;
   align-items: center;
 }
 
-.recorder-toggle-switch-on {
-  background: #10b981 !important;
+.recorder-toggle-switch::before {
+  content: "";
+  position: absolute;
+  inset: 11px 3px;
+  border-radius: 999px;
+  background: var(--color-control-border);
+  transition: background-color 0.2s ease;
+}
+
+.recorder-toggle-switch-on::before {
+  background: var(--color-primary);
 }
 
 .recorder-toggle-thumb {
   width: 18px;
   height: 18px;
+  position: absolute;
+  top: 13px;
+  left: 5px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
@@ -2053,7 +2073,7 @@ body {
   padding: 2.5px 8px;
   border-radius: 999px;
   background: #fee2e2;
-  color: #dc2626;
+  color: #991b1b;
   font-size: 11px;
   font-weight: 800;
   text-align: center;
@@ -2065,7 +2085,7 @@ body {
 
 .key-point-count-ready {
   background: #dcfce7;
-  color: #15803d;
+  color: var(--color-success-strong);
 }
 
 .key-point-body {
@@ -2405,7 +2425,7 @@ body {
 }
 
 .quick-chat-trigger:hover {
-  background: #0a8d83;
+  background: var(--color-primary-dark);
   transform: translateY(-3px);
   box-shadow: 0 16px 32px rgba(15, 118, 110, 0.4), 0 3px 10px rgba(16, 33, 31, 0.16);
 }
@@ -5620,7 +5640,292 @@ a.admin-metric:hover {
   }
 }
 
+/* Dashboard and patient-directory interaction rules. The control outline is
+   stronger than the quiet card divider so fields remain identifiable. */
+:is(.role-dashboard, .patient-dashboard, .patient-page, .role-dashboard-error, .patient-dashboard-error, .portal-modal-panel) [data-slot="button"],
+:is(.role-dashboard, .patient-page, .portal-modal-panel) .btn {
+  min-height: 44px;
+}
+
+:is(.role-dashboard, .patient-dashboard, .patient-page, .role-dashboard-error, .patient-dashboard-error) [data-slot="button"].border-border,
+.admin-subpage .account-tabs,
+.admin-subpage .list-row-actions {
+  border-color: var(--color-control-border);
+}
+
+.role-dashboard-quick-links a,
+.role-dashboard-quick-links a + a,
+.doctor-attention-row,
+.role-dashboard-disclosure {
+  border-color: var(--color-control-border);
+}
+
+.role-dashboard-quick-links a:hover,
+.doctor-attention-row:hover,
+.admin-subpage .list-row-actions:hover {
+  border-color: var(--color-primary);
+}
+
+.admin-setup-list > a:hover {
+  background: var(--color-primary-soft);
+}
+
+:is(.role-dashboard, .patient-dashboard, .patient-page, .role-dashboard-error, .patient-dashboard-error, .portal-modal-panel, .quick-chat-drawer) :is(a, button, summary, select, input, textarea):focus-visible {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+.patient-search,
+.patient-page-disclosure,
+.patient-security-card {
+  border-color: var(--color-control-border);
+}
+
+.patient-search:hover,
+.patient-page-disclosure > summary:hover,
+.patient-security-card > summary:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-soft);
+}
+
+.patient-notification-actions [data-slot="button"],
+.care-page-back,
+.live-guidance-pill,
+.recorder-action-buttons button,
+.recorder-floating-close-btn,
+.recorder-settings-trigger-btn,
+.patient-exercise-details > summary,
+.doctor-account-actions > summary {
+  min-height: 44px;
+}
+
+.recorder-floating-close-btn,
+.recorder-settings-trigger-btn {
+  min-width: 44px;
+}
+
+.doctor-account-actions,
+.care-disclosure,
+.exercise-catalog-action {
+  border-color: var(--color-control-border);
+}
+
+.exercise-catalog-action:hover,
+.doctor-account-actions:hover,
+.care-disclosure > summary:hover {
+  border-color: var(--color-primary);
+}
+
+.patient-setting-choice:focus-within {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+
+.plan-day-choice {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.plan-day-choice:focus-within {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+
+.follow-along-card {
+  border-color: var(--color-control-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevated);
+}
+
+.follow-along-card:hover {
+  border-color: var(--color-primary);
+}
+
+.follow-along-header {
+  border-bottom-color: var(--color-border);
+  background: var(--color-primary-soft);
+  color: var(--color-text-primary);
+}
+
+.follow-along-mini-btn,
+.follow-along-control-btn,
+.follow-along-reopen-btn,
+.recorder-timer-dropdown-item {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.follow-along-mini-btn {
+  border-color: var(--color-control-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.follow-along-mode-btn {
+  color: var(--color-text-muted);
+}
+
+.admin-sidebar .admin-nav-item,
+.admin-sidebar button,
+.admin-mobile-menu a,
+.admin-mobile-menu button,
+.admin-mobile-header button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.portal-shell :is(a, button):focus-visible {
+  outline: 3px solid var(--color-primary-dark);
+  outline-offset: 3px;
+}
+
+:is(.role-dashboard-quick-links a, .doctor-attention-row):active,
+.admin-subpage .btn:active:not(:disabled),
+.admin-subpage .account-tab:active {
+  transform: translateY(1px);
+}
+
+.role-dashboard-disclosure > summary:hover {
+  background: var(--color-primary-soft);
+}
+
+.role-dashboard-actions [data-slot="button"],
+.patient-dashboard-all-link,
+.patient-update-content [data-slot="button"],
+.role-update-content [data-slot="button"] {
+  min-height: 44px;
+}
+
+.patient-update-content [data-slot="button"],
+.role-update-content [data-slot="button"] {
+  margin-left: 0;
+}
+
+.admin-subpage .account-tab {
+  min-height: 44px;
+}
+
+.admin-subpage .account-tab:hover:not(.account-tab-active) {
+  background: var(--color-primary-light);
+}
+
+.admin-subpage .account-tab-active {
+  box-shadow: inset 0 -3px 0 var(--color-primary), var(--shadow-card);
+}
+
+.admin-subpage .list-row-actions > div > button {
+  min-height: 44px;
+}
+
+.directory-name-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.directory-name-button:hover {
+  color: var(--color-primary);
+}
+
+.directory-person-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.directory-person-link:hover {
+  color: var(--color-primary);
+}
+
+.admin-feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--space-unit) * 2);
+  margin-bottom: calc(var(--space-unit) * 4);
+  padding: 12px 16px;
+  border: 1px solid;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-feedback svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-top: 2px;
+}
+
+.admin-feedback-error {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-surface);
+  color: var(--color-danger);
+}
+
+.admin-feedback-success {
+  border-color: var(--color-success-border);
+  background: var(--color-success-surface);
+  color: var(--color-success-strong);
+}
+
+.admin-feedback-warning {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-surface);
+  color: var(--color-warning-strong);
+}
+
+.admin-feedback-warning a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.admin-directory-result-count {
+  margin: 0 0 calc(var(--space-unit) * 2);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.admin-directory-table-patients th,
+.admin-subpage .admin-directory-table-patients .directory-data-row td::before {
+  font-size: 12px;
+}
+
+.admin-directory-loading {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--space-unit) * 2);
+  color: var(--color-text-secondary);
+}
+
 :root {
+  --space-unit: 4px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -5699,4 +6004,35 @@ a.admin-metric:hover {
   html {
     @apply font-sans;
   }
+}
+
+.not-found-page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: calc(var(--space-unit) * 6);
+  background: var(--color-page-bg);
+}
+
+.portal-shell .not-found-page { min-height: 70dvh; }
+
+.not-found-content { width: min(100%, 640px); text-align: center; }
+.not-found-illustration { display: block; width: 88px; height: 88px; margin: 0 auto; color: var(--color-primary-dark); filter: drop-shadow(0 10px 12px rgb(15 118 110 / 12%)); }
+.not-found-eyebrow { margin: 24px 0 8px; color: var(--color-primary-dark); font-size: 12px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+.not-found-content h1 { margin: 0; color: var(--color-text-primary); font-size: clamp(34px, 5vw, 52px); line-height: 1.12; letter-spacing: -0.04em; }
+.not-found-description { max-width: 42ch; margin: 20px auto 0; color: var(--color-text-secondary); font-size: 16px; line-height: 1.6; }
+.not-found-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
+.not-found-actions a { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--color-primary-dark); border-radius: var(--radius-md); font-size: 14px; font-weight: 700; text-decoration: none; transition: background-color 150ms ease, color 150ms ease, transform 150ms ease; }
+.not-found-actions a svg { width: 18px; height: 18px; }
+.not-found-primary { background: var(--color-primary-dark); color: #fff; }
+.not-found-primary:hover { background: var(--color-primary); border-color: var(--color-primary); }
+.not-found-actions .not-found-secondary { border-color: transparent; background: transparent; color: var(--color-primary-dark); }
+.not-found-actions .not-found-secondary:hover { background: var(--color-primary-light); }
+.not-found-actions a:focus-visible { outline: 3px solid var(--color-primary-dark); outline-offset: 3px; }
+.not-found-actions a:active { transform: translateY(1px); }
+.not-found-help { max-width: 48ch; margin: 32px auto 0; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; }
+
+@media (max-width: 480px) {
+  .not-found-actions { flex-direction: column; }
+  .not-found-actions a { width: 100%; }
 }

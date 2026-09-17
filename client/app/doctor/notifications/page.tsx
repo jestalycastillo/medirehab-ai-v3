@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, type CareNotification } from "@/lib/api";
 import { NotificationsPanel } from "@/components/care/notifications-panel";
+import { CircleAlert } from "lucide-react";
 
 export default function DoctorNotificationsPage() {
   const [notifications, setNotifications] = useState<CareNotification[]>([]);
@@ -39,7 +40,7 @@ export default function DoctorNotificationsPage() {
   };
 
   if (loading) {
-    return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+    return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading notifications…</div>;
   }
 
   return (
@@ -54,11 +55,7 @@ export default function DoctorNotificationsPage() {
         </div>
       </header>
 
-      {error && (
-        <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
-          {error}
-        </div>
-      )}
+      {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
       <div className="card care-page-panel">
         <NotificationsPanel notifications={notifications} onMarkRead={handleMarkRead} />

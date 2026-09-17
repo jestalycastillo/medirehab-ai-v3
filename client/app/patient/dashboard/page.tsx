@@ -133,7 +133,7 @@ export default function PatientDashboardPage() {
 
   if (loading) {
     return (
-      <div className="patient-dashboard-loading" aria-label="Loading your dashboard">
+      <div className="patient-dashboard-loading" role="status" aria-label="Loading your dashboard">
         <LoaderCircle className="recorder-spin" />
         <span>Loading your care plan…</span>
       </div>
@@ -142,7 +142,7 @@ export default function PatientDashboardPage() {
 
   if (error) {
     return (
-      <Card className="patient-dashboard-error">
+      <Card className="patient-dashboard-error" role="alert">
         <CardContent className="patient-dashboard-error-content">
           <CircleAlert aria-hidden="true" />
           <div>
@@ -223,7 +223,7 @@ export default function PatientDashboardPage() {
                       ? `${primaryPeriod.remaining} session${primaryPeriod.remaining === 1 ? "" : "s"} left ${dashboard.nextAssignment.adherence?.today ? "today" : "this week"}`
                       : "Goal complete"}
                   </span>
-                  <div aria-label={`${primaryPeriod.completed} of ${primaryPeriod.target} sessions complete`}>
+                  <div role="progressbar" aria-label="Exercise sessions complete" aria-valuemin={0} aria-valuemax={100} aria-valuenow={primaryPeriod.target ? Math.min(100, Math.round((primaryPeriod.completed / primaryPeriod.target) * 100)) : 0} aria-valuetext={`${primaryPeriod.completed} of ${primaryPeriod.target} sessions complete`}>
                     <i style={{ width: `${primaryPeriod.target ? Math.min(100, (primaryPeriod.completed / primaryPeriod.target) * 100) : 0}%` }} />
                   </div>
                 </div>
@@ -261,7 +261,7 @@ export default function PatientDashboardPage() {
               <strong>{dashboard.weeklyCompleted}</strong>
               <span>of {dashboard.weeklyTarget || "—"} sessions done</span>
             </div>
-            <div className="patient-week-progress" aria-label={`${dashboard.weeklyPercentage}% of weekly goal complete`}>
+            <div className="patient-week-progress" role="progressbar" aria-label="Weekly goal complete" aria-valuemin={0} aria-valuemax={100} aria-valuenow={dashboard.weeklyPercentage}>
               <span style={{ width: `${dashboard.weeklyPercentage}%` }} />
             </div>
             <div className="patient-week-footer">

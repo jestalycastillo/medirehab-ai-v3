@@ -47,23 +47,12 @@ export function FollowAlongVideo({
     return (
         <div
             className="follow-along-card animate-scale-in"
-            style={{
-                backgroundColor: "#ffffff",
-                background: "#ffffff",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.12)",
-            }}
             role="region"
             aria-label="Animated exercise demonstration guide to follow along"
         >
             {/* Header Bar */}
             <div
                 className="follow-along-header"
-                style={{
-                    backgroundColor: "#f8fafc",
-                    borderBottom: "1px solid #e2e8f0",
-                    color: "#0f172a",
-                }}
             >
                 <div
                     className="follow-along-actions"
@@ -86,7 +75,6 @@ export function FollowAlongVideo({
                             type="button"
                             onClick={cyclePlaybackRate}
                             className="follow-along-mini-btn"
-                            style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0", color: "#334155" }}
                             title={`Speed: ${playbackRate}x`}
                             aria-label={`Change speed, currently ${playbackRate}x`}
                         >
@@ -97,7 +85,6 @@ export function FollowAlongVideo({
                             type="button"
                             onClick={() => setIsVisible(false)}
                             className="follow-along-mini-btn"
-                            style={{ backgroundColor: "#f8fafc", borderColor: "#e2e8f0", color: "#334155" }}
                             title="Hide guide"
                             aria-label="Hide exercise guide"
                         >

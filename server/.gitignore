@@ -1,5 +1,6 @@
 .env
 node_modules
+/docs/
 /src/generated/prisma
 uploads
 

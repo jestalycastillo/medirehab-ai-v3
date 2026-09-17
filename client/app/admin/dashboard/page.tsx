@@ -99,7 +99,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="role-dashboard-loading" aria-label="Loading admin dashboard">
+      <div className="role-dashboard-loading" role="status" aria-label="Loading admin dashboard">
         <LoaderCircle className="recorder-spin" />
         <span>Loading platform overview…</span>
       </div>
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <Card className="role-dashboard-error">
+      <Card className="role-dashboard-error" role="alert">
         <CardContent className="role-dashboard-error-content">
           <CircleAlert aria-hidden="true" />
           <div><CardTitle>We could not load the dashboard</CardTitle><CardDescription>{error}</CardDescription></div>
@@ -191,8 +191,8 @@ export default function AdminDashboard() {
             <p className="role-no-update">No recorded changes yet.</p>
           ) : auditLogs.slice(0, 5).map((log) => (
             <div className="admin-audit-row" key={log.id}>
-              <span className={log.statusCode < 400 ? "admin-audit-success" : "admin-audit-failed"} />
-              <div><strong>{describeAudit(log)}</strong><small>{log.actor?.email ?? "Former user"}</small></div>
+              <span className={log.statusCode < 400 ? "admin-audit-success" : "admin-audit-failed"} aria-hidden="true" />
+              <div><strong>{describeAudit(log)}</strong><small>{log.actor?.email ?? "Former user"} · {log.statusCode < 400 ? "Succeeded" : "Failed"}</small></div>
               <time>{formatAuditTime(log.createdAt)}</time>
             </div>
           ))}
