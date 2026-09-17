@@ -2976,7 +2976,9 @@ body {
 
 .patient-exercise-visual {
   position: relative;
-  min-height: 250px;
+  min-height: 0;
+  aspect-ratio: 3 / 2;
+  align-self: center;
   overflow: hidden;
   border: 1px solid #c9dfdb;
   border-radius: 18px;
@@ -2991,7 +2993,8 @@ body {
   z-index: 2;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--color-surface);
 }
 
 .patient-exercise-placeholder {
