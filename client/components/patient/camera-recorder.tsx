@@ -8,6 +8,7 @@ import { canRecordArm, canSwitchArm, getRecordingTimeState, resolveRecordingSide
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { RoboticSkeletonOverlay } from "./robotic-skeleton-overlay";
 import { AnimatedExerciseGuide } from "./animated-exercise-guide";
+import { FollowAlongVideo } from "./follow-along-video";
 import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
 import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
@@ -96,7 +97,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [liveCoachingMessage, setLiveCoachingMessage] = useState<string | null>(null);
     const [selectedSide, setSelectedSide] = useState<ArmSide | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
-    const [selectedTargetDuration, setSelectedTargetDuration] = useState<number | null>(targetDurationSeconds ?? null);
+    const [selectedTargetDuration, setSelectedTargetDuration] = useState<number | null>(targetDurationSeconds ?? 20);
     const [isTimerDropdownOpen, setIsTimerDropdownOpen] = useState(false);
     const [customDurationInput, setCustomDurationInput] = useState<string>(
         targetDurationSeconds && ![20, 30, 60].includes(targetDurationSeconds)
@@ -113,7 +114,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     useEffect(() => {
         if (targetDurationSeconds !== undefined) {
-            setSelectedTargetDuration(targetDurationSeconds);
+            setSelectedTargetDuration(targetDurationSeconds ?? 20);
             if (targetDurationSeconds !== null && ![20, 30, 60].includes(targetDurationSeconds)) {
                 setCustomDurationInput(String(targetDurationSeconds));
             }
@@ -993,6 +994,16 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 <h3 id={isDemoStep ? undefined : "exercise-recorder-title"}>{exerciseName}</h3>
                             </div>
 
+                            {/* Floating Guide Video below exercise name */}
+                            {!isDemoStep && !recordedUrl && (
+                                <FollowAlongVideo
+                                    exerciseName={exerciseName}
+                                    selectedSide={targetSide}
+                                    analysisModelKey={analysisModelKey}
+                                    isRecording={isRecording}
+                                    isCountingDown={countdown !== null}
+                                />
+                            )}
                         </div>
 
                         <div className="recorder-floating-header-controls">

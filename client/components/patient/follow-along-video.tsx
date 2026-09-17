@@ -35,11 +35,11 @@ export function FollowAlongVideo({
                 type="button"
                 className="follow-along-reopen-btn"
                 onClick={() => setIsVisible(true)}
-                title="Show Exercise Follow-Along Guide"
-                aria-label="Show Follow Along Exercise Guide"
+                title="Show Exercise Avatar Guide"
+                aria-label="Show Exercise Avatar Guide"
             >
                 <Bot size={15} style={{ color: "#2dd4bf" }} />
-                <span>Show Exercise Guide</span>
+                <span>Show Guide</span>
             </button>
         );
     }
@@ -48,12 +48,10 @@ export function FollowAlongVideo({
         <div
             className="follow-along-card animate-scale-in"
             role="region"
-            aria-label="Animated exercise demonstration guide to follow along"
+            aria-label="Animated exercise demonstration avatar guide to follow along"
         >
             {/* Header Bar */}
-            <div
-                className="follow-along-header"
-            >
+            <div className="follow-along-header">
                 <div
                     className="follow-along-actions"
                     style={{
@@ -94,7 +92,7 @@ export function FollowAlongVideo({
                 </div>
             </div>
 
-            {/* Guide Display */}
+            {/* Avatar Guide Display */}
             <div className="follow-along-video-wrapper" style={{ backgroundColor: "#ffffff", background: "#ffffff" }}>
                 <AnimatedExerciseGuide
                     exerciseName={exerciseName}
@@ -108,5 +106,3 @@ export function FollowAlongVideo({
         </div>
     );
 }
-
-
