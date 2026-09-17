@@ -78,6 +78,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   const loadUnreadCount = async () => {

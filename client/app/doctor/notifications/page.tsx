@@ -55,11 +55,12 @@ export default function DoctorNotificationsPage() {
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-            <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0 }}>Notifications</h1>
+          <span className="role-dashboard-eyebrow">Doctor / Notifications</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
+            <h1 className="role-dashboard-title" style={{ margin: 0 }}>Notifications</h1>
             {unreadCount > 0 && (
               <span
                 style={{
@@ -75,6 +76,9 @@ export default function DoctorNotificationsPage() {
               </span>
             )}
           </div>
+          <p className="role-dashboard-description">
+            Keep track of new patient sessions, check-ins, and reminder items.
+          </p>
         </div>
 
         {unreadCount > 0 && (
@@ -87,17 +91,11 @@ export default function DoctorNotificationsPage() {
             Mark all as read
           </button>
         )}
-      </div>
-
-      {error && (
-        <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>
-          {error}
-        </div>
       </header>
 
       {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
-      <div className="card" style={{ padding: "24px" }}>
+      <div className="card care-page-panel">
         <NotificationsPanel
           notifications={notifications}
           onMarkRead={handleMarkRead}
