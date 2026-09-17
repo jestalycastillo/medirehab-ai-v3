@@ -44,17 +44,10 @@ export function ExerciseKeyPointBody({ points }: ExerciseKeyPointBodyProps) {
                 <circle
                     cx={cx}
                     cy={cy}
-                    r={radius + 3}
-                    fill={current.fill}
-                    opacity="0.22"
-                />
-                <circle
-                    cx={cx}
-                    cy={cy}
                     r={radius}
                     fill={current.fill}
                     stroke="#FFFFFF"
-                    strokeWidth="2"
+                    strokeWidth="2.5"
                 >
                     {current.label && <title>{current.label}</title>}
                 </circle>
@@ -64,62 +57,49 @@ export function ExerciseKeyPointBody({ points }: ExerciseKeyPointBodyProps) {
 
     return (
         <svg
-            viewBox="0 0 140 226"
+            viewBox="0 0 200 240"
             role="img"
-            aria-label="Front body figure showing required visible points"
+            aria-label="Demo-style body figure showing required visible points"
             className="key-point-body"
         >
-            <defs>
-                <linearGradient id="body-fill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="#E4F3EF" />
-                    <stop offset="1" stopColor="#C4DED8" />
-                </linearGradient>
-            </defs>
-
-            <g
-                fill="url(#body-fill)"
-                stroke="#5D817A"
-                strokeWidth="1.8"
-                strokeLinecap="round"
+            {/* Match the neutral figure in the movement demo; markers carry live status. */}
+            <g stroke="#111827" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                <path d="M80 148 L120 148" strokeWidth="3.5" />
+                <path d="M82 148 L82 190 L80 230" />
+                <path d="M118 148 L118 190 L120 230" />
+                <path d="M72 76 L50 108 L34 141" />
+                <path d="M128 76 L150 108 L166 141" />
+            </g>
+            <path
+                d="M72 76 L128 76 L120 148 L80 148 Z"
+                fill="#F8FAFC"
+                stroke="#111827"
+                strokeWidth="2"
                 strokeLinejoin="round"
-            >
-                <circle cx="70" cy="25" r="17" />
-                <path d="M63 42 L62 49 Q52 51 47 58 Q45 78 49 103 Q52 116 58 125 L82 125 Q88 116 91 103 Q95 78 93 58 Q88 51 78 49 L77 42 Z" />
-                <path d="M49 58 Q41 60 38 70 L29 100 Q27 106 31 109 Q35 112 38 106 L49 79" />
-                <path d="M91 58 Q99 60 102 70 L111 100 Q113 106 109 109 Q105 112 102 106 L91 79" />
-                <path d="M31 109 L27 139 Q27 148 33 149 Q39 149 40 141 L40 109" />
-                <path d="M109 109 L113 139 Q113 148 107 149 Q101 149 100 141 L100 109" />
-                <path d="M58 125 Q51 135 52 148 L56 180 L64 180 L70 145 L76 180 L84 180 L88 148 Q89 135 82 125 Z" />
-                <path d="M56 180 L54 207 Q54 214 59 214 Q64 214 65 207 L64 180 Z" />
-                <path d="M84 180 L86 207 Q86 214 81 214 Q76 214 75 207 L76 180 Z" />
-                <path d="M54 207 Q45 211 44 217 L61 217 Q62 213 59 208" />
-                <path d="M86 207 Q95 211 96 217 L79 217 Q78 213 81 208" />
+            />
+            <line x1="100" y1="56" x2="100" y2="148" stroke="#111827" strokeWidth="2" strokeDasharray="3 3" />
+            <g stroke="#111827" strokeLinecap="round">
+                <line x1="100" y1="56" x2="100" y2="68" strokeWidth="3" />
+                <circle cx="100" cy="36" r="18" fill="#FFFFFF" strokeWidth="3" />
+                <path d="M92 35 Q100 33 108 35" fill="none" strokeWidth="2.5" />
+                <circle cx="100" cy="38" r="2" fill="#111827" stroke="none" />
             </g>
+            <polygon points="100,74 108,84 100,94 92,84" fill="#E2E8F0" stroke="#111827" strokeWidth="2" />
 
-            <g fill="none" stroke="#7FA49C" strokeWidth="1.4" strokeLinecap="round" opacity="0.75">
-                <path d="M70 49 L70 124" />
-                <path d="M52 61 L88 61" />
-                <path d="M52 61 L36 104 L33 141" />
-                <path d="M88 61 L104 104 L107 141" />
-                <path d="M59 125 L70 145 L81 125" />
-                <path d="M59 127 L60 179 L59 208" />
-                <path d="M81 127 L80 179 L81 208" />
-            </g>
-
-            {marker("nose", 70, 25, 4.5)}
-            {marker("chest", 70, 72, 4.5)}
-            {marker("leftShoulder", 52, 61)}
-            {marker("rightShoulder", 88, 61)}
-            {marker("leftElbow", 36, 104)}
-            {marker("rightElbow", 104, 104)}
-            {marker("leftWrist", 33, 141)}
-            {marker("rightWrist", 107, 141)}
-            {marker("leftHip", 59, 126)}
-            {marker("rightHip", 81, 126)}
-            {marker("leftKnee", 60, 179)}
-            {marker("rightKnee", 80, 179)}
-            {marker("leftAnkle", 59, 208)}
-            {marker("rightAnkle", 81, 208)}
+            {marker("nose", 100, 36, 5)}
+            {marker("chest", 100, 84, 5)}
+            {marker("leftShoulder", 72, 76)}
+            {marker("rightShoulder", 128, 76)}
+            {marker("leftElbow", 50, 108)}
+            {marker("rightElbow", 150, 108)}
+            {marker("leftWrist", 34, 141)}
+            {marker("rightWrist", 166, 141)}
+            {marker("leftHip", 82, 148)}
+            {marker("rightHip", 118, 148)}
+            {marker("leftKnee", 82, 190)}
+            {marker("rightKnee", 118, 190)}
+            {marker("leftAnkle", 80, 230)}
+            {marker("rightAnkle", 120, 230)}
         </svg>
     );
 }
