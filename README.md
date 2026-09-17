@@ -8,6 +8,11 @@ licensed under the [MIT License](https://github.com/shadcn-ui/ui/blob/main/LICEN
 permission notice to be included in copies or substantial portions of the
 software.
 
+## Dataset attribution
+
+The [physiotherapy dataset](https://www.kaggle.com/datasets/toobasaeed11/physiotherapy)
+is published on Kaggle by [toobasaeed11](https://www.kaggle.com/toobasaeed11).
+
 ## LIVE LINKS
 ##### Client: https://medirehab-ai.vercel.app
 ##### Server: https://medirehab-ai-server.onrender.com
