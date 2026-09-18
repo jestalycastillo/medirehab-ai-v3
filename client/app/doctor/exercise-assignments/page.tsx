@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, ApiError, type ApiPatient, type ExerciseAssignment } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { CircleAlert } from "lucide-react";
 
 function patientName(patient: ApiPatient) {
   return [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ") || patient.email;
@@ -65,14 +66,14 @@ export default function DoctorExerciseAssignmentsPage() {
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <div>
         <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Exercise Assignments</h1>
-        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>Select a patient to assign or review rehabilitation exercises.</p>
       </div>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div className="doctor-toolbar" style={{ marginBottom: "20px" }}>
+      <div className="card care-page-panel">
+        <div className="doctor-toolbar care-page-toolbar">
           <input
             type="text"
             className="input"
+            aria-label="Search patients by name or email"
             placeholder="Search patient name or email"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -80,18 +81,17 @@ export default function DoctorExerciseAssignmentsPage() {
           />
         </div>
 
-        {error && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)" }}>{error}</div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredPatients.length} patient{filteredPatients.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : filteredPatients.length === 0 ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>No patients assigned yet.</div>
+          <div className="care-page-empty" role="status">{searchTerm ? <><strong>No patients match your search.</strong><button type="button" className="btn btn-secondary" onClick={() => setSearchTerm("")}>Clear search</button></> : "No patients assigned yet."}</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>
+          <div className="care-assignment-grid">
             {filteredPatients.map((patient) => (
-              <div key={patient.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div className="care-assignment-card" key={patient.id}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ fontWeight: 700 }}>{patientName(patient)}</div>

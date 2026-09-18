@@ -1,0 +1,410 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+
+interface AnimatedExerciseGuideProps {
+    exerciseName: string;
+    selectedSide?: "left" | "right" | null;
+    analysisModelKey?: string | null;
+    isRecording?: boolean;
+    isCountingDown?: boolean;
+    speed?: number; // 0.75, 1.0, 1.25
+}
+
+type MovementType = "left_flexion" | "right_flexion" | "left_abduction" | "right_abduction";
+
+interface ArmKinematics {
+    shoulder: { x: number; y: number };
+    elbow: { x: number; y: number };
+    wrist: { x: number; y: number };
+}
+
+function resolveMovementType(
+    exerciseName?: string,
+    selectedSide?: "left" | "right" | null,
+    modelKey?: string | null,
+): MovementType {
+    const norm = (exerciseName || "").toLowerCase();
+    const key = (modelKey || "").toLowerCase();
+
+    if (norm.includes("abduction") || key.includes("abduction")) {
+        if (selectedSide === "right" || key.includes("right")) {
+            return "right_abduction";
+        }
+        return "left_abduction";
+    }
+
+    if (selectedSide === "right" || key.includes("right")) {
+        return "right_flexion";
+    }
+    return "left_flexion";
+}
+
+export function AnimatedExerciseGuide({
+    exerciseName,
+    selectedSide,
+    analysisModelKey,
+    isRecording = false,
+    isCountingDown = false,
+    speed = 1.0,
+}: AnimatedExerciseGuideProps) {
+    const movement = resolveMovementType(exerciseName, selectedSide, analysisModelKey);
+    const animationDuration = 4.0 / Math.max(0.5, speed); // full cycle in seconds
+
+    const [cyclePhase, setCyclePhase] = useState<string>("Raising Up");
+
+    // Kinematic joint coordinates (updated at 60fps)
+    const [leftArm, setLeftArm] = useState<ArmKinematics>({
+        shoulder: { x: 72, y: 76 },
+        elbow: { x: 72, y: 120 },
+        wrist: { x: 72, y: 164 },
+    });
+
+    const [rightArm, setRightArm] = useState<ArmKinematics>({
+        shoulder: { x: 128, y: 76 },
+        elbow: { x: 128, y: 120 },
+        wrist: { x: 128, y: 164 },
+    });
+
+    useEffect(() => {
+        const SHOULDER_L = { x: 72, y: 76 };
+        const SHOULDER_R = { x: 128, y: 76 };
+        const UPPER_ARM_LEN = 44;
+        const FOREARM_LEN = 44;
+        const TOTAL_LEN = UPPER_ARM_LEN + FOREARM_LEN;
+
+        // Reset arms to starting rest pose
+        const resetArmsToRest = () => {
+            setLeftArm({
+                shoulder: SHOULDER_L,
+                elbow: { x: SHOULDER_L.x, y: SHOULDER_L.y + UPPER_ARM_LEN },
+                wrist: { x: SHOULDER_L.x, y: SHOULDER_L.y + TOTAL_LEN },
+            });
+            setRightArm({
+                shoulder: SHOULDER_R,
+                elbow: { x: SHOULDER_R.x, y: SHOULDER_R.y + UPPER_ARM_LEN },
+                wrist: { x: SHOULDER_R.x, y: SHOULDER_R.y + TOTAL_LEN },
+            });
+        };
+
+        // While counting down before recording starts: freeze at starting resting pose
+        if (isCountingDown) {
+            setCyclePhase("Get Ready");
+            resetArmsToRest();
+            return;
+        }
+
+        let frameId: number;
+        // Start fresh from t=0 so recording & animation align from the first rep
+        const startTime = performance.now();
+
+        let maxAngle = 90;
+        if (movement.includes("abduction")) maxAngle = 145;
+        if (movement.includes("flexion")) maxAngle = 160;
+
+        const isLeftActive = movement === "left_flexion" || movement === "left_abduction";
+        const isRightActive = movement === "right_flexion" || movement === "right_abduction";
+        const isFlexion = movement.includes("flexion");
+
+        const updateKinematics = () => {
+            const now = performance.now();
+            const elapsed = ((now - startTime) / 1000) % animationDuration;
+            const progress = elapsed / animationDuration; // 0.0 to 1.0
+
+            let angle = 0;
+            let phase = "Rest";
+
+            if (progress < 0.40) {
+                // Phase 1: Concentric Raise (0% to 40%) - smooth ease in/out
+                phase = "Raising Up";
+                const p = progress / 0.40;
+                const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+                angle = Math.round(smoothP * maxAngle);
+            } else if (progress < 0.52) {
+                // Phase 2: Peak Hold (40% to 52%)
+                phase = "Hold Peak";
+                angle = maxAngle;
+            } else if (progress < 0.92) {
+                // Phase 3: Eccentric Lowering (52% to 92%) - controlled return
+                phase = "Lowering";
+                const p = (progress - 0.52) / 0.40;
+                const smoothP = 0.5 + 0.5 * Math.cos(p * Math.PI);
+                angle = Math.round(smoothP * maxAngle);
+            } else {
+                // Phase 4: Rest pause (92% to 100%)
+                phase = "Rest";
+                angle = 0;
+            }
+
+            setCyclePhase(phase);
+
+            const rad = (angle * Math.PI) / 180;
+
+            // --- Left Arm Kinematics ---
+            if (isLeftActive) {
+                let ux: number;
+                let uy: number;
+
+                if (isFlexion) {
+                    ux = -0.32 * Math.sin(rad);
+                    uy = Math.cos(rad);
+                } else {
+                    ux = -Math.sin(rad);
+                    uy = Math.cos(rad);
+                }
+
+                setLeftArm({
+                    shoulder: SHOULDER_L,
+                    elbow: {
+                        x: Math.round((SHOULDER_L.x + UPPER_ARM_LEN * ux) * 10) / 10,
+                        y: Math.round((SHOULDER_L.y + UPPER_ARM_LEN * uy) * 10) / 10,
+                    },
+                    wrist: {
+                        x: Math.round((SHOULDER_L.x + TOTAL_LEN * ux) * 10) / 10,
+                        y: Math.round((SHOULDER_L.y + TOTAL_LEN * uy) * 10) / 10,
+                    },
+                });
+            } else {
+                setLeftArm({
+                    shoulder: SHOULDER_L,
+                    elbow: { x: SHOULDER_L.x, y: SHOULDER_L.y + UPPER_ARM_LEN },
+                    wrist: { x: SHOULDER_L.x, y: SHOULDER_L.y + TOTAL_LEN },
+                });
+            }
+
+            // --- Right Arm Kinematics ---
+            if (isRightActive) {
+                let ux: number;
+                let uy: number;
+
+                if (isFlexion) {
+                    ux = 0.32 * Math.sin(rad);
+                    uy = Math.cos(rad);
+                } else {
+                    ux = Math.sin(rad);
+                    uy = Math.cos(rad);
+                }
+
+                setRightArm({
+                    shoulder: SHOULDER_R,
+                    elbow: {
+                        x: Math.round((SHOULDER_R.x + UPPER_ARM_LEN * ux) * 10) / 10,
+                        y: Math.round((SHOULDER_R.y + UPPER_ARM_LEN * uy) * 10) / 10,
+                    },
+                    wrist: {
+                        x: Math.round((SHOULDER_R.x + TOTAL_LEN * ux) * 10) / 10,
+                        y: Math.round((SHOULDER_R.y + TOTAL_LEN * uy) * 10) / 10,
+                    },
+                });
+            } else {
+                setRightArm({
+                    shoulder: SHOULDER_R,
+                    elbow: { x: SHOULDER_R.x, y: SHOULDER_R.y + UPPER_ARM_LEN },
+                    wrist: { x: SHOULDER_R.x, y: SHOULDER_R.y + TOTAL_LEN },
+                });
+            }
+
+            frameId = requestAnimationFrame(updateKinematics);
+        };
+
+        frameId = requestAnimationFrame(updateKinematics);
+        return () => cancelAnimationFrame(frameId);
+    }, [animationDuration, isCountingDown, isRecording, movement]);
+
+    const isLeftActive = movement === "left_flexion" || movement === "left_abduction";
+    const isRightActive = movement === "right_flexion" || movement === "right_abduction";
+
+    return (
+        <div
+            className="animated-exercise-container"
+            style={{
+                backgroundColor: "#ffffff",
+                background: "#ffffff",
+                border: "none",
+            }}
+        >
+            {/* SVG Anatomical Avatar with Crisp Black Skeleton on Pure White Background */}
+            <svg
+                viewBox="0 0 200 240"
+                className="animated-exercise-svg"
+                role="img"
+                aria-label={`Animated exercise demonstration for ${exerciseName}`}
+                style={{
+                    backgroundColor: "#ffffff",
+                    background: "#ffffff",
+                    display: "block",
+                }}
+            >
+                {/* Pelvis & Lower Body Frame */}
+                <g stroke="#111827" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none">
+                    <path d="M 80 148 L 120 148" strokeWidth="3.5" />
+                    <path d="M 82 148 L 82 190 L 80 230" strokeWidth="3" />
+                    <path d="M 118 148 L 118 190 L 120 230" strokeWidth="3" />
+                </g>
+
+                {/* Torso Outline */}
+                <path
+                    d="M 72 76 L 128 76 L 120 148 L 80 148 Z"
+                    fill="#F8FAFC"
+                    stroke="#111827"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                />
+
+                {/* Spine Central Axis */}
+                <line
+                    x1="100"
+                    y1="56"
+                    x2="100"
+                    y2="148"
+                    stroke="#111827"
+                    strokeWidth="2"
+                    strokeDasharray="3 3"
+                />
+
+                {/* Head & Neck */}
+                <g className="avatar-head">
+                    <line x1="100" y1="56" x2="100" y2="68" stroke="#111827" strokeWidth="3" strokeLinecap="round" />
+                    <circle
+                        cx="100"
+                        cy="36"
+                        r="18"
+                        fill="#FFFFFF"
+                        stroke="#111827"
+                        strokeWidth="3"
+                    />
+                    {/* Neutral Face Visor */}
+                    <path d="M 92 35 Q 100 33 108 35" stroke="#111827" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                    <circle cx="100" cy="38" r="2" fill="#111827" />
+                </g>
+
+                {/* Chest Central Core */}
+                <g className="avatar-chest-core">
+                    <polygon
+                        points="100,74 108,84 100,94 92,84"
+                        fill="#E2E8F0"
+                        stroke="#111827"
+                        strokeWidth="2"
+                    />
+                    <circle cx="100" cy="84" r="2.5" fill="#111827" />
+                </g>
+
+                {/* --- Left Arm Kinetic Chain: Shoulder -> Elbow -> Wrist --- */}
+                <g id="avatar-left-arm">
+                    {/* Upper Arm Bone (Shoulder -> Elbow) */}
+                    <line
+                        x1={leftArm.shoulder.x}
+                        y1={leftArm.shoulder.y}
+                        x2={leftArm.elbow.x}
+                        y2={leftArm.elbow.y}
+                        stroke="#111827"
+                        strokeWidth={isLeftActive ? "4.5" : "3.5"}
+                        strokeLinecap="round"
+                    />
+
+                    {/* Forearm Bone (Elbow -> Wrist) */}
+                    <line
+                        x1={leftArm.elbow.x}
+                        y1={leftArm.elbow.y}
+                        x2={leftArm.wrist.x}
+                        y2={leftArm.wrist.y}
+                        stroke="#111827"
+                        strokeWidth={isLeftActive ? "4" : "3"}
+                        strokeLinecap="round"
+                    />
+
+                    {/* Elbow Joint Node */}
+                    <circle
+                        cx={leftArm.elbow.x}
+                        cy={leftArm.elbow.y}
+                        r="4.5"
+                        fill="#FFFFFF"
+                        stroke="#111827"
+                        strokeWidth="2.5"
+                    />
+                    <circle cx={leftArm.elbow.x} cy={leftArm.elbow.y} r="1.8" fill="#111827" />
+
+                    {/* Wrist Node */}
+                    <circle
+                        cx={leftArm.wrist.x}
+                        cy={leftArm.wrist.y}
+                        r="4"
+                        fill="#111827"
+                    />
+                </g>
+
+                {/* --- Right Arm Kinetic Chain: Shoulder -> Elbow -> Wrist --- */}
+                <g id="avatar-right-arm">
+                    {/* Upper Arm Bone (Shoulder -> Elbow) */}
+                    <line
+                        x1={rightArm.shoulder.x}
+                        y1={rightArm.shoulder.y}
+                        x2={rightArm.elbow.x}
+                        y2={rightArm.elbow.y}
+                        stroke="#111827"
+                        strokeWidth={isRightActive ? "4.5" : "3.5"}
+                        strokeLinecap="round"
+                    />
+
+                    {/* Forearm Bone (Elbow -> Wrist) */}
+                    <line
+                        x1={rightArm.elbow.x}
+                        y1={rightArm.elbow.y}
+                        x2={rightArm.wrist.x}
+                        y2={rightArm.wrist.y}
+                        stroke="#111827"
+                        strokeWidth={isRightActive ? "4" : "3"}
+                        strokeLinecap="round"
+                    />
+
+                    {/* Elbow Joint Node */}
+                    <circle
+                        cx={rightArm.elbow.x}
+                        cy={rightArm.elbow.y}
+                        r="4.5"
+                        fill="#FFFFFF"
+                        stroke="#111827"
+                        strokeWidth="2.5"
+                    />
+                    <circle cx={rightArm.elbow.x} cy={rightArm.elbow.y} r="1.8" fill="#111827" />
+
+                    {/* Wrist Node */}
+                    <circle
+                        cx={rightArm.wrist.x}
+                        cy={rightArm.wrist.y}
+                        r="4"
+                        fill="#111827"
+                    />
+                </g>
+
+                {/* Shoulder Articulation Pods (Anchored on torso) */}
+                <circle
+                    cx={leftArm.shoulder.x}
+                    cy={leftArm.shoulder.y}
+                    r="5.5"
+                    fill="#E2E8F0"
+                    stroke="#111827"
+                    strokeWidth="2.5"
+                />
+                <circle cx={leftArm.shoulder.x} cy={leftArm.shoulder.y} r="2" fill="#111827" />
+
+                <circle
+                    cx={rightArm.shoulder.x}
+                    cy={rightArm.shoulder.y}
+                    r="5.5"
+                    fill="#E2E8F0"
+                    stroke="#111827"
+                    strokeWidth="2.5"
+                />
+                <circle cx={rightArm.shoulder.x} cy={rightArm.shoulder.y} r="2" fill="#111827" />
+            </svg>
+
+            {/* Bottom Movement Telemetry Bar */}
+            <div className="animated-exercise-footer">
+                <div className="exercise-phase-badge">
+                    <span>{cyclePhase}</span>
+                </div>
+            </div>
+        </div>
+    );
+}

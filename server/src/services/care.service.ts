@@ -3,13 +3,16 @@ import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
 import {
     ValidatedCheckInInput,
-    ValidatedCommentInput
+    ValidatedCommentInput,
+    ValidatedSessionUpdateInput
 } from "../utils/careValidation";
+import { roundScore } from "../utils/score";
 
 const exerciseSelect = {
     id: true,
     name: true,
     description: true,
+    analysisModelKey: true,
     isActive: true,
     archivedAt: true,
     images: {
@@ -65,12 +68,20 @@ const sessionCommentSelect = {
 const sessionSelect = {
     id: true,
     score: true,
+    evaluatedModelKey: true,
+    selectedSide: true,
+    visitId: true,
+    videoUrl: true,
     aiFeedback: true,
     painLevel: true,
     difficultyLevel: true,
     confidenceLevel: true,
     patientNote: true,
     performedAt: true,
+    durationSeconds: true,
+    adherenceQualified: true,
+    qualificationReason: true,
+    clientSessionId: true,
     createdAt: true,
     updatedAt: true,
     assignment: {
@@ -87,6 +98,8 @@ const sessionSelect = {
                     score: true
                 }
             },
+            minimumScore: true,
+            minimumDurationSeconds: true,
             assignedByDoctor: {
                 select: {
                     id: true,
@@ -216,6 +229,8 @@ const ensureAssignmentForPatient = async (
             id: true,
             patientProfileId: true,
             assignedByDoctorId: true,
+            minimumScore: true,
+            minimumDurationSeconds: true,
             exercise: {
                 select: exerciseSelect
             },
@@ -301,6 +316,8 @@ const createNotification = async (input: {
     link?: string | null;
     meta?: Prisma.InputJsonValue;
 }) => {
+    const recipient = await prisma.user.findUnique({ where: { id: input.userId }, select: { careNotificationsEnabled: true } });
+    if (!recipient?.careNotificationsEnabled) return;
     await prisma.notification.create({
         data: {
             userId: input.userId,
@@ -318,8 +335,26 @@ export const recordExerciseSession = async (
     assignmentId: string,
     exerciseId: string,
     score: number,
-    aiFeedback: string[] = []
+    aiFeedback: string[] = [],
+    options: {
+        durationSeconds?: number;
+        clientSessionId?: string;
+        evaluatedModelKey?: string;
+        selectedSide?: "left" | "right";
+        visitId?: string;
+        videoUrl?: string;
+    } = {}
 ) => {
+    const roundedScore = roundScore(score);
+    if (options.clientSessionId) {
+        const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId: options.clientSessionId }, select: sessionSelect });
+        if (existing) {
+            if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId || (existing.visitId ?? null) !== (options.visitId ?? null) || (existing.selectedSide ?? null) !== (options.selectedSide ?? null)) {
+                throw new HttpError(409, "Session identifier is already in use.");
+            }
+            return { ...mapSession(existing), duplicate: true };
+        }
+    }
     const { patientProfile, assignment } = await ensureAssignmentForPatient(
         patientUserId,
         assignmentId
@@ -329,24 +364,74 @@ export const recordExerciseSession = async (
         throw new HttpError(404, "Exercise assignment not found.");
     }
 
-    const session = await prisma.exerciseSession.create({
-        data: {
-            assignmentId: assignment.id,
-            patientUserId,
-            score,
-            aiFeedback
-        },
-        select: sessionSelect
-    });
+    if (options.visitId) {
+        if (!options.selectedSide || !["shoulder_flexion", "shoulder_abduction"].includes(assignment.exercise.analysisModelKey ?? "")) {
+            throw new HttpError(400, "A shared visit is only available for side-selectable shoulder exercises.");
+        }
+        const siblings = await prisma.exerciseSession.findMany({
+            where: { visitId: options.visitId },
+            select: { assignmentId: true, patientUserId: true, selectedSide: true, performedAt: true }
+        });
+        if (siblings.some((sibling) => sibling.assignmentId !== assignmentId || sibling.patientUserId !== patientUserId)) {
+            throw new HttpError(409, "This visit belongs to another exercise assignment.");
+        }
+        if (siblings.some((sibling) => sibling.selectedSide === options.selectedSide)) {
+            throw new HttpError(409, "This arm has already been recorded for this visit.");
+        }
+        if (siblings.some((sibling) => Date.now() - sibling.performedAt.getTime() > 2 * 60 * 60 * 1000)) {
+            throw new HttpError(409, "This visit has expired. Start a new exercise visit.");
+        }
+    }
+
+    const qualificationReasons = [
+        assignment.minimumScore !== null && roundedScore < assignment.minimumScore ? `Score is below the ${assignment.minimumScore.toFixed(2)} minimum.` : null,
+        assignment.minimumDurationSeconds !== null && (options.durationSeconds ?? 0) < assignment.minimumDurationSeconds ? `Recording is shorter than the ${assignment.minimumDurationSeconds}-second minimum.` : null
+    ].filter((reason): reason is string => reason !== null);
+    const adherenceQualified = qualificationReasons.length === 0;
+
+    let session;
+    try {
+        session = await prisma.exerciseSession.create({
+            data: {
+                assignmentId: assignment.id,
+                patientUserId,
+                score: roundedScore,
+                evaluatedModelKey: options.evaluatedModelKey ?? null,
+                selectedSide: options.selectedSide ?? null,
+                visitId: options.visitId ?? null,
+                videoUrl: options.videoUrl ?? null,
+                aiFeedback,
+                ...(options.durationSeconds !== undefined ? { durationSeconds: options.durationSeconds } : {}),
+                ...(options.clientSessionId !== undefined ? { clientSessionId: options.clientSessionId } : {}),
+                adherenceQualified,
+                qualificationReason: qualificationReasons.join(" ") || null
+            },
+            select: sessionSelect
+        });
+    } catch (error) {
+        if (options.clientSessionId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            const existing = await findRecordedExerciseSession(
+                patientUserId,
+                assignmentId,
+                exerciseId,
+                options.clientSessionId,
+                options.selectedSide,
+                options.visitId
+            );
+            if (existing) return { ...existing, duplicate: true };
+            if (options.visitId) throw new HttpError(409, "This arm has already been recorded for this visit.");
+        }
+        throw error;
+    }
 
     await prisma.exerciseResult.upsert({
         where: { assignmentId: assignment.id },
         create: {
             assignmentId: assignment.id,
-            score
+            score: roundedScore
         },
         update: {
-            score
+            score: roundedScore
         }
     });
 
@@ -360,13 +445,59 @@ export const recordExerciseSession = async (
                 firstName: patientProfile.firstName,
                 lastName: patientProfile.lastName
             }
-        })} completed ${assignment.exercise.name} with a score of ${score.toFixed(0)}.`,
+        })} completed ${assignment.exercise.name}${options.selectedSide ? ` (${options.selectedSide} arm)` : ""} with a score of ${roundedScore.toFixed(2)}.${adherenceQualified ? options.visitId ? " This arm qualifies; the visit counts once toward adherence." : " The session counted toward adherence." : ` This arm did not qualify: ${qualificationReasons.join(" ")}`}`,
         link: `/doctor/patients/${patientUserId}`,
         meta: {
             assignmentId: assignment.id,
             sessionId: session.id,
-            score
+            score: roundedScore,
+            ...(session.videoUrl ? { videoUrl: session.videoUrl } : {})
         }
+    });
+
+    return { ...mapSession(session), duplicate: false };
+};
+
+export const findRecordedExerciseSession = async (
+    patientUserId: string,
+    assignmentId: string,
+    exerciseId: string,
+    clientSessionId: string,
+    selectedSide?: "left" | "right",
+    visitId?: string
+) => {
+    const existing = await prisma.exerciseSession.findUnique({ where: { clientSessionId }, select: sessionSelect });
+    if (!existing) return null;
+    if (existing.patient.id !== patientUserId || existing.assignment.id !== assignmentId || existing.assignment.exercise.id !== exerciseId) {
+        throw new HttpError(409, "Session identifier is already in use.");
+    }
+    if ((existing.selectedSide ?? null) !== (selectedSide ?? null)) {
+        throw new HttpError(409, "This session was recorded for a different arm.");
+    }
+    if ((existing.visitId ?? null) !== (visitId ?? null)) {
+        throw new HttpError(409, "This session belongs to a different visit.");
+    }
+    return mapSession(existing);
+};
+
+export const updateSessionAiFeedback = async (
+    patientUserId: string,
+    sessionId: string,
+    input: ValidatedSessionUpdateInput
+) => {
+    const existingSession = await prisma.exerciseSession.findFirst({
+        where: { id: sessionId, patientUserId },
+        select: { id: true }
+    });
+
+    if (!existingSession) {
+        throw new HttpError(404, "Session not found.");
+    }
+
+    const session = await prisma.exerciseSession.update({
+        where: { id: existingSession.id },
+        data: input.aiFeedback !== undefined ? { aiFeedback: input.aiFeedback } : {},
+        select: sessionSelect
     });
 
     return mapSession(session);
@@ -654,4 +785,19 @@ export const markNotificationRead = async (
         },
         select: userNotificationSelect
     });
+};
+
+export const markAllNotificationsRead = async (userId: string) => {
+    await prisma.notification.updateMany({
+        where: {
+            userId,
+            isRead: false
+        },
+        data: {
+            isRead: true,
+            readAt: new Date()
+        }
+    });
+
+    return listNotificationsForUser(userId);
 };

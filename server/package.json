@@ -4,11 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run test:adherence && npm run test:exercise-models && npm run test:pose-guidance && npm run test:camera-visit && npm run test:integration",
+    "test:adherence": "tsx tests/adherence.test.ts",
+    "test:exercise-models": "tsx tests/exercise-models.test.ts",
+    "test:pose-guidance": "tsx ../client/lib/pose/shoulder-movement-direction.test.ts",
+    "test:camera-visit": "tsx ../client/lib/camera-visit.test.ts",
+    "test:integration": "tsx tests/care-workflow.integration.ts",
     "build": "tsc --build",
     "start": "node ./dist/server.js",
     "dev": "nodemon --exec \"ts-node --files\" ./src/server.ts",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:seed:exercises": "tsx prisma/seed-exercises.ts"
   },
   "keywords": [],
   "author": "",

@@ -17,8 +17,9 @@ export function ExercisePicker({
         <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Available Exercises</h2>
       </div>
       {exercises.length === 0 ? (
-        <div style={{ padding: "32px 24px", textAlign: "center", color: "var(--color-text-muted)" }}>
-          No available exercises for this patient.
+        <div className="care-page-empty" role="status">
+          <strong>No available exercises</strong>
+          <p>No additional exercises can be assigned right now.</p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -28,7 +29,7 @@ export function ExercisePicker({
                 <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{exercise.name}</div>
                 <div style={{ color: "var(--color-text-secondary)", fontSize: "14px", maxWidth: "56ch" }}>{exercise.description || "No description provided."}</div>
               </div>
-              <button className="btn btn-primary" onClick={() => onAssign(exercise.id)} disabled={isBusy} style={{ height: "38px", padding: "0 14px" }}>
+              <button className="btn btn-primary" onClick={() => onAssign(exercise.id)} disabled={isBusy} aria-label={`Assign ${exercise.name}`} style={{ padding: "0 14px" }}>
                 Assign
               </button>
             </div>

@@ -9,6 +9,8 @@ import {
     createPatientUser,
     getDoctorByUserId,
     getMyProfile,
+    getUserConsent,
+    getNotificationPreferences,
     listPatientsForAdmin,
     getPatientForDoctor,
     listDoctors,
@@ -19,6 +21,8 @@ import {
     updateDoctorAccountStatus,
     updateDoctorProfile,
     updateOwnPatientProfile,
+    updateUserConsent,
+    updateNotificationPreferences,
     updatePatientAccountStatusForDoctor,
     updatePatientProfileForDoctor,
     updatePatientAccountStatus,
@@ -200,7 +204,7 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
         const authUser = getAuthenticatedUser(req);
         const userId = validateUserIdParam(req.params.userId);
         const input = validateUpdatePatientInput(req.body);
-        
+
         const patient = authUser.role === Role.ADMIN
             ? await updatePatientProfile(userId, input)
             : await updatePatientProfileForDoctor(userId, authUser.userId, input);
@@ -262,6 +266,39 @@ export const updateMyPassword = async (req: Request, res: Response): Promise<voi
     } catch (error) {
         handleUserError(error, res, "Unable to update password.");
     }
+};
+
+export const getMyConsent = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const authUser = getAuthenticatedUser(req);
+        const consent = await getUserConsent(authUser.userId);
+        res.status(200).json({ success: true, consent });
+    } catch (error) { handleUserError(error, res, "Unable to load consent settings."); }
+};
+
+export const updateMyConsent = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const authUser = getAuthenticatedUser(req);
+        if (authUser.role !== Role.PATIENT) throw new HttpError(403, "Only patients can update recording consent.");
+        if (typeof req.body?.privacyConsent !== "boolean" || typeof req.body?.recordingConsent !== "boolean") {
+            throw new HttpError(400, "Consent choices are required.");
+        }
+        const consent = await updateUserConsent(authUser.userId, req.body.privacyConsent, req.body.recordingConsent);
+        res.status(200).json({ success: true, message: "Consent settings updated.", consent });
+    } catch (error) { handleUserError(error, res, "Unable to update consent settings."); }
+};
+
+export const getMyNotificationPreferences = async (req: Request, res: Response): Promise<void> => {
+    try { res.status(200).json({ success: true, preferences: await getNotificationPreferences(getAuthenticatedUser(req).userId) }); }
+    catch (error) { handleUserError(error, res, "Unable to load notification preferences."); }
+};
+
+export const updateMyNotificationPreferences = async (req: Request, res: Response): Promise<void> => {
+    try {
+        if (typeof req.body?.chatEnabled !== "boolean" || typeof req.body?.careEnabled !== "boolean") throw new HttpError(400, "Notification preferences are required.");
+        const preferences = await updateNotificationPreferences(getAuthenticatedUser(req).userId, req.body.chatEnabled, req.body.careEnabled);
+        res.status(200).json({ success: true, preferences });
+    } catch (error) { handleUserError(error, res, "Unable to update notification preferences."); }
 };
 
 export const resetDoctorAccountPassword = async (
@@ -333,7 +370,7 @@ export const updatePatientStatus = async (
         const authUser = getAuthenticatedUser(req);
         const userId = validateUserIdParam(req.params.userId);
         const input = validateAccountStatusInput(req.body);
-        
+
         const patient = authUser.role === Role.ADMIN
             ? await updatePatientAccountStatus(userId, input)
             : await updatePatientAccountStatusForDoctor(userId, authUser.userId, input);
@@ -367,7 +404,7 @@ export const archivePatient = async (req: Request, res: Response): Promise<void>
     try {
         const authUser = getAuthenticatedUser(req);
         const userId = validateUserIdParam(req.params.userId);
-        
+
         const patient = authUser.role === Role.ADMIN
             ? await updatePatientAccountStatus(userId, { isActive: false })
             : await updatePatientAccountStatusForDoctor(userId, authUser.userId, { isActive: false });

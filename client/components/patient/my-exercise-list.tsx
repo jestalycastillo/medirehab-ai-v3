@@ -1,83 +1,102 @@
 "use client";
 
-import { type ExerciseAssignment } from "@/lib/api";
+import { CalendarDays, ChevronDown, Dumbbell } from "lucide-react";
+import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
+import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 
-function formatDate(value?: string) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+function formatDate(value?: string | null) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
-export function MyExerciseList({
-  assignments,
-  compact = false,
-}: {
-  assignments: ExerciseAssignment[];
-  compact?: boolean;
-}) {
+const WEEKDAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
+
+function ExerciseImage({ assignment }: { assignment: ExerciseAssignment }) {
+  const image = assignment.exercise?.images?.[0];
+  const imageSrc = getExerciseImageUrl(assignment.exercise);
+  return (
+    <div className="patient-exercise-card-image">
+      {imageSrc ? (
+        // Exercise images can come from the API or an administrator-provided URL.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageSrc}
+          alt={image?.imageName || `${assignment.exercise.name} guide`}
+          onError={(event) => { event.currentTarget.style.display = "none"; }}
+        />
+      ) : null}
+      <div className="patient-exercise-card-placeholder" aria-hidden="true"><Dumbbell /><span>Exercise guide</span></div>
+    </div>
+  );
+}
+
+export function MyExerciseList({ assignments, compact = false, emptyMessage = "No exercises found", emptyDescription = "Your assigned exercises will appear here." }: { assignments: ExerciseAssignment[]; compact?: boolean; emptyMessage?: string; emptyDescription?: string }) {
   if (assignments.length === 0) {
     return (
-      <div style={{ padding: compact ? "28px 20px" : "40px 24px", textAlign: "center", color: "var(--color-text-muted)" }}>
-        No exercises assigned yet.
+      <div className="patient-exercise-empty" role="status">
+        <span><Dumbbell /></span>
+        <strong>{emptyMessage}</strong>
+        <p>{emptyDescription}</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-      {assignments.map((assignment) => (
-        <article
-          key={assignment.id}
-          style={{
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            backgroundColor: "var(--color-surface)",
-            padding: "18px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "14px",
-            minWidth: 0,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
-            <div style={{ minWidth: 0 }}>
-              <h3 style={{ fontSize: "16px", fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text-primary)" }}>
-                {assignment.exercise?.name || "Exercise"}
-              </h3>
-              <p style={{ fontSize: "13px", color: "var(--color-text-muted)", margin: 0 }}>
-                Assigned {formatDate(assignment.assignedAt)}
-              </p>
+    <div className={`patient-exercise-grid ${compact ? "patient-exercise-grid-compact" : ""}`}>
+      {assignments.map((assignment) => {
+        const primary = assignment.adherence?.today ?? assignment.adherence?.currentWeek;
+        const progress = primary?.target ? Math.min(100, (primary.completed / primary.target) * 100) : 0;
+        const prescription = [
+          assignment.targetSets ? `${assignment.targetSets} sets` : "",
+          assignment.targetRepsPerSet ? `${assignment.targetRepsPerSet} reps` : "",
+          assignment.targetDurationSeconds ? `${assignment.targetDurationSeconds} sec` : "",
+        ].filter(Boolean);
+
+        return (
+          <article className="patient-exercise-card" key={assignment.id}>
+            <ExerciseImage assignment={assignment} />
+            <div className="patient-exercise-card-body">
+              <div>
+                <h2>{assignment.exercise?.name || "Exercise"}</h2>
+                <p>{assignment.exercise?.description || "Follow the movement your doctor assigned."}</p>
+              </div>
+
+              {prescription.length > 0 && <div className="patient-exercise-prescription">{prescription.map((item) => <span key={item}>{item}</span>)}</div>}
+
+              {primary && (
+                <div className="patient-exercise-goal">
+                  <div><strong>{primary.completed} of {primary.target} done</strong><span>{primary.remaining > 0 ? `${primary.remaining} left ${assignment.adherence?.today ? "today" : "this week"}` : "Goal complete"}</span></div>
+                  <div className="patient-exercise-progress" role="progressbar" aria-label={`${assignment.exercise?.name || "Exercise"} sessions complete`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)} aria-valuetext={`${primary.completed} of ${primary.target} sessions complete`}><span style={{ width: `${progress}%` }} /></div>
+                </div>
+              )}
+
+              {assignment.doctorInstructions && <div className="patient-exercise-doctor-note"><strong>Your doctor says:</strong> {assignment.doctorInstructions}</div>}
+
+              <div className="patient-exercise-card-action">
+                <CameraRecorder
+                  exerciseName={assignment.exercise?.name}
+                  analysisModelKey={assignment.exercise?.analysisModelKey}
+                  exerciseId={assignment.exercise?.id}
+                  assignmentId={assignment.id}
+                  targetDurationSeconds={assignment.targetDurationSeconds}
+                  minimumDurationSeconds={assignment.minimumDurationSeconds}
+                />
+              </div>
+
+              <details className="patient-exercise-details">
+                <summary>Plan details <ChevronDown /></summary>
+                <div>
+                  <p><CalendarDays /> <span>{assignment.scheduledDays?.length ? assignment.scheduledDays.map((day) => WEEKDAY_LABELS[day]).join(", ") : assignment.targetSessionsPerDay ? `${assignment.targetSessionsPerDay} session${assignment.targetSessionsPerDay === 1 ? "" : "s"} each day` : `${assignment.targetSessionsPerWeek ?? 3} sessions each week`}</span></p>
+                  {assignment.dueDate && <p><strong>Due:</strong> {formatDate(assignment.dueDate)}</p>}
+                  {assignment.minimumScore != null && <p><strong>Minimum score:</strong> {assignment.minimumScore}</p>}
+                  {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
+                </div>
+              </details>
             </div>
-            <span className="badge badge-blue">Score {assignment.result?.score ?? 0}</span>
-          </div>
-
-          <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", margin: 0 }}>
-            {assignment.exercise?.description || "Follow the rehabilitation plan provided by your doctor."}
-          </p>
-
-          {assignment.exercise?.images?.length ? (
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {assignment.exercise.images.slice(0, 3).map((image) => (
-                <span key={`${assignment.id}-${image.filepath}`} className="badge badge-blue">
-                  {image.imageName || "Reference"}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "auto" }}>
-            <CameraRecorder
-              exerciseName={assignment.exercise?.name}
-              exerciseId={assignment.exercise?.id}
-              assignmentId={assignment.id}
-            />
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 }

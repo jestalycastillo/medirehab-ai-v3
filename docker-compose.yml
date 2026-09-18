@@ -4,21 +4,65 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
   
   backend:
     build: ./server
     environment:
-      DATABASE_URL: "postgres://user:password@db:5432/medirehab_ai"
+      DATABASE_URL: "postgresql://postgres:password@db:5432/medirehab_ai"
+      AI_SERVICE_URL: "http://ai-service:8000"
+      AI_SERVICE_TIMEOUT_MS: "120000"
+      ADHERENCE_TIME_ZONE: "Asia/Manila"
+      ADHERENCE_ALERT_INTERVAL_MS: "900000"
     ports:
       - "5000:5000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed:exercises && npm start"]
 
   ai-service:
     build: ./ai-service
+    environment:
+      # `localhost` here would be the ai-service container, not Ollama.
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "coach-qwen:latest"
+      OLLAMA_TIMEOUT_MS: "30000"
+      OLLAMA_KEEP_ALIVE: "10m"
     ports:
       - "8000:8000"
+    depends_on:
+      ollama-init:
+        condition: service_completed_successfully
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  ollama-init:
+    image: ollama/ollama:latest
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+      - ./ai-service/ollama/Modelfile:/models/Modelfile:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: "ollama pull qwen3.5:0.8b && ollama create coach-qwen:latest -f /models/Modelfile"
+    restart: "no"
   
   db:
     image: postgres:18
@@ -28,4 +72,12 @@ services:
       POSTGRES_DB: medirehab_ai
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medirehab_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  ollama_models:
 

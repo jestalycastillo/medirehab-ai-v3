@@ -14,7 +14,7 @@ BODY_PARTS = [
     "Left Ankle", "Right Ankle"
 ]
 
-keep_indices = [5, 6, 7, 8]
+keep_indices = [0, 5, 6, 7, 8]
 
 
 def process_image(image):
@@ -42,7 +42,12 @@ def process_image(image):
 
     xy = keypoints.xy[0]
 
-    landmarks = {}
+    landmarks = {
+        "Chest": {
+            "x": (xy[5][0].item() + xy[6][0].item()) / (2 * width),
+            "y": (xy[5][1].item() + xy[6][1].item()) / (2 * height),
+        }
+    }
 
     for idx in keep_indices:
 

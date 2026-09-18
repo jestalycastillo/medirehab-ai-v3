@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { type ApiExercise, type ExerciseImage } from "@/lib/api";
+import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 
 export function ExerciseForm({
   isOpen,
@@ -7,34 +8,46 @@ export function ExerciseForm({
   onSave,
   onCancel,
   isLoading,
+  error,
 }: {
   isOpen: boolean;
   initialData?: ApiExercise;
-  onSave: (data: { name: string; description: string; images: ExerciseImage[] }) => void;
+  onSave: (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[] }) => void;
   onCancel: () => void;
   isLoading: boolean;
+  error?: string;
 }) {
-  const [formData, setFormData] = useState<{ name: string; description: string; images: ExerciseImage[] }>({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    analysisModelKey: string;
+    images: ExerciseImage[];
+  }>({
     name: "",
     description: "",
+    analysisModelKey: "",
     images: [],
   });
+  const modalRef = usePortalModalFocus(isOpen, onCancel);
+  const [uploadError, setUploadError] = useState("");
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: initialData.name || "",
         description: initialData.description || "",
+        analysisModelKey: initialData.analysisModelKey || "",
         images: initialData.images || [],
       });
     } else {
-      setFormData({ name: "", description: "", images: [] });
+      setFormData({ name: "", description: "", analysisModelKey: "", images: [] });
     }
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -56,42 +69,37 @@ export function ExerciseForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    onSave({
+      ...formData,
+      analysisModelKey: formData.analysisModelKey.trim() ? formData.analysisModelKey.trim() : null,
+    });
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: "20px",
-      }}
-      onClick={onCancel}
-    >
+    <div className="portal-modal-overlay" onClick={onCancel}>
       <div
-        className="card animate-slide-up"
-        style={{ width: "100%", maxWidth: "500px", padding: "24px", maxHeight: "90vh", overflowY: "auto" }}
+        ref={modalRef} tabIndex={-1}
+        className="portal-modal-panel portal-modal-wide animate-slide-up"
+        role="dialog" aria-modal="true" aria-labelledby="exercise-form-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 20px 0", color: "var(--color-text-primary)" }}>
-          {initialData ? "Edit Exercise" : "Create Exercise"}
-        </h3>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="portal-modal-header">
+          <span className="role-dashboard-eyebrow">Exercise library</span>
+          <h2 id="exercise-form-title">Edit exercise</h2>
+          <p>Update the guide and its evaluation settings.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="portal-modal-form-content">
+          <div className="portal-modal-body">
+          {error && <div className="portal-modal-error" role="alert">{error}</div>}
+          {uploadError && <div className="portal-modal-error" role="alert">{uploadError}</div>}
           <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Exercise Name</label>
-            <input type="text" name="name" className="input" value={formData.name} onChange={handleChange} required />
+            <label htmlFor="exercise-form-name">Exercise name</label>
+            <input id="exercise-form-name" type="text" name="name" className="input" value={formData.name} onChange={handleChange} required />
           </div>
           <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px" }}>Description</label>
+            <label htmlFor="exercise-form-description">Description</label>
             <textarea
+              id="exercise-form-description"
               name="description"
               className="input"
               value={formData.description}
@@ -100,12 +108,27 @@ export function ExerciseForm({
               required
             />
           </div>
+          <div>
+            <label htmlFor="exercise-form-model">AI evaluation model</label>
+            <select
+              id="exercise-form-model"
+              name="analysisModelKey"
+              className="input"
+              value={formData.analysisModelKey}
+              onChange={handleChange}
+            >
+              <option value="">No evaluation model</option>
+              <option value="shoulder_flexion">Shoulder Flexion (shoulder_flexion)</option>
+              <option value="shoulder_abduction">Shoulder Abduction (shoulder_abduction)</option>
+              <option value="side_arms_raise_v1">Side Arms Raise (side_arms_raise_v1)</option>
+            </select>
+          </div>
           
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-              <label style={{ display: "block", fontSize: "14px", fontWeight: 500 }}>Images</label>
-              <button type="button" className="btn btn-secondary" style={{ height: "28px", padding: "0 8px", fontSize: "12px" }} onClick={handleAddImage}>
-                + Add Image
+            <div className="portal-modal-section-heading">
+              <strong>Images</strong>
+              <button type="button" className="btn btn-secondary" onClick={handleAddImage}>
+                Add image
               </button>
             </div>
             {formData.images.length === 0 && (
@@ -114,6 +137,7 @@ export function ExerciseForm({
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {formData.images.map((img, i) => {
                 const uploadFile = async (file: File) => {
+                  setUploadError("");
                   handleImageChange(i, "filepath", "Uploading...");
 
                   const formDataObj = new FormData();
@@ -130,16 +154,16 @@ export function ExerciseForm({
                       handleImageChange(i, "filepath", data.filepath);
                     } else {
                       handleImageChange(i, "filepath", "");
-                      alert(data.message || "Upload failed.");
+                      setUploadError(data.message || "Upload failed.");
                     }
-                  } catch (err) {
+                  } catch {
                     handleImageChange(i, "filepath", "");
-                    alert("Upload failed. Make sure backend is running.");
+                    setUploadError("Upload failed. Make sure backend is running.");
                   }
                 };
 
                 return (
-                  <div key={i} style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid var(--color-border)", padding: "12px", borderRadius: "var(--radius-md)", backgroundColor: "var(--color-page-bg)" }}>
+                  <div key={i} className="portal-modal-image" style={{ display: "flex", gap: "12px", alignItems: "center", border: "1px solid var(--color-border)", padding: "12px", borderRadius: "var(--radius-md)", backgroundColor: "var(--color-page-bg)" }}>
                   {img.filepath && !img.filepath.startsWith("Uploading") ? (
                     <div style={{ width: "64px", height: "64px", borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "white", flexShrink: 0 }}>
                       <img
@@ -236,20 +260,21 @@ export function ExerciseForm({
                       </div>
                     </div>
                   </div>
-                  <button type="button" className="btn btn-danger" style={{ height: "36px", padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => handleRemoveImage(i)}>
-                    X
+                  <button type="button" className="btn btn-danger" aria-label={`Remove image ${i + 1}`} style={{ padding: "0 12px", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => handleRemoveImage(i)}>
+                    Remove
                   </button>
                 </div>
               ); })}
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
+          </div>
+          <div className="portal-modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={isLoading}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={isLoading} style={{ minWidth: "100px" }}>
-              {isLoading ? <div className="spinner spinner-white" style={{ width: "16px", height: "16px" }} /> : "Save"}
+            <button type="submit" className="btn btn-primary" disabled={isLoading}>
+              {isLoading ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Saving…</> : "Save changes"}
             </button>
           </div>
         </form>

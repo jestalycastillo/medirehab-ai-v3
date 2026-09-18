@@ -1,5 +1,7 @@
 import { Role } from "@prisma/client";
 import { Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import {
     archiveExercise,
     archivePatientExerciseAssignment,
@@ -12,18 +14,57 @@ import {
     listExercises,
     restoreExercise,
     updateExercise,
+    updatePatientExercisePlan,
     evaluateExercise
 } from "../services/exercise.service";
-import { recordExerciseSession } from "../services/care.service";
+import { findRecordedExerciseSession, recordExerciseSession } from "../services/care.service";
+import { completeExerciseActivity } from "../services/presence.service";
+import { createLiveCoachingMessage } from "../services/live-coaching.service";
 import { HttpError } from "../utils/httpError";
 import {
     validateAssignExerciseInput,
     validateAssignmentIdParam,
+    validateAssignmentPlanInput,
     validateCreateExerciseInput,
     validateExerciseIdParam,
     validateUpdateExerciseInput
 } from "../utils/exerciseValidation";
+import { validateLiveCoachingInput } from "../utils/liveCoachingValidation";
 import { validateUserIdParam } from "../utils/userValidation";
+
+const MAX_EXERCISE_RECORDING_BYTES = 50 * 1024 * 1024;
+const SUPPORTED_EXERCISE_RECORDING_TYPES = new Set([
+    "application/octet-stream",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
+    "video/x-msvideo"
+]);
+
+const saveSessionVideoFile = async (
+    videoBuffer: Buffer,
+    contentType: string,
+    clientSessionId?: string
+): Promise<string> => {
+    const videosDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads", "videos");
+    if (!fs.existsSync(videosDir)) {
+        await fs.promises.mkdir(videosDir, { recursive: true });
+    }
+    const extMap: Record<string, string> = {
+        "video/webm": ".webm",
+        "video/mp4": ".mp4",
+        "video/quicktime": ".mov",
+        "video/x-msvideo": ".avi",
+        "application/octet-stream": ".webm"
+    };
+    const ext = extMap[contentType.toLowerCase()] || ".webm";
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const safeClientId = clientSessionId ? clientSessionId.replace(/[^a-zA-Z0-9_-]/g, "") : "clip";
+    const filename = `session-${safeClientId}-${uniqueSuffix}${ext}`;
+    const filePath = path.join(videosDir, filename);
+    await fs.promises.writeFile(filePath, videoBuffer);
+    return `/uploads/videos/${filename}`;
+};
 
 const getAuthenticatedUserId = (req: Request): string => {
     if (!req.user?.userId) {
@@ -66,19 +107,36 @@ export const getExercises = async (req: Request, res: Response): Promise<void> =
     }
 };
 
+export const createLiveCoaching = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const patientUserId = getAuthenticatedUserId(req);
+        const exerciseId = validateExerciseIdParam(req.params.exerciseId);
+        const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const input = validateLiveCoachingInput(req.body);
+        const coaching = await createLiveCoachingMessage(
+            patientUserId,
+            exerciseId,
+            assignmentId,
+            input.event,
+            input.side,
+            input.issueType
+        );
+
+        res.status(200).json({ success: true, ...coaching });
+    } catch (error) {
+        handleExerciseError(error, res, "Unable to create live coaching.");
+    }
+};
+
 export const createExerciseCatalogItem = async (
     req: Request,
     res: Response
 ): Promise<void> => {
     try {
-        const input = validateCreateExerciseInput(req.body);
-        const exercise = await createExercise(input);
-
-        res.status(201).json({
-            success: true,
-            message: "Exercise created successfully.",
-            exercise
-        });
+        throw new HttpError(403, "Exercises and AI analysis models are built-in and cannot be manually created.");
     } catch (error) {
         handleExerciseError(error, res, "Unable to create exercise.");
     }
@@ -264,6 +322,23 @@ export const removeAssignedExercise = async (
     }
 };
 
+export const updateAssignedExercisePlan = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const doctorUserId = getAuthenticatedUserId(req);
+        const patientUserId = validateUserIdParam(req.params.patientUserId);
+        const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const assignment = await updatePatientExercisePlan(
+            patientUserId,
+            doctorUserId,
+            assignmentId,
+            validateAssignmentPlanInput(req.body)
+        );
+        res.status(200).json({ success: true, message: "Care plan updated successfully.", assignment });
+    } catch (error) {
+        handleExerciseError(error, res, "Unable to update care plan.");
+    }
+};
+
 export const evaluateExerciseAssignment = async (
     req: Request,
     res: Response
@@ -272,41 +347,107 @@ export const evaluateExerciseAssignment = async (
         const authenticatedUserId = getAuthenticatedUserId(req);
         const exerciseId = validateExerciseIdParam(req.params.exerciseId);
         const assignmentId = validateAssignmentIdParam(req.params.assignmentId);
+        const durationSeconds = Number(req.headers["x-recording-duration-seconds"]);
+        const clientSessionId = String(req.headers["x-client-session-id"] ?? "").trim();
+        if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 3_600) {
+            throw new HttpError(400, "Recording duration must be between 1 and 3600 seconds.");
+        }
+        if (!/^[A-Za-z0-9-]{8,100}$/.test(clientSessionId)) {
+            throw new HttpError(400, "A valid client session identifier is required.");
+        }
+        const selectedSideHeader = req.headers["x-selected-side"];
+        if (
+            selectedSideHeader !== undefined
+            && (typeof selectedSideHeader !== "string" || !["left", "right"].includes(selectedSideHeader.toLowerCase()))
+        ) {
+            throw new HttpError(400, "Selected arm must be left or right.");
+        }
+        const selectedSide = typeof selectedSideHeader === "string"
+            ? selectedSideHeader.toLowerCase() as "left" | "right"
+            : undefined;
+        const visitHeader = req.headers["x-exercise-visit-id"];
+        if (visitHeader !== undefined && (typeof visitHeader !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(visitHeader))) {
+            throw new HttpError(400, "A valid exercise visit identifier is required.");
+        }
+        const visitId = typeof visitHeader === "string" ? visitHeader.toLowerCase() : undefined;
+        const existingSession = await findRecordedExerciseSession(authenticatedUserId, assignmentId, exerciseId, clientSessionId, selectedSide, visitId);
+        if (existingSession) {
+            res.status(200).json({
+                success: true,
+                message: "Exercise session was already recorded.",
+                score: existingSession.score,
+                feedback: existingSession.aiFeedback,
+                evaluatedModelKey: existingSession.evaluatedModelKey,
+                selectedSide: existingSession.selectedSide,
+                visitId: existingSession.visitId,
+                videoUrl: existingSession.videoUrl,
+                sessionId: existingSession.id,
+                adherenceQualified: existingSession.adherenceQualified,
+                qualificationReason: existingSession.qualificationReason,
+                duplicate: true
+            });
+            return;
+        }
+        const contentType = (req.headers["content-type"] ?? "")
+            .split(";", 1)[0]
+            ?.trim()
+            .toLowerCase() ?? "";
 
-        if (!authenticatedUserId) {
-            throw new HttpError(403, "Forbidden. You can only evaluate your own exercises.");
+        if (!SUPPORTED_EXERCISE_RECORDING_TYPES.has(contentType)) {
+            throw new HttpError(415, "Unsupported exercise recording format.");
         }
 
         const chunks: Buffer[] = [];
-        req.on("data", (chunk) => chunks.push(chunk));
-        
-        req.on("end", async () => {
-            try {
-                const videoBuffer = Buffer.concat(chunks);
-                const result = await evaluateExercise(
-                    authenticatedUserId,
-                    exerciseId,
-                    assignmentId,
-                    videoBuffer
-                );
+        let totalBytes = 0;
 
-                const session = await recordExerciseSession(
-                    authenticatedUserId,
-                    assignmentId,
-                    exerciseId,
-                    result.score,
-                    result.feedback
-                );
+        for await (const chunk of req) {
+            const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            totalBytes += bufferChunk.length;
 
-                res.status(200).json({
-                    success: true,
-                    message: "Exercise evaluated successfully.",
-                    ...result,
-                    sessionId: session.id
-                });
-            } catch (innerError) {
-                handleExerciseError(innerError, res, "Error evaluating exercise recording.");
+            if (totalBytes > MAX_EXERCISE_RECORDING_BYTES) {
+                throw new HttpError(413, "Exercise recording exceeds the 50 MB limit.");
             }
+
+            chunks.push(bufferChunk);
+        }
+
+        const videoBuffer = Buffer.concat(chunks);
+        const result = await evaluateExercise(
+            authenticatedUserId,
+            exerciseId,
+            assignmentId,
+            videoBuffer,
+            contentType,
+            selectedSide
+        );
+        const videoUrl = await saveSessionVideoFile(videoBuffer, contentType, clientSessionId);
+        const session = await recordExerciseSession(
+            authenticatedUserId,
+            assignmentId,
+            exerciseId,
+            result.score,
+            result.feedback,
+            {
+                durationSeconds,
+                clientSessionId,
+                evaluatedModelKey: result.evaluatedModelKey,
+                videoUrl,
+                ...(visitId ? { visitId } : {}),
+                ...(result.selectedSide ? { selectedSide: result.selectedSide } : {})
+            }
+        );
+        await completeExerciseActivity(authenticatedUserId, assignmentId);
+
+        res.status(200).json({
+            success: true,
+            message: "Exercise evaluated successfully.",
+            ...result,
+            sessionId: session.id,
+            visitId: session.visitId,
+            videoUrl: session.videoUrl ?? videoUrl,
+            adherenceQualified: session.adherenceQualified,
+            qualificationReason: session.qualificationReason,
+            duplicate: session.duplicate
         });
     } catch (error) {
         handleExerciseError(error, res, "Unable to process exercise evaluation.");

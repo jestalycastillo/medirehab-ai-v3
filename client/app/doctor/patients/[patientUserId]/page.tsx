@@ -3,17 +3,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
+import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type HelpRequest, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { StatCard } from "@/components/ui/stat-card";
 import { PatientForm } from "@/components/doctor/patient-form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
 import { CareTimeline } from "@/components/care/care-timeline";
-
-function ActivityIcon() {
-  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
-}
+import { ScoreSummary } from "@/components/care/score-summary";
+import { formatAssignmentScoreSummary } from "@/lib/score";
+import { DoctorAlerts } from "@/components/care/doctor-alerts";
+import { ProgressReport } from "@/components/care/progress-report";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function buildGeneratedPassword() {
   return `Temp${Math.random().toString(36).slice(2, 8)}!9A`;
@@ -33,6 +33,11 @@ function DetailField({ label, value }: { label: string; value?: string | null })
   );
 }
 
+function formatTimestamp(value?: string | null) {
+  if (!value) return "Never";
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+}
+
 export default function PatientDetailPage() {
   const params = useParams<{ patientUserId: string }>();
   const router = useRouter();
@@ -40,8 +45,13 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<ApiPatient | null>(null);
   const [assignments, setAssignments] = useState<ExerciseAssignment[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
+  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
+  const [lastLoadedAt, setLastLoadedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
@@ -61,14 +71,17 @@ export default function PatientDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [patientRes, assignmentsRes, sessionsRes] = await Promise.all([
+      const [patientRes, assignmentsRes, sessionsRes, helpRes] = await Promise.all([
         api.getPatient(patientUserId),
         api.getAssignedExercises(patientUserId),
         api.getPatientSessions(patientUserId),
+        api.getPatientHelpRequests(patientUserId),
       ]);
       setPatient(patientRes.patient);
       setAssignments(assignmentsRes.assignments);
       setSessions(sessionsRes.sessions);
+      setHelpRequests(helpRes.requests);
+      setLastLoadedAt(Date.now());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load patient.");
     } finally {
@@ -79,17 +92,22 @@ export default function PatientDetailPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPatient();
+    const interval = window.setInterval(() => void loadPatient(), 30_000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientUserId]);
 
   const handleSavePatient = async (data: Partial<ApiPatient & PatientProfile>) => {
     setFormLoading(true);
+    setFormError("");
+    setActionError("");
     try {
       await api.updatePatient(patientUserId, data);
       setIsFormOpen(false);
       await loadPatient();
+      setSuccess("Patient profile updated.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to update patient.");
+      setFormError(err instanceof ApiError ? err.message : "Failed to update patient.");
     } finally {
       setFormLoading(false);
     }
@@ -97,18 +115,27 @@ export default function PatientDetailPage() {
 
   const handleAddComment = async (sessionId: string, body: string) => {
     setCommentLoading(true);
+    setActionError("");
     try {
       await api.addDoctorComment(sessionId, body);
       await loadPatient();
+      setSuccess("Comment added.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to add comment.");
+      setActionError(err instanceof ApiError ? err.message : "Failed to add comment.");
     } finally {
       setCommentLoading(false);
     }
   };
 
+  const handleResolveHelp = async (requestId: string) => {
+    setActionError("");
+    try { await api.resolveHelpRequest(requestId); await loadPatient(); setSuccess("Help request resolved."); }
+    catch (err) { setActionError(err instanceof ApiError ? err.message : "Unable to resolve help request."); }
+  };
+
   const resetPassword = () => {
     if (!patient) return;
+    setActionError("");
     const nextPassword = buildGeneratedPassword();
     setConfirmDialog({
       isOpen: true,
@@ -123,8 +150,9 @@ export default function PatientDetailPage() {
           await api.resetPatientPassword(patient.id, nextPassword);
           setTemporaryPassword(nextPassword);
           setIsTemporaryPasswordOpen(true);
+          setSuccess("Patient password reset.");
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Password reset failed.");
+          setActionError(err instanceof ApiError ? err.message : "Password reset failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -134,6 +162,7 @@ export default function PatientDetailPage() {
 
   const toggleStatus = () => {
     if (!patient) return;
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: `${patient.isActive ? "Deactivate" : "Activate"} Patient`,
@@ -146,8 +175,9 @@ export default function PatientDetailPage() {
         try {
           await api.updatePatientStatus(patient.id, !patient.isActive);
           await loadPatient();
+          setSuccess(`Patient ${patient.isActive ? "deactivated" : "activated"}.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Operation failed.");
+          setActionError(err instanceof ApiError ? err.message : "Status update failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -157,6 +187,7 @@ export default function PatientDetailPage() {
 
   const archivePatient = () => {
     if (!patient) return;
+    setActionError("");
     setConfirmDialog({
       isOpen: true,
       title: "Archive Patient",
@@ -170,7 +201,7 @@ export default function PatientDetailPage() {
           await api.deletePatient(patient.id);
           router.push("/doctor/patients");
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Archive failed.");
+          setActionError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -178,11 +209,11 @@ export default function PatientDetailPage() {
     });
   };
 
-  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: "80px" }}><div className="spinner" /></div>;
+  if (loading) return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patient record…</div>;
 
   if (error || !patient) {
     return (
-      <div className="card" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "#FEF2F2" }}>
+      <div className="card" role="alert" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "var(--color-danger-surface)" }}>
         <h1 style={{ fontSize: "20px", color: "var(--color-danger)", margin: "0 0 8px 0" }}>Unable to load patient</h1>
         <p style={{ margin: "0 0 16px 0", color: "var(--color-text-secondary)" }}>{error || "Patient not found."}</p>
         <Link className="btn btn-secondary" href="/doctor/patients">Back to patients</Link>
@@ -190,34 +221,71 @@ export default function PatientDetailPage() {
     );
   }
 
+  const activeAssignment = assignments.find((assignment) => assignment.activeAt && lastLoadedAt - new Date(assignment.activeAt).getTime() < 2 * 60_000);
+
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header doctor-detail-header">
         <div>
-          <Link href="/doctor/patients" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600, fontSize: "14px" }}>Back to patients</Link>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "8px 0" }}>{patientName(patient)}</h1>
+          <Link className="care-page-back" href="/doctor/patients">Back to patients</Link>
+          <span className="role-dashboard-eyebrow">Doctor / Patient record</span>
+          <h1>{patientName(patient)}</h1>
           <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
             <StatusBadge isActive={patient.isActive} archivedAt={patient.archivedAt} />
             <span style={{ color: "var(--color-text-muted)", fontSize: "14px" }}>{patient.email}</span>
+            <span style={{ color: "var(--color-text-muted)", fontSize: "14px" }}>Last online: {formatTimestamp(patient.lastSeenAt)}</span>
+            {activeAssignment && <span className="badge badge-blue" style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Taking {activeAssignment.exercise.name}</span>}
           </div>
         </div>
-        <div className="responsive-actions">
-          <button className="btn btn-secondary" onClick={() => setIsFormOpen(true)}>Edit Profile</button>
+        <div className="doctor-patient-header-actions">
           <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`}>Assign Exercise</Link>
-          <button className="btn btn-secondary" onClick={resetPassword}>Reset Password</button>
-          <button className="btn btn-secondary" onClick={toggleStatus}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-          {!patient.archivedAt && <button className="btn btn-danger" onClick={archivePatient}>Archive</button>}
+          <details className="doctor-account-actions">
+            <summary>Account options</summary>
+            <div>
+              <button className="btn btn-secondary" onClick={() => { setFormError(""); setIsFormOpen(true); }}>Edit profile</button>
+              <button className="btn btn-secondary" onClick={resetPassword}>Reset password</button>
+              <button className="btn btn-secondary" onClick={toggleStatus}>{patient.isActive ? "Deactivate" : "Activate"}</button>
+              {!patient.archivedAt && <button className="btn btn-danger" onClick={archivePatient}>Archive</button>}
+            </div>
+          </details>
         </div>
-      </div>
+      </header>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-        <StatCard title="Assigned Exercises" value={assignments.length} icon={<ActivityIcon />} />
-        <StatCard title="Latest Score" value={assignments[0]?.result?.score ?? 0} icon={<ActivityIcon />} />
+      {actionError && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{actionError}</div>}
+      {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+
+      <DoctorAlerts sessions={sessions} assignments={assignments} helpRequests={helpRequests} lastSeenAt={patient.lastSeenAt} referenceTime={lastLoadedAt} onResolve={handleResolveHelp} />
+
+      <section className="card no-print" style={{ padding: "24px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Assigned exercises ({assignments.length})</h2>
+          {assignments.length === 0 ? (
+            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>No exercises assigned yet.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {assignments.slice(0, 5).map((assignment) => (
+                <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
+                  <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
+                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{formatAssignmentScoreSummary(assignment)}</div>
+                </div>
+              ))}
+              <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
+            </div>
+          )}
       </section>
 
-      <section className="doctor-two-column">
-        <div className="card" style={{ padding: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 20px 0" }}>Patient Profile</h2>
+      <section className="card no-print" style={{ padding: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
+        </div>
+        <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
+      </section>
+
+      <div className="no-print"><ScoreSummary sessions={sessions} /></div>
+
+      <details className="care-disclosure">
+        <summary>Patient profile</summary>
+        <div className="care-disclosure-content">
           <div className="doctor-form-grid">
             <DetailField label="First Name" value={patient.profile?.firstName} />
             <DetailField label="Last Name" value={patient.profile?.lastName} />
@@ -231,34 +299,35 @@ export default function PatientDetailPage() {
             <DetailField label="Medical Condition" value={patient.profile?.medicalCondition} />
           </div>
         </div>
+      </details>
 
-        <div className="card" style={{ padding: "24px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px 0" }}>Assigned Exercise Summary</h2>
-          {assignments.length === 0 ? (
-            <p style={{ margin: 0, color: "var(--color-text-muted)" }}>No exercises assigned yet.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {assignments.slice(0, 5).map((assignment) => (
-                <div key={assignment.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px" }}>
-                  <div style={{ fontWeight: 600 }}>{assignment.exercise?.name || "Exercise"}</div>
-                  <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Score {assignment.result?.score ?? 0}</div>
-                </div>
-              ))}
-              <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
-            </div>
-          )}
+      <details className="care-disclosure">
+        <summary>Patient activity</summary>
+        <div className="care-disclosure-content">
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "18px" }}>
+          {activeAssignment ? <span className="badge badge-blue" style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Taking {activeAssignment.exercise.name}</span> : <span className="badge badge-blue">Not currently exercising</span>}
         </div>
-      </section>
-
-      <section className="card" style={{ padding: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px", flexWrap: "wrap" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Care Timeline</h2>
-          <span style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{sessions.length} session{sessions.length === 1 ? "" : "s"}</span>
+        <div className="doctor-form-grid">
+          <DetailField label="Last online" value={formatTimestamp(patient.lastSeenAt)} />
+          <DetailField label="Last login" value={formatTimestamp(patient.lastLoginAt)} />
         </div>
-        <CareTimeline sessions={sessions} role="doctor" onCommentSubmit={handleAddComment} isBusy={commentLoading} />
-      </section>
+        {assignments.length > 0 && <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          {assignments.map((assignment) => <div key={assignment.id} className="patient-activity-row" style={{ borderTop: "1px solid var(--color-border)", paddingTop: "10px", display: "grid", gap: "12px", fontSize: "13px", alignItems: "center" }}>
+            <strong>{assignment.exercise.name}</strong>
+            <span style={{ color: "var(--color-text-secondary)" }}>Viewed: {formatTimestamp(assignment.viewedAt)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Started: {formatTimestamp(assignment.startedAt)}</span>
+            <span style={{ color: "var(--color-text-secondary)" }}>Finished: {formatTimestamp(assignment.completedAt)}</span>
+          </div>)}
+        </div>}
+        </div>
+      </details>
 
-      <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} />
+      <details className="care-disclosure progress-report-disclosure">
+        <summary>Patient Rehabilitation Progress Report</summary>
+        <div className="care-disclosure-content"><ProgressReport sessions={sessions} assignments={assignments} subjectName={patientName(patient)} /></div>
+      </details>
+
+      <PatientForm isOpen={isFormOpen} initialData={patient} onSave={handleSavePatient} onCancel={() => setIsFormOpen(false)} isLoading={formLoading} error={formError} />
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         title={confirmDialog.title}

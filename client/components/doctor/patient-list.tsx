@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UsersRound } from "lucide-react";
 import { type ApiPatient } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 
@@ -26,8 +27,10 @@ export function PatientList({
 }) {
   if (patients.length === 0) {
     return (
-      <div style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
-        {emptyMessage}
+      <div className="care-page-empty" role="status">
+        <UsersRound aria-hidden="true" />
+        <strong>{emptyMessage}</strong>
+        <p>Try another search or account status.</p>
       </div>
     );
   }
@@ -35,11 +38,10 @@ export function PatientList({
   return (
     <>
       <div className="doctor-table-wrap" style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+        <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
               <th style={{ padding: "12px 16px", fontWeight: 600 }}>Patient</th>
-              <th style={{ padding: "12px 16px", fontWeight: 600 }}>Email</th>
               <th style={{ padding: "12px 16px", fontWeight: 600 }}>Condition</th>
               <th style={{ padding: "12px 16px", fontWeight: 600 }}>Status</th>
               <th style={{ padding: "12px 16px", fontWeight: 600, textAlign: "right" }}>Actions</th>
@@ -47,13 +49,13 @@ export function PatientList({
           </thead>
           <tbody>
             {patients.map((patient) => (
-              <tr key={patient.id} style={{ borderBottom: "1px solid var(--color-page-bg)" }}>
+              <tr key={patient.id} className="directory-data-row">
                 <td style={{ padding: "12px 16px", fontWeight: 600 }}>
-                  <Link href={`/doctor/patients/${patient.id}`} style={{ color: "var(--color-primary)", textDecoration: "none" }}>
+                  <Link className="directory-person-link" href={`/doctor/patients/${patient.id}`}>
                     {patientName(patient)}
                   </Link>
+                  <div className="directory-row-meta">{patient.email}</div>
                 </td>
-                <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>{patient.email}</td>
                 <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)", fontSize: "14px" }}>{patient.profile?.medicalCondition || "-"}</td>
                 <td style={{ padding: "12px 16px" }}><StatusBadge isActive={patient.isActive} archivedAt={patient.archivedAt} /></td>
                 <td style={{ padding: "12px 16px" }}>
@@ -61,16 +63,15 @@ export function PatientList({
                     <Link className="btn btn-secondary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
                       Assign
                     </Link>
-                    <button className="btn btn-secondary" onClick={() => onEdit(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>Edit</button>
-                    <button className="btn btn-secondary" onClick={() => onResetPassword(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>Reset</button>
-                    <button className="btn btn-secondary" onClick={() => onToggleStatus(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
-                      {patient.isActive ? "Deactivate" : "Activate"}
-                    </button>
-                    {!patient.archivedAt && (
-                      <button className="btn btn-danger" onClick={() => onArchive(patient)} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
-                        Archive
-                      </button>
-                    )}
+                    <details className="list-row-actions">
+                      <summary>More</summary>
+                      <div>
+                        <button onClick={() => onEdit(patient)}>Edit profile</button>
+                        <button onClick={() => onResetPassword(patient)}>Reset password</button>
+                        <button onClick={() => onToggleStatus(patient)}>{patient.isActive ? "Deactivate" : "Activate"}</button>
+                        {!patient.archivedAt && <button onClick={() => onArchive(patient)}>Archive</button>}
+                      </div>
+                    </details>
                   </div>
                 </td>
               </tr>
@@ -84,7 +85,7 @@ export function PatientList({
           <div key={patient.id} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px" }}>
               <div>
-                <Link href={`/doctor/patients/${patient.id}`} style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 700 }}>
+                <Link className="directory-person-link" href={`/doctor/patients/${patient.id}`}>
                   {patientName(patient)}
                 </Link>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{patient.email}</div>
@@ -94,10 +95,15 @@ export function PatientList({
             <div style={{ color: "var(--color-text-secondary)", fontSize: "14px" }}>{patient.profile?.medicalCondition || "No condition recorded."}</div>
             <div className="responsive-actions">
               <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "38px" }}>Assign Exercise</Link>
-              <button className="btn btn-secondary" onClick={() => onEdit(patient)} style={{ height: "38px" }}>Edit</button>
-              <button className="btn btn-secondary" onClick={() => onResetPassword(patient)} style={{ height: "38px" }}>Reset</button>
-              <button className="btn btn-secondary" onClick={() => onToggleStatus(patient)} style={{ height: "38px" }}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-              {!patient.archivedAt && <button className="btn btn-danger" onClick={() => onArchive(patient)} style={{ height: "38px" }}>Archive</button>}
+              <details className="list-row-actions">
+                <summary>More options</summary>
+                <div>
+                  <button onClick={() => onEdit(patient)}>Edit profile</button>
+                  <button onClick={() => onResetPassword(patient)}>Reset password</button>
+                  <button onClick={() => onToggleStatus(patient)}>{patient.isActive ? "Deactivate" : "Activate"}</button>
+                  {!patient.archivedAt && <button onClick={() => onArchive(patient)}>Archive</button>}
+                </div>
+              </details>
             </div>
           </div>
         ))}

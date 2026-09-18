@@ -1,48 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api, type ApiDoctor, type ApiExercise, type ApiPatient, type CareSession, ApiError } from "@/lib/api";
-import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
 import Link from "next/link";
-
-function UsersIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function UserCheckIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <polyline points="16 11 18 13 22 9" />
-    </svg>
-  );
-}
-
-function ActivityIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
-  );
-}
+import { Activity, ChevronRight, CircleAlert, Dumbbell, LoaderCircle, Plus, Stethoscope, UsersRound } from "lucide-react";
+import { api, type ApiDoctor, type ApiExercise, type ApiPatient, type AuditLog, type CareSession, ApiError } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 function getLocalDateKey(date: Date) {
   const year = date.getFullYear();
@@ -51,141 +14,40 @@ function getLocalDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatShortDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(date);
-}
-
-function buildTrendPoints(sessions: CareSession[], days = 7) {
+function buildActivityDays(sessions: CareSession[], days = 7) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   const counts = new Map<string, number>();
-  for (const session of sessions) {
-    const performed = new Date(session.performedAt);
-    const key = getLocalDateKey(performed);
+
+  sessions.forEach((session) => {
+    const key = getLocalDateKey(new Date(session.performedAt));
     counts.set(key, (counts.get(key) ?? 0) + 1);
-  }
+  });
 
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(today);
     date.setDate(today.getDate() - (days - 1 - index));
-    const dateKey = getLocalDateKey(date);
     return {
-      label: formatShortDate(date),
-      dateKey,
-      value: counts.get(dateKey) ?? 0,
+      label: new Intl.DateTimeFormat("en", { weekday: "short" }).format(date),
+      value: counts.get(getLocalDateKey(date)) ?? 0,
     };
   });
 }
 
-function buildDoctorLoad(doctors: ApiDoctor[], patients: ApiPatient[]) {
-  const counts = new Map<string, number>();
-
-  for (const patient of patients) {
-    if (patient.archivedAt) continue;
-    const doctorId = patient.profile?.assignedDoctor?.user?.id;
-    if (!doctorId) continue;
-    counts.set(doctorId, (counts.get(doctorId) ?? 0) + 1);
-  }
-
-  return doctors
-    .map((doctor) => ({ doctor, count: counts.get(doctor.id) ?? 0 }))
-    .filter((item) => !item.doctor.archivedAt || item.count > 0)
-    .sort((a, b) => b.count - a.count || a.doctor.email.localeCompare(b.doctor.email))
-    .slice(0, 6);
+function describeAudit(log: AuditLog) {
+  const action = log.method === "POST" ? "Created" : log.method === "DELETE" ? "Removed" : log.method === "PATCH" || log.method === "PUT" ? "Updated" : "Viewed";
+  const area = log.path.includes("doctor") ? "doctor account"
+    : log.path.includes("patient") ? "patient account"
+      : log.path.includes("exercise") ? "exercise"
+        : log.path.includes("consent") ? "consent settings"
+          : "system record";
+  return `${action} ${area}`;
 }
 
-function TrendChart({ points }: { points: { label: string; value: number }[] }) {
-  const width = 700;
-  const height = 220;
-  const padding = { top: 24, right: 20, bottom: 42, left: 20 };
-  const innerWidth = width - padding.left - padding.right;
-  const innerHeight = height - padding.top - padding.bottom;
-  const maxValue = Math.max(1, ...points.map((point) => point.value));
-
-  const stepX = points.length > 1 ? innerWidth / (points.length - 1) : 0;
-  const coords = points.map((point, index) => {
-    const x = padding.left + index * stepX;
-    const y = padding.top + innerHeight - (point.value / maxValue) * innerHeight;
-    return { x, y, ...point };
-  });
-
-  const polyline = coords.map((point) => `${point.x},${point.y}`).join(" ");
-
-  return (
-    <div style={{ width: "100%" }}>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="220" role="img" aria-label="Care activity trend chart">
-        {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
-          const y = padding.top + innerHeight - tick * innerHeight;
-          return <line key={tick} x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="var(--color-border)" strokeDasharray="4 4" />;
-        })}
-
-        <polyline
-          points={polyline}
-          fill="none"
-          stroke="var(--color-primary)"
-          strokeWidth="3"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-
-        {coords.map((point, index) => (
-          <g key={`${point.label}-${index}`}>
-            <circle cx={point.x} cy={point.y} r="5" fill="var(--color-primary)" />
-            <circle cx={point.x} cy={point.y} r="9" fill="var(--color-primary)" opacity="0.12" />
-            <text x={point.x} y={height - 16} textAnchor="middle" fill="var(--color-text-muted)" fontSize="11">
-              {point.label}
-            </text>
-            <text x={point.x} y={point.y - 12} textAnchor="middle" fill="var(--color-text-primary)" fontSize="12" fontWeight="600">
-              {point.value}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
-function DoctorLoadBars({ items }: { items: { doctor: ApiDoctor; count: number }[] }) {
-  const maxCount = Math.max(1, ...items.map((item) => item.count));
-
-  if (items.length === 0) {
-    return (
-      <p style={{ padding: "24px", textAlign: "center", color: "var(--color-text-muted)", margin: 0 }}>
-        No doctor assignments yet.
-      </p>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-      {items.map((item) => (
-        <div key={item.doctor.id} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "baseline" }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600, color: "var(--color-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {item.doctor.profile ? `Dr. ${item.doctor.profile.firstName} ${item.doctor.profile.lastName}` : item.doctor.email}
-              </div>
-              <div style={{ color: "var(--color-text-muted)", fontSize: "12px" }}>
-                {item.count} active patient{item.count === 1 ? "" : "s"}
-              </div>
-            </div>
-            <StatusBadge isActive={item.doctor.isActive} archivedAt={item.doctor.archivedAt} />
-          </div>
-          <div style={{ height: "10px", background: "var(--color-page-bg)", borderRadius: "999px", overflow: "hidden" }}>
-            <div
-              style={{
-                width: `${(item.count / maxCount) * 100}%`,
-                height: "100%",
-                background: "linear-gradient(90deg, var(--color-primary), #5ca0ff)",
-                borderRadius: "999px",
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+function formatAuditTime(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export default function AdminDashboard() {
@@ -193,6 +55,7 @@ export default function AdminDashboard() {
   const [patients, setPatients] = useState<ApiPatient[]>([]);
   const [exercises, setExercises] = useState<ApiExercise[]>([]);
   const [sessions, setSessions] = useState<CareSession[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -201,165 +64,141 @@ export default function AdminDashboard() {
 
     async function loadData() {
       try {
-        const [docsRes, patientsRes, exRes, sessionsRes] = await Promise.all([
-          api.getDoctors(),
-          api.getAdminPatients(),
-          api.getExercises(),
-          api.getAdminCareSessions(),
+        const [docsRes, patientsRes, exRes, sessionsRes, auditRes] = await Promise.all([
+          api.getDoctors(), api.getAdminPatients(), api.getExercises(), api.getAdminCareSessions(), api.getAuditLogs(),
         ]);
         if (mounted) {
           setDoctors(docsRes.doctors);
           setPatients(patientsRes.patients);
           setExercises(exRes.exercises);
           setSessions(sessionsRes.sessions);
+          setAuditLogs(auditRes.logs);
         }
       } catch (err) {
-        if (mounted) {
-          setError(err instanceof ApiError ? err.message : "Failed to load dashboard data");
-        }
+        if (mounted) setError(err instanceof ApiError ? err.message : "Failed to load dashboard data.");
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 
     loadData();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
-  const activeDoctors = doctors.filter((doctor) => doctor.isActive && !doctor.archivedAt).length;
-  const totalPatients = patients.length;
-
-  const recentDoctors = [...doctors].reverse().slice(0, 5);
-  const recentExercises = [...exercises].reverse().slice(0, 5);
-
-  const careTrend = useMemo(() => buildTrendPoints(sessions, 7), [sessions]);
-  const doctorLoad = useMemo(() => buildDoctorLoad(doctors, patients), [doctors, patients]);
+  const dashboard = useMemo(() => {
+    const activeDoctors = doctors.filter((doctor) => doctor.isActive && !doctor.archivedAt);
+    const activePatients = patients.filter((patient) => patient.isActive && !patient.archivedAt);
+    const activeExercises = exercises.filter((exercise) => !exercise.archivedAt);
+    const patientsWithoutDoctor = activePatients.filter((patient) => !patient.profile?.assignedDoctor?.user?.id);
+    const inactiveDoctors = doctors.filter((doctor) => !doctor.isActive && !doctor.archivedAt);
+    const activityDays = buildActivityDays(sessions);
+    const activityTotal = activityDays.reduce((sum, day) => sum + day.value, 0);
+    const maxActivity = Math.max(1, ...activityDays.map((day) => day.value));
+    return { activeDoctors, activePatients, activeExercises, patientsWithoutDoctor, inactiveDoctors, activityDays, activityTotal, maxActivity };
+  }, [doctors, exercises, patients, sessions]);
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
-        <div className="spinner"></div>
+      <div className="role-dashboard-loading" role="status" aria-label="Loading admin dashboard">
+        <LoaderCircle className="recorder-spin" />
+        <span>Loading platform overview…</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card" style={{ padding: "24px", borderColor: "var(--color-danger)", backgroundColor: "#FEF2F2" }}>
-        <h3 style={{ color: "var(--color-danger)", margin: "0 0 8px 0" }}>Error loading dashboard</h3>
-        <p style={{ color: "var(--color-text-secondary)", margin: 0 }}>{error}</p>
-      </div>
+      <Card className="role-dashboard-error" role="alert">
+        <CardContent className="role-dashboard-error-content">
+          <CircleAlert aria-hidden="true" />
+          <div><CardTitle>We could not load the dashboard</CardTitle><CardDescription>{error}</CardDescription></div>
+          <Button onClick={() => window.location.reload()}>Try again</Button>
+        </CardContent>
+      </Card>
     );
   }
 
+  const setupIssueCount = dashboard.patientsWithoutDoctor.length + dashboard.inactiveDoctors.length;
+
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-      <div>
-        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>
-          Dashboard Overview
-        </h1>
-        <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-          Manage your platform&apos;s doctors, patients, and exercise catalog.
-        </p>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px" }}>
-        <StatCard title="Total Doctors" value={doctors.length} icon={<UsersIcon />} />
-        <StatCard title="Active Doctors" value={activeDoctors} icon={<UserCheckIcon />} />
-        <StatCard title="Total Patients" value={totalPatients} icon={<UsersIcon />} />
-        <StatCard title="Total Exercises" value={exercises.length} icon={<ActivityIcon />} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "24px" }}>
-        <div className="card" style={{ display: "flex", flexDirection: "column", padding: "20px 24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "18px" }}>
-            <div>
-              <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>Care Activity Trend</h2>
-              <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "var(--color-text-muted)" }}>
-                Exercise sessions completed over the last 7 days.
-              </p>
-            </div>
-            <Link href="/admin/patients" style={{ fontSize: "14px", color: "var(--color-primary)", textDecoration: "none", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
-              View patients <ArrowRightIcon />
-            </Link>
-          </div>
-          <TrendChart points={careTrend} />
+    <div className="role-dashboard admin-simple-dashboard animate-fade-in">
+      <header className="role-dashboard-header">
+        <div>
+          <span className="role-dashboard-eyebrow">Admin dashboard</span>
+          <h1>Platform overview</h1>
+          <p>Manage care accounts and keep the exercise library ready.</p>
         </div>
-
-        <div className="card" style={{ display: "flex", flexDirection: "column", padding: "20px 24px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "18px" }}>
-            <div>
-              <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>Patient Load by Doctor</h2>
-              <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "var(--color-text-muted)" }}>
-                Active patients assigned to each doctor.
-              </p>
-            </div>
-            <Link href="/admin/doctors" style={{ fontSize: "14px", color: "var(--color-primary)", textDecoration: "none", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
-              View doctors <ArrowRightIcon />
-            </Link>
-          </div>
-          <DoctorLoadBars items={doctorLoad} />
+        <div className="role-dashboard-actions">
+          <Button variant="outline" nativeButton={false} render={<Link href="/admin/doctors" />}><Stethoscope aria-hidden="true" /> Manage doctors</Button>
+          <Button nativeButton={false} render={<Link href="/admin/patients?create=1" />}><Plus aria-hidden="true" /> Create patient</Button>
         </div>
-      </div>
+      </header>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "24px" }}>
-        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>Recent Doctors</h2>
-            <Link href="/admin/doctors" style={{ fontSize: "14px", color: "var(--color-primary)", textDecoration: "none", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
-              View all <ArrowRightIcon />
-            </Link>
-          </div>
-          <div style={{ padding: "12px 0" }}>
-            {recentDoctors.length === 0 ? (
-              <p style={{ padding: "24px", textAlign: "center", color: "var(--color-text-muted)", margin: 0 }}>No doctors found.</p>
-            ) : (
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {recentDoctors.map((doctor) => (
-                  <li key={doctor.id} style={{ padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--color-page-bg)" }}>
-                    <div>
-                      <div style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>
-                        {doctor.profile ? `Dr. ${doctor.profile.firstName} ${doctor.profile.lastName}` : "Unknown"}
-                      </div>
-                      <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>{doctor.email}</div>
-                    </div>
-                    <StatusBadge isActive={doctor.isActive} archivedAt={doctor.archivedAt} />
-                  </li>
+      <Card className="admin-overview-card">
+        <CardHeader>
+          <CardTitle>Needs setup</CardTitle>
+          <CardDescription>{setupIssueCount > 0 ? `${setupIssueCount} item${setupIssueCount === 1 ? "" : "s"} to check` : "No account setup issues"}</CardDescription>
+        </CardHeader>
+        <CardContent className="admin-setup-list">
+          {setupIssueCount === 0 ? (
+            <div className="admin-setup-clear"><strong>Everything is ready</strong><p>Active patients have a doctor and accounts are ready to use.</p></div>
+          ) : (
+            <>
+              {dashboard.patientsWithoutDoctor.length > 0 && (
+                <Link href="/admin/patients"><span>Patients without a doctor</span><strong>{dashboard.patientsWithoutDoctor.length}</strong><ChevronRight /></Link>
+              )}
+              {dashboard.inactiveDoctors.length > 0 && (
+                <Link href="/admin/doctors"><span>Inactive doctors</span><strong>{dashboard.inactiveDoctors.length}</strong><ChevronRight /></Link>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <nav className="role-dashboard-quick-links" aria-label="Admin overview">
+        <Link href="/admin/doctors"><Stethoscope aria-hidden="true" /><span>Doctors</span><strong>{dashboard.activeDoctors.length} active</strong><ChevronRight aria-hidden="true" /></Link>
+        <Link href="/admin/patients"><UsersRound aria-hidden="true" /><span>Patients</span><strong>{dashboard.activePatients.length} active</strong><ChevronRight aria-hidden="true" /></Link>
+        <Link href="/admin/exercises"><Dumbbell aria-hidden="true" /><span>Exercises</span><strong>{dashboard.activeExercises.length} available</strong><ChevronRight aria-hidden="true" /></Link>
+      </nav>
+
+      <details className="role-dashboard-disclosure">
+        <summary><span>Activity and recent changes</span><span>{dashboard.activityTotal} sessions this week</span><ChevronRight aria-hidden="true" /></summary>
+        <div className="role-dashboard-disclosure-content">
+          <Card className="role-summary-card">
+            <CardHeader>
+              <div className="role-summary-heading">
+                <span className="role-summary-icon"><Activity /></span>
+                <div><CardTitle>Care activity</CardTitle><CardDescription>Exercise sessions in the last 7 days</CardDescription></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="admin-activity-total"><strong>{dashboard.activityTotal}</strong><span>sessions completed</span></div>
+              <div className="admin-activity-bars" aria-label={`${dashboard.activityTotal} sessions in the last seven days`}>
+                {dashboard.activityDays.map((day) => (
+                  <div key={day.label}><i style={{ height: `${Math.max(8, (day.value / dashboard.maxActivity) * 100)}%` }} /><strong>{day.value}</strong><span>{day.label}</span></div>
                 ))}
-              </ul>
-            )}
-          </div>
-        </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>Recent Exercises</h2>
-            <Link href="/admin/exercises" style={{ fontSize: "14px", color: "var(--color-primary)", textDecoration: "none", fontWeight: 500, display: "flex", alignItems: "center", gap: "4px" }}>
-              View all <ArrowRightIcon />
-            </Link>
-          </div>
-          <div style={{ padding: "12px 0" }}>
-            {recentExercises.length === 0 ? (
-              <p style={{ padding: "24px", textAlign: "center", color: "var(--color-text-muted)", margin: 0 }}>No exercises found.</p>
-            ) : (
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {recentExercises.map((exercise) => (
-                  <li key={exercise.id} style={{ padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--color-page-bg)" }}>
-                    <div style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>
-                      {exercise.name || exercise.id}
-                    </div>
-                    <StatusBadge isActive={!exercise.archivedAt} archivedAt={exercise.archivedAt} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <Card className="admin-audit-card">
+            <CardHeader className="admin-audit-header">
+              <div><CardTitle>Recent changes</CardTitle><CardDescription>The latest account and care updates</CardDescription></div>
+            </CardHeader>
+            <CardContent className="admin-audit-list">
+              {auditLogs.length === 0 ? (
+                <p className="role-no-update">No recorded changes yet.</p>
+              ) : auditLogs.slice(0, 5).map((log) => (
+                <div className="admin-audit-row" key={log.id}>
+                  <span className={log.statusCode < 400 ? "admin-audit-success" : "admin-audit-failed"} />
+                  <div><strong>{describeAudit(log)}</strong><small>{log.actor?.email ?? "Former user"}</small></div>
+                  <time>{formatAuditTime(log.createdAt)}</time>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </details>
     </div>
   );
 }

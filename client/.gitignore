@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# local submission notes
+/docs/
+
 # next.js
 /.next/
 /out/

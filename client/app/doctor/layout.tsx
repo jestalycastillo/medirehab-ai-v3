@@ -2,8 +2,10 @@
 
 import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api";
+import { QuickChat } from "@/components/care/quick-chat";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -77,7 +79,7 @@ function ActivityIcon() {
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/doctor/dashboard", icon: <LayoutDashboardIcon /> },
   { name: "Patients", href: "/doctor/patients", icon: <UsersIcon /> },
-  { name: "Exercise Assignments", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
+  { name: "Exercises", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
   { name: "Notifications", href: "/doctor/notifications", icon: <BellIcon /> },
   { name: "Profile", href: "/doctor/profile", icon: <SettingsIcon /> },
 ];
@@ -87,6 +89,23 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setLogoutError("");
+    try {
+      await logout();
+    } catch {
+      setLogoutError("Unable to sign out. Please check your connection and try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -105,16 +124,39 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (loading || user?.role !== "DOCTOR" || user.mustChangePassword) return;
+    let active = true;
+    const loadUnreadCount = () => {
+      void api.getMyNotifications()
+        .then((res) => {
+          if (active) setUnreadNotificationsCount(res.notifications.filter((n) => !n.isRead).length);
+        })
+        .catch(() => undefined);
+    };
+    const heartbeat = () => { void api.sendPresenceHeartbeat().catch(() => undefined); };
+    heartbeat();
+    loadUnreadCount();
+    const interval = window.setInterval(() => {
+      heartbeat();
+      loadUnreadCount();
+    }, 15_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [loading, user, pathname]);
+
   if (loading || !user || user.role !== "DOCTOR" || user.mustChangePassword) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div className="spinner" style={{ width: "32px", height: "32px" }} />
+      <div className="role-dashboard-loading" role="status" style={{ minHeight: "100vh" }}>
+        <div className="spinner" style={{ width: "32px", height: "32px" }} aria-hidden="true" />Loading doctor portal…
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       {/* ── Desktop Sidebar ── */}
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -135,15 +177,17 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         <nav style={{ flex: 1, padding: "0 12px", display: "flex", flexDirection: "column", gap: "4px" }}>
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || (item.href !== "/doctor/dashboard" && pathname.startsWith(item.href));
+            const isNotifications = item.href === "/doctor/notifications";
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className="admin-nav-item"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "12px",
+                  justifyContent: "space-between",
                   padding: "10px 12px",
                   borderRadius: "var(--radius-md)",
                   color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
@@ -153,10 +197,29 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                   transition: "all 0.15s ease",
                 }}
               >
-                <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
-                  {item.icon}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
+                    {item.icon}
+                  </div>
+                  <span>{item.name}</span>
                 </div>
-                {item.name}
+                {isNotifications && unreadNotificationsCount > 0 && (
+                  <span
+                    style={{
+                      backgroundColor: "var(--color-primary)",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: "999px",
+                      minWidth: "20px",
+                      textAlign: "center",
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -164,7 +227,10 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
 
         <div style={{ padding: "24px 12px", borderTop: "1px solid var(--color-border)" }}>
           <button
-            onClick={logout}
+            ref={mobileMenuButtonRef}
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
             className="admin-nav-item"
             style={{
               display: "flex",
@@ -185,13 +251,13 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <div style={{ color: "var(--color-text-muted)" }}>
               <LogOutIcon />
             </div>
-            Sign out
+            {isLoggingOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </aside>
 
       {/* ── Main Content Area ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="portal-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         {/* Mobile Header */}
         <header className="admin-mobile-header" style={{
           display: "none",
@@ -205,17 +271,59 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Doctor Portal</span>
           </div>
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
-          >
-            <MenuIcon />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Link
+              href="/doctor/notifications"
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--color-text-primary)",
+                textDecoration: "none",
+              }}
+              aria-label="Notifications"
+            >
+              <BellIcon />
+              {unreadNotificationsCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-7px",
+                    backgroundColor: "var(--color-primary)",
+                    color: "#ffffff",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    padding: "1px 5px",
+                    borderRadius: "999px",
+                    lineHeight: "1.2",
+                  }}
+                >
+                  {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                </span>
+              )}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={isMobileMenuOpen}
+              style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
+            >
+              <MenuIcon />
+            </button>
+          </div>
         </header>
 
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
-          <div className="admin-mobile-menu" style={{
+          <div className="admin-mobile-menu" onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsMobileMenuOpen(false);
+              mobileMenuButtonRef.current?.focus();
+            }
+          }} style={{
             display: "none",
             backgroundColor: "var(--color-surface)",
             borderBottom: "1px solid var(--color-border)",
@@ -224,14 +332,16 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/doctor/dashboard" && pathname.startsWith(item.href));
+                const isNotifications = item.href === "/doctor/notifications";
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive ? "page" : undefined}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "12px",
+                      justifyContent: "space-between",
                       padding: "12px",
                       borderRadius: "var(--radius-md)",
                       color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)",
@@ -240,15 +350,36 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                       textDecoration: "none",
                     }}
                   >
-                    <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
-                      {item.icon}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>
+                        {item.icon}
+                      </div>
+                      <span>{item.name}</span>
                     </div>
-                    {item.name}
+                    {isNotifications && unreadNotificationsCount > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: "var(--color-primary)",
+                          color: "#ffffff",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: "999px",
+                          minWidth: "20px",
+                          textAlign: "center",
+                          lineHeight: "1.3",
+                        }}
+                      >
+                        {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
               <button
-                onClick={logout}
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -267,16 +398,18 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
                 }}
               >
                 <div style={{ color: "var(--color-text-muted)" }}><LogOutIcon /></div>
-                Sign out
+                {isLoggingOut ? "Signing out…" : "Sign out"}
               </button>
             </nav>
           </div>
         )}
 
         <main style={{ flex: 1, padding: "32px", overflowY: "auto" }} className="admin-main-content">
+          {logoutError && <div className="admin-feedback admin-feedback-error" role="alert">{logoutError}</div>}
           {children}
         </main>
       </div>
+      <QuickChat role="doctor" />
     </div>
   );
 }

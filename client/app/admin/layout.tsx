@@ -2,7 +2,7 @@
 
 import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 /* ── Icons ── */
@@ -70,7 +70,7 @@ const NAV_ITEMS = [
   { name: "Doctors", href: "/admin/doctors", icon: <UsersIcon /> },
   { name: "Patients", href: "/admin/patients", icon: <UsersIcon /> },
   { name: "Exercises", href: "/admin/exercises", icon: <ActivityIcon /> },
-  { name: "Settings", href: "/admin/profile", icon: <SettingsIcon /> },
+  { name: "Profile", href: "/admin/profile", icon: <SettingsIcon /> },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -78,6 +78,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    setLogoutError("");
+    try {
+      await logout();
+    } catch {
+      setLogoutError("Unable to sign out. Please check your connection and try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading) {
@@ -99,14 +115,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading || !user || user.role !== "ADMIN" || user.mustChangePassword) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div className="spinner" style={{ width: "32px", height: "32px" }} />
+      <div className="role-dashboard-loading" role="status" style={{ minHeight: "100vh" }}>
+        <div className="spinner" style={{ width: "32px", height: "32px" }} aria-hidden="true" />Loading admin portal…
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       {/* ── Desktop Sidebar ── */}
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -131,6 +147,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className="admin-nav-item"
                 style={{
                   display: "flex",
@@ -156,7 +173,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div style={{ padding: "24px 12px", borderTop: "1px solid var(--color-border)" }}>
           <button
-            onClick={logout}
+            ref={mobileMenuButtonRef}
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
             style={{
               display: "flex",
               alignItems: "center",
@@ -184,13 +204,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div style={{ color: "var(--color-text-muted)" }}>
               <LogOutIcon />
             </div>
-            Sign out
+            {isLoggingOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </aside>
 
       {/* ── Main Content Area ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div className="portal-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         {/* Mobile Header */}
         <header className="admin-mobile-header" style={{
           display: "none",
@@ -205,7 +225,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Admin Portal</span>
           </div>
           <button
+            type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isMobileMenuOpen}
             style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}
           >
             <MenuIcon />
@@ -214,7 +237,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Mobile Menu Dropdown */}
         {isMobileMenuOpen && (
-          <div className="admin-mobile-menu" style={{
+          <div className="admin-mobile-menu" onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsMobileMenuOpen(false);
+              mobileMenuButtonRef.current?.focus();
+            }
+          }} style={{
             display: "none",
             backgroundColor: "var(--color-surface)",
             borderBottom: "1px solid var(--color-border)",
@@ -227,6 +255,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive ? "page" : undefined}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -247,7 +276,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 );
               })}
               <button
-                onClick={logout}
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -266,13 +297,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }}
               >
                 <div style={{ color: "var(--color-text-muted)" }}><LogOutIcon /></div>
-                Sign out
+                {isLoggingOut ? "Signing out…" : "Sign out"}
               </button>
             </nav>
           </div>
         )}
 
         <main style={{ flex: 1, padding: "32px", overflowY: "auto" }} className="admin-main-content">
+          {logoutError && <div className="admin-feedback admin-feedback-error" role="alert">{logoutError}</div>}
           {children}
         </main>
       </div>

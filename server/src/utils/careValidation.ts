@@ -1,5 +1,5 @@
 import { HttpError } from "./httpError";
-import { optionalString, requireString } from "./validation";
+import { ensureAtLeastOneDefined, optionalString, requireString } from "./validation";
 
 export type ValidatedCheckInInput = {
     painLevel: number;
@@ -8,9 +8,16 @@ export type ValidatedCheckInInput = {
     note?: string | undefined;
 };
 
+export type ValidatedSessionUpdateInput = {
+    aiFeedback?: string[];
+};
 
 
 export type ValidatedCommentInput = {
+    body: string;
+};
+
+export type ValidatedChatMessageInput = {
     body: string;
 };
 
@@ -33,6 +40,27 @@ const validateScale = (value: unknown, fieldName: string): number => {
 
     return value;
 };
+
+const validateFeedbackArray = (value: unknown): string[] => {
+    if (value === undefined) {
+        return [];
+    }
+
+    if (!Array.isArray(value)) {
+        throw new HttpError(400, "AI feedback must be an array.");
+    }
+
+    return value
+        .map((item, index) => {
+            if (typeof item !== "string") {
+                throw new HttpError(400, `AI feedback item ${index + 1} must be a string.`);
+            }
+
+            return item.trim();
+        })
+        .filter(Boolean);
+};
+
 export const validateCheckInInput = (
     body: Record<string, unknown>
 ): ValidatedCheckInInput => ({
@@ -42,8 +70,31 @@ export const validateCheckInInput = (
     note: optionalString(body.note, "Note")
 });
 
+export const validateSessionUpdateInput = (
+    body: Record<string, unknown>
+): ValidatedSessionUpdateInput => {
+    const input = {
+        aiFeedback: validateFeedbackArray(body.aiFeedback)
+    };
+
+    ensureAtLeastOneDefined(input);
+    return input;
+};
+
 export const validateCommentInput = (
     body: Record<string, unknown>
 ): ValidatedCommentInput => ({
     body: requireString(body.body, "Comment")
 });
+
+export const validateChatMessageInput = (
+    body: Record<string, unknown>
+): ValidatedChatMessageInput => {
+    const message = requireString(body.body, "Message");
+
+    if (message.length > 2_000) {
+        throw new HttpError(400, "Message must be 2,000 characters or fewer.");
+    }
+
+    return { body: message };
+};

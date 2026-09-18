@@ -1,16 +1,21 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { HttpError } from "../utils/httpError";
+import { roundScore } from "../utils/score";
+import { calculateAssignmentAdherence } from "../utils/adherence";
 import {
     ValidatedAssignExerciseInput,
+    ValidatedAssignmentPlanInput,
     ValidatedCreateExerciseInput,
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
+import { resolveExerciseAnalysisModel } from "../utils/exerciseAnalysisModel";
 
 const exerciseSelect = {
     id: true,
     name: true,
     description: true,
+    analysisModelKey: true,
     isActive: true,
     archivedAt: true,
     images: {
@@ -28,6 +33,21 @@ const assignmentSelect = {
     id: true,
     assignedAt: true,
     archivedAt: true,
+    viewedAt: true,
+    startedAt: true,
+    activeAt: true,
+    completedAt: true,
+    targetSessionsPerWeek: true,
+    targetSessionsPerDay: true,
+    scheduledDays: true,
+    targetSets: true,
+    targetRepsPerSet: true,
+    targetDurationSeconds: true,
+    minimumScore: true,
+    minimumDurationSeconds: true,
+    dueDate: true,
+    reviewDate: true,
+    doctorInstructions: true,
     exercise: {
         select: exerciseSelect
     },
@@ -36,8 +56,30 @@ const assignmentSelect = {
             id: true,
             score: true
         }
+    },
+    sessions: {
+        select: { id: true, visitId: true, selectedSide: true, performedAt: true, score: true, adherenceQualified: true },
+        orderBy: { performedAt: "desc" as const },
+        take: 500
     }
 } satisfies Prisma.ExerciseAssignmentSelect;
+
+const withAdherence = <T extends {
+    assignedAt: Date;
+    targetSessionsPerWeek: number;
+    targetSessionsPerDay: number | null;
+    scheduledDays: number[];
+    sessions: { id: string; visitId: string | null; selectedSide: string | null; performedAt: Date; score: number | null; adherenceQualified: boolean }[];
+}>(assignment: T) => {
+    const latestScoresBySide: { left?: number; right?: number } = {};
+    for (const session of assignment.sessions) {
+        if ((session.selectedSide === "left" || session.selectedSide === "right")
+            && session.score !== null && latestScoresBySide[session.selectedSide] === undefined) {
+            latestScoresBySide[session.selectedSide] = session.score;
+        }
+    }
+    return { ...assignment, latestScoresBySide, adherence: calculateAssignmentAdherence(assignment) };
+};
 
 const getDoctorProfileIdForUser = async (doctorUserId: string): Promise<string> => {
     const doctorProfile = await prisma.doctorProfile.findUnique({
@@ -135,6 +177,7 @@ export const createExercise = async (input: ValidatedCreateExerciseInput) => {
         data: {
             name: input.name,
             description: input.description,
+            ...(input.analysisModelKey !== undefined ? { analysisModelKey: input.analysisModelKey } : {}),
             images: {
                 create: toImageCreateMany(input)
             }
@@ -176,6 +219,7 @@ export const updateExercise = async (
             data: {
                 ...(input.name !== undefined ? { name: input.name } : {}),
                 ...(input.description !== undefined ? { description: input.description } : {}),
+                ...(input.analysisModelKey !== undefined ? { analysisModelKey: input.analysisModelKey } : {}),
                 ...(input.images !== undefined
                     ? { images: { create: toImageCreateMany(input) } }
                     : {})
@@ -258,7 +302,7 @@ export const listAssignedExercisesForDoctorPatient = async (
         doctorUserId
     );
 
-    return prisma.exerciseAssignment.findMany({
+    const assignments = await prisma.exerciseAssignment.findMany({
         where: {
             patientProfileId,
             archivedAt: null
@@ -266,12 +310,13 @@ export const listAssignedExercisesForDoctorPatient = async (
         select: assignmentSelect,
         orderBy: { assignedAt: "desc" }
     });
+    return assignments.map(withAdherence);
 };
 
 export const listAssignedExercisesForPatient = async (patientUserId: string) => {
     const patientProfileId = await getPatientProfileIdForUser(patientUserId);
 
-    return prisma.exerciseAssignment.findMany({
+    const assignments = await prisma.exerciseAssignment.findMany({
         where: {
             patientProfileId,
             archivedAt: null
@@ -279,6 +324,7 @@ export const listAssignedExercisesForPatient = async (patientUserId: string) => 
         select: assignmentSelect,
         orderBy: { assignedAt: "desc" }
     });
+    return assignments.map(withAdherence);
 };
 
 export const assignExerciseToPatient = async (
@@ -311,7 +357,7 @@ export const assignExerciseToPatient = async (
     }
 
     if (existingAssignment) {
-        return prisma.exerciseAssignment.update({
+        const restored = await prisma.exerciseAssignment.update({
             where: { id: existingAssignment.id },
             data: {
                 archivedAt: null,
@@ -326,9 +372,10 @@ export const assignExerciseToPatient = async (
             },
             select: assignmentSelect
         });
+        return withAdherence(restored);
     }
 
-    return prisma.exerciseAssignment.create({
+    const created = await prisma.exerciseAssignment.create({
         data: {
             exerciseId: input.exerciseId,
             patientProfileId,
@@ -339,6 +386,7 @@ export const assignExerciseToPatient = async (
         },
         select: assignmentSelect
     });
+    return withAdherence(created);
 };
 
 export const archivePatientExerciseAssignment = async (
@@ -364,85 +412,255 @@ export const archivePatientExerciseAssignment = async (
         throw new HttpError(404, "Assigned exercise not found.");
     }
 
-    return prisma.exerciseAssignment.update({
+    const archived = await prisma.exerciseAssignment.update({
         where: { id: assignment.id },
         data: { archivedAt: new Date() },
         select: assignmentSelect
     });
+    return withAdherence(archived);
 };
+
+export const updatePatientExercisePlan = async (
+    patientUserId: string,
+    doctorUserId: string,
+    assignmentId: string,
+    input: ValidatedAssignmentPlanInput
+) => {
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const assignment = await prisma.exerciseAssignment.findFirst({
+        where: { id: assignmentId, patientProfileId, archivedAt: null },
+        select: { id: true }
+    });
+    if (!assignment) throw new HttpError(404, "Assigned exercise not found.");
+
+    const updated = await prisma.exerciseAssignment.update({
+        where: { id: assignment.id },
+        data: input,
+        select: assignmentSelect
+    });
+    const patient = await prisma.user.findUnique({ where: { id: patientUserId }, select: { careNotificationsEnabled: true } });
+    if (patient?.careNotificationsEnabled) {
+        await prisma.notification.create({
+            data: {
+                userId: patientUserId,
+                type: "REMINDER",
+                title: "Care plan updated",
+                body: `Your plan for ${updated.exercise.name} was updated.`,
+                link: "/patient/exercises",
+                meta: { assignmentId: updated.id }
+            }
+        });
+    }
+    return withAdherence(updated);
+};
+
+type AiServiceResponse = {
+    success?: boolean;
+    message?: string;
+    detail?: string;
+    evaluationId?: string;
+    score?: unknown;
+    feedback?: unknown;
+};
+
+const DEFAULT_AI_SERVICE_TIMEOUT_MS = 120_000;
+
+const getAiServiceBaseUrl = (): string => {
+    const configuredUrl = process.env.AI_SERVICE_URL?.trim();
+
+    if (!configuredUrl) {
+        throw new HttpError(503, "Exercise evaluation service is not configured.");
+    }
+
+    try {
+        return new URL(configuredUrl).toString().replace(/\/$/, "");
+    } catch {
+        throw new HttpError(503, "Exercise evaluation service is not configured.");
+    }
+};
+
+const getAiServiceTimeoutMs = (): number => {
+    const configuredTimeout = process.env.AI_SERVICE_TIMEOUT_MS?.trim();
+
+    if (!configuredTimeout) {
+        return DEFAULT_AI_SERVICE_TIMEOUT_MS;
+    }
+
+    const timeoutMs = Number(configuredTimeout);
+
+    if (
+        !Number.isInteger(timeoutMs)
+        || timeoutMs < 1_000
+        || timeoutMs > 600_000
+    ) {
+        throw new HttpError(503, "Exercise evaluation timeout is not configured correctly.");
+    }
+
+    return timeoutMs;
+};
+
+const fetchAiService = async (
+    url: string,
+    requestInit: RequestInit
+): Promise<Response> => {
+    const abortController = new AbortController();
+    const timeout = setTimeout(
+        () => abortController.abort(),
+        getAiServiceTimeoutMs()
+    );
+
+    try {
+        return await fetch(url, {
+            ...requestInit,
+            signal: abortController.signal
+        });
+    } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+            throw new HttpError(504, "Exercise evaluation timed out. Please try again.");
+        }
+
+        throw new HttpError(502, "Exercise evaluation service is unavailable.");
+    } finally {
+        clearTimeout(timeout);
+    }
+};
+
+const readAiServiceResponse = async (
+    response: Response
+): Promise<AiServiceResponse> => {
+    try {
+        return await response.json() as AiServiceResponse;
+    } catch {
+        throw new HttpError(502, "Exercise evaluation service returned an invalid response.");
+    }
+};
+
+const getAiServiceErrorMessage = (
+    response: AiServiceResponse,
+    fallback: string
+): string => response.message ?? response.detail ?? fallback;
 
 export const evaluateExercise = async (
     patientUserId: string,
     exerciseId: string,
     assignmentId: string,
-    videoBuffer: Buffer
+    videoBuffer: Buffer,
+    videoContentType: string,
+    selectedSide?: "left" | "right"
 ) => {
-    const uint8Array = new Uint8Array(videoBuffer);
+    const assignment = await prisma.exerciseAssignment.findFirst({
+        where: {
+            id: assignmentId,
+            exerciseId,
+            archivedAt: null,
+            patientProfile: {
+                is: { userId: patientUserId }
+            },
+            exercise: {
+                is: {
+                    isActive: true,
+                    archivedAt: null
+                }
+            }
+        },
+        select: {
+            id: true,
+            exercise: {
+                select: { analysisModelKey: true }
+            }
+        }
+    });
 
+    if (!assignment) {
+        throw new HttpError(404, "Assigned exercise not found.");
+    }
+
+    const modelKey = assignment.exercise.analysisModelKey;
+
+    if (!modelKey) {
+        throw new HttpError(409, "Exercise evaluation is not available for this exercise.");
+    }
+
+    if (videoBuffer.length === 0) {
+        throw new HttpError(400, "Exercise recording is empty.");
+    }
+
+    const resolvedModel = resolveExerciseAnalysisModel(modelKey, selectedSide);
+
+    const uint8Array = new Uint8Array(videoBuffer);
     const formData = new FormData();
     formData.append(
         "video",
-        new Blob([uint8Array], { type: "video/webm" }),
+        new Blob([uint8Array], { type: videoContentType }),
         "exercise.webm"
     );
 
-    const res = await fetch(
-        `http://127.0.0.1:8000/trace/${patientUserId}/${exerciseId}`,
+    const aiServiceBaseUrl = getAiServiceBaseUrl();
+    const encodedModelKey = encodeURIComponent(resolvedModel.evaluatedModelKey);
+    const evaluationResponse = await fetchAiService(
+        `${aiServiceBaseUrl}/evaluate/${encodedModelKey}`,
         {
             method: "POST",
-            body: formData,
+            body: formData
         }
     );
-    const data = await res.json();
-    
-    let score = 0;
-    let feedback: string[] = [];
+    const evaluationResult = await readAiServiceResponse(evaluationResponse);
 
-    if(data.success) {
-        const res = await fetch(`http://127.0.0.1:8000/evaluate/${patientUserId}/${exerciseId}`);
-        const data = await res.json();
-
-        if(!data.success) {
-            throw new HttpError(500, "Failed to evaluate exercise.");
-        }
-
-        score = data.score;
-        feedback = data.feedback || [];
+    if (!evaluationResponse.ok || evaluationResult.success !== true) {
+        throw new HttpError(
+            evaluationResponse.status >= 400 && evaluationResponse.status < 500
+                ? evaluationResponse.status
+                : 502,
+            getAiServiceErrorMessage(evaluationResult, "Failed to evaluate exercise.")
+        );
     }
 
-    // Find patient profile
-    // const patient = await prisma.patientProfile.findUnique({
-    //     where: { userId: patientUserId }
-    // });
+    if (
+        typeof evaluationResult.score !== "number"
+        || !Number.isFinite(evaluationResult.score)
+        || evaluationResult.score < 0
+        || evaluationResult.score > 100
+    ) {
+        throw new HttpError(502, "Exercise evaluation service returned an invalid score.");
+    }
 
-    // if (!patient) {
-    //     throw new HttpError(404, "Patient profile not found.");
-    // }
+    const roundedScore = roundScore(evaluationResult.score);
+    const result = await prisma.exerciseResult.upsert({
+        where: { assignmentId: assignment.id },
+        create: {
+            assignmentId: assignment.id,
+            score: roundedScore
+        },
+        update: {
+            score: roundedScore
+        },
+        select: { score: true }
+    });
 
-    // Verify the assignment belongs to this patient and exercise catalog item
-    // const assignment = await prisma.exerciseAssignment.findFirst({
-    //     where: {
-    //         id: assignmentId,
-    //         patientProfileId: patient.id,
-    //         exerciseId: exerciseId
-    //     }
-    // });
+    let feedback = Array.isArray(evaluationResult.feedback)
+        ? evaluationResult.feedback.filter((item): item is string => typeof item === "string")
+        : [];
 
-    // if (!assignment) {
-    //     throw new HttpError(404, "Assignment not found.");
-    // }
+    if (feedback.length === 0) {
+        const exerciseName = modelKey.includes("abduction") ? "Shoulder Abduction" : "Shoulder Flexion";
+        const arm = selectedSide ? `${selectedSide} arm` : "arm";
+        if (roundedScore >= 85) {
+            feedback = [
+                `Excellent form and control on your ${exerciseName} with your ${arm}.`,
+                "Target range of motion and movement trajectory were consistently achieved."
+            ];
+        } else if (roundedScore >= 70) {
+            feedback = [
+                `Good effort on your ${exerciseName}.`,
+                `Continue focusing on steady cadence and keeping your ${arm} aligned throughout the elevation.`
+            ];
+        } else {
+            feedback = [
+                `Completed session for ${exerciseName}.`,
+                `Focus on raising your ${arm} smoothly to shoulder height without leaning your torso.`
+            ];
+        }
+    }
 
-    // Update or create the result
-    // const result = await prisma.exerciseResult.upsert({
-    //     where: { assignmentId },
-    //     create: {
-    //         assignmentId,
-    //         score
-    //     },
-    //     update: {
-    //         score
-    //     }
-    // });
-
-    return { score, feedback };
+    return { score: result.score, feedback, ...resolvedModel };
 };

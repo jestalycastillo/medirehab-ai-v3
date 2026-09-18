@@ -1,16 +1,38 @@
-import os
+from pathlib import Path
+
 import torch
 import numpy as np
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 
+
+CHECKPOINT_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "training"
+    / "checkpoints"
+    / "left_flexion.pth"
+)
+APP_MODEL_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "models"
+    / "left_flexion.pth"
+)
+
+
 def train_model(model, train_data, val_data):
     best_val_loss = float("inf")
 
-    if os.path.exists("training/model.pth"):
-        model_checkpoint = torch.load("training/model.pth", map_location="cpu")
-        model.load_state_dict(model_checkpoint["model"])
-        best_val_loss = model_checkpoint.get("best_val_loss", float("inf"))
+    if CHECKPOINT_PATH.exists():
+        try:
+            model_checkpoint = torch.load(CHECKPOINT_PATH, map_location="cpu")
+            if model_checkpoint.get("model") is not None:
+                first_weight_dim = next(iter(model_checkpoint["model"].values())).shape[-1]
+                curr_dim = next(iter(model.state_dict().values())).shape[-1]
+                if first_weight_dim == curr_dim:
+                    model.load_state_dict(model_checkpoint["model"])
+                    best_val_loss = model_checkpoint.get("best_val_loss", float("inf"))
+        except Exception:
+            best_val_loss = float("inf")
 
     train_data = torch.tensor(train_data, dtype=torch.float32)
     val_data = torch.tensor(val_data, dtype=torch.float32)
@@ -94,13 +116,17 @@ def train_model(model, train_data, val_data):
             k = 3.0
             beta = float(np.log(2.0) / (k * std_val_loss))
 
-            torch.save({
+            payload = {
                 "model": model.state_dict(),
                 "best_val_loss": best_val_loss,
                 "mean_val_loss": mean_val_loss,
                 "std_val_loss": std_val_loss,
                 "beta": beta
-            }, "training/model.pth")
+            }
+            CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
+            APP_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+            torch.save(payload, CHECKPOINT_PATH)
+            torch.save(payload, APP_MODEL_PATH)
             
             print(f"Saved new best model with val loss: {best_val_loss:.6f} at epoch {epoch+1:03d}")
             print(f"Calibrated stats -> Mean: {mean_val_loss:.6f}, Std: {std_val_loss:.6f}, Beta: {beta:.4f}")

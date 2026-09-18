@@ -16,12 +16,23 @@ model User {
   archivedAt DateTime?
   mustChangePassword Boolean @default(false)
   passwordChangedAt DateTime?
+  lastLoginAt       DateTime?
+  lastSeenAt        DateTime?
+  privacyConsentAt  DateTime?
+  recordingConsentAt DateTime?
+  chatNotificationsEnabled Boolean @default(true)
+  careNotificationsEnabled Boolean @default(true)
 
   patientProfile PatientProfile?
   doctorProfile  DoctorProfile?
   notifications  Notification[]
   exerciseSessions ExerciseSession[]
   authoredExerciseSessionComments ExerciseSessionComment[]
+  sentChatMessages ChatMessage[] @relation("SentChatMessages")
+  receivedChatMessages ChatMessage[] @relation("ReceivedChatMessages")
+  patientHelpRequests HelpRequest[] @relation("PatientHelpRequests")
+  doctorHelpRequests HelpRequest[] @relation("DoctorHelpRequests")
+  auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -82,11 +93,12 @@ enum Role {
 }
 
 model Exercise {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String
-  isActive    Boolean   @default(true)
-  archivedAt  DateTime?
+  id               String    @id @default(cuid())
+  name             String    @unique
+  description      String
+  analysisModelKey String?   @unique
+  isActive         Boolean   @default(true)
+  archivedAt       DateTime?
 
   images      ExerciseImage[]
   assignments ExerciseAssignment[]
@@ -120,12 +132,28 @@ model ExerciseAssignment {
   assignedByDoctorId String
   assignedAt         DateTime  @default(now())
   archivedAt         DateTime?
+  viewedAt           DateTime?
+  startedAt          DateTime?
+  activeAt           DateTime?
+  completedAt        DateTime?
+  targetSessionsPerWeek Int      @default(3)
+  targetSessionsPerDay  Int?
+  scheduledDays         Int[]     @default([])
+  targetSets            Int?
+  targetRepsPerSet      Int?
+  targetDurationSeconds Int?
+  minimumScore          Float?
+  minimumDurationSeconds Int?
+  dueDate             DateTime?
+  reviewDate          DateTime?
+  doctorInstructions  String?
 
   exercise         Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
   assignedByDoctor DoctorProfile  @relation(fields: [assignedByDoctorId], references: [id], onDelete: Restrict)
   result           ExerciseResult?
   sessions         ExerciseSession[]
+  helpRequests     HelpRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -154,12 +182,20 @@ model ExerciseSession {
   assignmentId     String
   patientUserId    String
   score            Float?
+  evaluatedModelKey String?
+  selectedSide      String?
+  visitId           String?
+  videoUrl          String?
   aiFeedback       Json?
   painLevel        Int?
   difficultyLevel  Int?
   confidenceLevel  Int?
   patientNote      String?
   performedAt      DateTime @default(now())
+  durationSeconds  Int?
+  adherenceQualified Boolean @default(true)
+  qualificationReason String?
+  clientSessionId  String? @unique
 
   assignment ExerciseAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   patient    User               @relation(fields: [patientUserId], references: [id], onDelete: Cascade)
@@ -171,6 +207,8 @@ model ExerciseSession {
   @@map("exercise_sessions")
   @@index([assignmentId, performedAt])
   @@index([patientUserId, performedAt])
+  @@index([visitId])
+  @@unique([visitId, selectedSide])
 }
 
 model ExerciseSessionComment {
@@ -211,9 +249,65 @@ model Notification {
   @@index([userId, isRead, createdAt])
 }
 
+model ChatMessage {
+  id              String    @id @default(cuid())
+  senderUserId    String
+  recipientUserId String
+  body            String
+  readAt          DateTime?
+
+  sender    User @relation("SentChatMessages", fields: [senderUserId], references: [id], onDelete: Cascade)
+  recipient User @relation("ReceivedChatMessages", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([senderUserId, recipientUserId, createdAt])
+  @@index([recipientUserId, readAt, createdAt])
+  @@map("chat_messages")
+}
+
+model HelpRequest {
+  id            String    @id @default(cuid())
+  patientUserId String
+  doctorUserId  String
+  assignmentId  String?
+  message       String
+  resolvedAt    DateTime?
+
+  patient    User                @relation("PatientHelpRequests", fields: [patientUserId], references: [id], onDelete: Cascade)
+  doctor     User                @relation("DoctorHelpRequests", fields: [doctorUserId], references: [id], onDelete: Cascade)
+  assignment ExerciseAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([doctorUserId, resolvedAt, createdAt])
+  @@index([patientUserId, createdAt])
+  @@map("help_requests")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  method      String
+  path        String
+  statusCode  Int
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([actorUserId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
 enum NotificationType {
   SESSION_RESULT
   SESSION_CHECKIN
   DOCTOR_COMMENT
   REMINDER
+  CHAT_MESSAGE
+  PATIENT_HELP
 }

@@ -1,0 +1,31 @@
+"use client";
+
+import type { CareSession, ExerciseAssignment, HelpRequest } from "@/lib/api";
+import { formatScore } from "@/lib/score";
+
+export function DoctorAlerts({ sessions, assignments, helpRequests, lastSeenAt, referenceTime, onResolve }: { sessions: CareSession[]; assignments: ExerciseAssignment[]; helpRequests: HelpRequest[]; lastSeenAt?: string | null; referenceTime: number; onResolve: (id: string) => Promise<void> | void }) {
+  const alerts: { id: string; title: string; detail: string; urgent?: boolean }[] = [];
+  const latest = sessions[0];
+  if (latest?.painLevel != null && latest.painLevel >= 7) alerts.push({ id: "pain", title: "High pain reported", detail: `${latest.painLevel}/10 in the latest check-in`, urgent: true });
+  if (latest?.confidenceLevel != null && latest.confidenceLevel <= 3) alerts.push({ id: "confidence", title: "Low confidence", detail: `${latest.confidenceLevel}/10 in the latest check-in` });
+  const previousComparable = latest && typeof latest.score === "number"
+    ? sessions.slice(1).find((session) => session.assignment.id === latest.assignment.id && session.selectedSide === latest.selectedSide && typeof session.score === "number")
+    : undefined;
+  if (previousComparable && typeof previousComparable.score === "number" && typeof latest.score === "number" && latest.score + 10 < previousComparable.score) {
+    const arm = latest.selectedSide ? ` (${latest.selectedSide} arm)` : "";
+    alerts.push({ id: "decline", title: `Score decline${arm}`, detail: `${formatScore(previousComparable.score)} to ${formatScore(latest.score)}` });
+  }
+  const lastSeenDays = lastSeenAt ? (referenceTime - new Date(lastSeenAt).getTime()) / 86_400_000 : Infinity;
+  if (lastSeenDays >= 7) alerts.push({ id: "inactive", title: "Patient inactive", detail: lastSeenAt ? `${Math.floor(lastSeenDays)} days since last online` : "No recorded activity" });
+  const overdue = assignments.filter((item) => item.dueDate && !item.completedAt && new Date(item.dueDate).getTime() < referenceTime);
+  if (overdue.length) alerts.push({ id: "overdue", title: "Overdue exercises", detail: `${overdue.length} assignment${overdue.length === 1 ? "" : "s"} past due` });
+
+  const openHelpRequests = helpRequests.filter((request) => !request.resolvedAt);
+  if (alerts.length === 0 && openHelpRequests.length === 0) return null;
+
+  return <section className="card" style={{ padding: "24px" }}>
+    <h2 style={{ fontSize: "18px", fontWeight: 600, margin: "0 0 16px" }}>Care Alerts</h2>
+    {openHelpRequests.map((request) => <div key={request.id} style={{ padding: "12px", marginBottom: "10px", backgroundColor: "#FEE2E2", borderRadius: "var(--radius-md)" }}><strong>Help requested{request.assignment?.exercise.name ? ` · ${request.assignment.exercise.name}` : ""}</strong><div style={{ fontSize: "14px", margin: "5px 0" }}>{request.message}</div><button className="btn btn-secondary" onClick={() => onResolve(request.id)}>Mark resolved</button></div>)}
+    {alerts.map((alert) => <div key={alert.id} style={{ padding: "12px", marginBottom: "10px", backgroundColor: alert.urgent ? "#FEE2E2" : "#FEF3C7", borderRadius: "var(--radius-md)" }}><strong>{alert.title}</strong><div style={{ fontSize: "13px", marginTop: "3px" }}>{alert.detail}</div></div>)}
+  </section>;
+}

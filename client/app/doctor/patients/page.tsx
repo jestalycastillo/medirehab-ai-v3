@@ -6,6 +6,7 @@ import { PatientForm } from "@/components/doctor/patient-form";
 import { PatientList } from "@/components/doctor/patient-list";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TemporaryPasswordDialog } from "@/components/ui/temporary-password-dialog";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 
 function ActiveAccountsIcon() {
   return (
@@ -35,6 +36,8 @@ export default function DoctorPatientsPage() {
   const [patients, setPatients] = useState<ApiPatient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [formError, setFormError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [accountTab, setAccountTab] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
@@ -57,7 +60,7 @@ export default function DoctorPatientsPage() {
     message: "",
     isDestructive: false,
     isLoading: false,
-    action: async () => {},
+    action: async () => { },
   });
 
   const loadPatients = async () => {
@@ -106,13 +109,15 @@ export default function DoctorPatientsPage() {
   const handleSavePatient = async (data: Partial<ApiPatient & PatientProfile>) => {
     if (!editingPatient) return;
     setFormLoading(true);
+    setFormError("");
     try {
       await api.updatePatient(editingPatient.id, data);
       setIsFormOpen(false);
       setEditingPatient(undefined);
       await loadPatients();
+      setSuccess("Patient updated.");
     } catch (err) {
-      alert(err instanceof ApiError ? err.message : "Failed to save patient.");
+      setFormError(err instanceof ApiError ? err.message : "Failed to save patient.");
     } finally {
       setFormLoading(false);
     }
@@ -136,8 +141,10 @@ export default function DoctorPatientsPage() {
         try {
           await api.updatePatientStatus(patient.id, !patient.isActive);
           await loadPatients();
+          setSuccess(`${patientName(patient)} ${patient.isActive ? "deactivated" : "activated"}.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Operation failed.");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Status update failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -156,8 +163,10 @@ export default function DoctorPatientsPage() {
         try {
           await api.deletePatient(patient.id);
           await loadPatients();
+          setSuccess(`${patientName(patient)} archived.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Archive failed.");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Archive failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -178,8 +187,10 @@ export default function DoctorPatientsPage() {
           await api.resetPatientPassword(patient.id, nextPassword);
           setTemporaryPassword(nextPassword);
           setIsTemporaryPasswordOpen(true);
+          setSuccess(`${patientName(patient)}'s password was reset.`);
         } catch (err) {
-          alert(err instanceof ApiError ? err.message : "Password reset failed.");
+          setSuccess("");
+          setError(err instanceof ApiError ? err.message : "Password reset failed.");
         } finally {
           setConfirmDialog((prev) => ({ ...prev, isOpen: false, isLoading: false }));
         }
@@ -188,76 +199,75 @@ export default function DoctorPatientsPage() {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
+    <div className="role-dashboard care-page animate-fade-in">
+      <header className="role-dashboard-header">
         <div>
           <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
-          <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Manage assigned patient accounts and rehabilitation access.
-          </p>
         </div>
-      </div>
+      </header>
 
-      <div className="card" style={{ padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px", flexWrap: "wrap" }}>
-          <div className="account-tabs" role="tablist" aria-label="Patient account status">
+      <div className="card care-page-panel">
+        <div className="admin-subpage-panel-heading">
+          <div><span className="role-dashboard-eyebrow">Directory</span><h2>Patient accounts</h2></div>
+          <p>{activeAccountCount} current · {archivedAccountCount} archived</p>
+        </div>
+        <div className="admin-directory-toolbar">
+          <div className="account-tabs" role="group" aria-label="Patient account status">
             <button
               type="button"
               className={`account-tab ${accountTab === "ACTIVE" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ACTIVE")}
-              role="tab"
-              aria-selected={accountTab === "ACTIVE"}
-              aria-label={`Active accounts, ${activeAccountCount}`}
-              title="Active accounts"
+              aria-pressed={accountTab === "ACTIVE"}
+              aria-label={`Current accounts, ${activeAccountCount}`}
+              title="Current accounts"
             >
               <ActiveAccountsIcon />
+              <span>Current</span>
               <span className="account-tab-count">{activeAccountCount}</span>
             </button>
             <button
               type="button"
               className={`account-tab ${accountTab === "ARCHIVED" ? "account-tab-active" : ""}`}
               onClick={() => setAccountTab("ARCHIVED")}
-              role="tab"
-              aria-selected={accountTab === "ARCHIVED"}
+              aria-pressed={accountTab === "ARCHIVED"}
               aria-label={`Archived accounts, ${archivedAccountCount}`}
               title="Archived accounts"
             >
               <ArchivedAccountsIcon />
+              <span>Archived</span>
               <span className="account-tab-count">{archivedAccountCount}</span>
             </button>
           </div>
-        </div>
-
-        <div className="doctor-toolbar" style={{ marginBottom: "20px" }}>
+        <div className="doctor-toolbar care-page-filters">
           <input
             type="text"
             className="input"
+            aria-label="Search patients by name, email, or condition"
             placeholder="Search name, email, or condition"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             style={{ maxWidth: "340px" }}
           />
           {accountTab === "ACTIVE" && (
-            <select className="input" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} style={{ maxWidth: "170px" }}>
+            <select className="input" aria-label="Filter patients by status" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} style={{ maxWidth: "170px" }}>
               <option value="ALL">All status</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
             </select>
           )}
         </div>
+        </div>
 
-        {error && (
-          <div style={{ padding: "14px 16px", backgroundColor: "#FEF2F2", color: "var(--color-danger)", borderRadius: "var(--radius-md)", marginBottom: "20px" }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
+        {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
+        {!loading && <p className="admin-directory-result-count" role="status">Showing {filteredPatients.length} {accountTab === "ARCHIVED" ? "archived" : "current"} patient{filteredPatients.length === 1 ? "" : "s"}{searchTerm.trim() ? " matching your search" : ""}.</p>}
 
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", padding: "48px" }}><div className="spinner" /></div>
+          <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : (
           <PatientList
             patients={filteredPatients}
-            onEdit={(patient) => { setEditingPatient(patient); setIsFormOpen(true); }}
+            onEdit={(patient) => { setEditingPatient(patient); setFormError(""); setIsFormOpen(true); }}
             onToggleStatus={handleToggleStatus}
             onArchive={handleArchive}
             onResetPassword={handleResetPassword}
@@ -272,6 +282,7 @@ export default function DoctorPatientsPage() {
         onSave={handleSavePatient}
         onCancel={() => { setIsFormOpen(false); setEditingPatient(undefined); }}
         isLoading={formLoading}
+        error={formError}
       />
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

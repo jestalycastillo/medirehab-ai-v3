@@ -22,6 +22,8 @@ const baseUserSelect = {
     archivedAt: true,
     mustChangePassword: true,
     passwordChangedAt: true,
+    lastLoginAt: true,
+    lastSeenAt: true,
     createdAt: true,
     updatedAt: true
 } satisfies Prisma.UserSelect;
@@ -33,7 +35,22 @@ const doctorUserSelect = {
 
 const patientUserSelect = {
     ...baseUserSelect,
-    patientProfile: true
+    patientProfile: {
+        include: {
+            assignedDoctor: {
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                            isActive: true,
+                            archivedAt: true
+                        }
+                    }
+                }
+            }
+        }
+    }
 } satisfies Prisma.UserSelect;
 
 const adminPatientUserSelect = {
@@ -304,7 +321,22 @@ export const getMyProfile = async (userId: string) => {
             archivedAt: true,
             mustChangePassword: true,
             passwordChangedAt: true,
-            patientProfile: true,
+            patientProfile: {
+                include: {
+                    assignedDoctor: {
+                        include: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    email: true,
+                                    isActive: true,
+                                    archivedAt: true
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             doctorProfile: true
         }
     });
@@ -350,6 +382,37 @@ export const getMyProfile = async (userId: string) => {
         profile: null
     };
 };
+
+export const getUserConsent = async (userId: string) => prisma.user.findUnique({
+    where: { id: userId },
+    select: { privacyConsentAt: true, recordingConsentAt: true }
+});
+
+export const updateUserConsent = async (userId: string, privacyConsent: boolean, recordingConsent: boolean) => {
+    if (recordingConsent && !privacyConsent) {
+        throw new HttpError(400, "Privacy consent is required before recording consent.");
+    }
+    const now = new Date();
+    return prisma.user.update({
+        where: { id: userId },
+        data: {
+            privacyConsentAt: privacyConsent ? now : null,
+            recordingConsentAt: privacyConsent && recordingConsent ? now : null
+        },
+        select: { privacyConsentAt: true, recordingConsentAt: true }
+    });
+};
+
+export const getNotificationPreferences = async (userId: string) => prisma.user.findUnique({
+    where: { id: userId },
+    select: { chatNotificationsEnabled: true, careNotificationsEnabled: true }
+});
+
+export const updateNotificationPreferences = async (userId: string, chatEnabled: boolean, careEnabled: boolean) => prisma.user.update({
+    where: { id: userId },
+    data: { chatNotificationsEnabled: chatEnabled, careNotificationsEnabled: careEnabled },
+    select: { chatNotificationsEnabled: true, careNotificationsEnabled: true }
+});
 
 export const listDoctors = async () => {
     return prisma.user.findMany({

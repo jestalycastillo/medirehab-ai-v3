@@ -10,9 +10,11 @@ import {
     getExercises,
     getMyAssignedExercises,
     removeAssignedExercise,
+    updateAssignedExercisePlan,
     restoreExerciseCatalogItem,
     updateExerciseCatalogItem,
-    evaluateExerciseAssignment
+    evaluateExerciseAssignment,
+    createLiveCoaching
 } from "../controllers/exercise.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requirePasswordChanged } from "../middlewares/password.middleware";
@@ -44,6 +46,14 @@ router.post(
 );
 
 router.post(
+    "/patients/exercises/:exerciseId/assignments/:assignmentId/live-coaching",
+    authMiddleware,
+    requirePasswordChanged,
+    requireRole(Role.PATIENT),
+    createLiveCoaching
+);
+
+router.post(
     "/",
     authMiddleware,
     requirePasswordChanged,
@@ -65,6 +75,14 @@ router.delete(
     requirePasswordChanged,
     requireRole(Role.ADMIN),
     archiveExerciseCatalogItem
+);
+
+router.patch(
+    "/patients/:patientUserId/assignments/:assignmentId/plan",
+    authMiddleware,
+    requirePasswordChanged,
+    requireRole(Role.DOCTOR),
+    updateAssignedExercisePlan
 );
 router.patch(
     "/:exerciseId/restore",
