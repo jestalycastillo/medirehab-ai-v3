@@ -37,6 +37,9 @@ interface CameraRecorderProps {
     targetDurationSeconds?: number | null;
     minimumDurationSeconds?: number | null;
     onSave?: (blob: Blob) => void;
+    guidelineSlides?: string[];
+    guidelinesOnly?: boolean;
+    launchLabel?: string;
 }
 
 type RecordedClip = {
@@ -66,9 +69,21 @@ type CameraAccessIssue =
     | "verification"
     | null;
 
-export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave }: CameraRecorderProps) {
+const DEFAULT_GUIDELINES = [
+    "Set up a clear, well-lit space. Wear comfortable clothing and keep anything you could trip on out of the way.",
+    "Move only within the range your clinician has recommended. Use slow, controlled movements and keep your breathing steady.",
+    "Stop if you feel sharp pain, dizziness, numbness, or unusual shortness of breath. Contact your care team if symptoms continue.",
+    "For the camera check, face the camera with your upper body visible. Follow the demo before you begin recording."
+];
+
+export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave, guidelineSlides, guidelinesOnly = false, launchLabel }: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isGuidelineStep, setIsGuidelineStep] = useState(false);
     const [isDemoStep, setIsDemoStep] = useState(false);
+    const [guidelines, setGuidelines] = useState<string[]>(guidelineSlides?.length ? guidelineSlides : DEFAULT_GUIDELINES);
+    const [guidelineIndex, setGuidelineIndex] = useState(0);
+    const [canSkipGuidelines, setCanSkipGuidelines] = useState(false);
+    const [isSavingGuideline, setIsSavingGuideline] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isRecording, setIsRecording] = useState(false);
     const [isFinalizingRecording, setIsFinalizingRecording] = useState(false);
@@ -469,12 +484,38 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         visitIdRef.current = crypto.randomUUID();
         setSelectedSide(null);
         setIsSkeletonVisible(false);
-        setIsDemoStep(true);
+        setGuidelineIndex(0);
+        setGuidelines(guidelineSlides?.length ? guidelineSlides : DEFAULT_GUIDELINES);
+        setCanSkipGuidelines(false);
+        setIsGuidelineStep(true);
+        void api.getExerciseGuidelineProgress(exerciseId).then((progress) => {
+            if (Array.isArray(progress.slides) && progress.slides.every((slide) => typeof slide === "string") && progress.slides.length) {
+                setGuidelines(progress.slides as string[]);
+            }
+            setCanSkipGuidelines(progress.hasReadCurrentVersion);
+        }).catch(() => undefined);
         setIsOpen(true);
+    };
+
+    const handleGuidelineComplete = async () => {
+        setIsSavingGuideline(true);
+        try { await api.acknowledgeExerciseGuideline(exerciseId); } catch { /* The read-through still remains available if the connection is interrupted. */ }
+        finally { setIsSavingGuideline(false); }
+        if (guidelinesOnly) { handleClose(); return; }
+        setIsGuidelineStep(false);
+        setIsDemoStep(true);
+    };
+
+    const handleSkipGuidelines = () => {
+        if (!canSkipGuidelines) return;
+        if (guidelinesOnly) { handleClose(); return; }
+        setIsGuidelineStep(false);
+        setIsDemoStep(true);
     };
 
     const handleContinueToCamera = () => {
         setIsDemoStep(false);
+        setIsGuidelineStep(false);
         void handleStartCamera();
     };
 
@@ -837,11 +878,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     return (
         <>
-            <Button onClick={handleOpen} size="lg" className="camera-launch-button" disabled={!modelGuidance}>
+            <Button onClick={handleOpen} size="lg" variant={guidelinesOnly ? "outline" : "default"} className="camera-launch-button" disabled={!modelGuidance && !guidelinesOnly}>
                 <Video data-icon="inline-start" />
-                Start Exercise
+                {launchLabel || (guidelinesOnly ? "Review guidelines & safety" : "Start Exercise")}
             </Button>
-            {!modelGuidance && (
+            {!modelGuidance && !guidelinesOnly && (
                 <span role="status" className="camera-model-unavailable">
                     Video evaluation is not available for this exercise. Ask your doctor for help.
                 </span>
@@ -851,14 +892,39 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 <div
                     ref={recorderModalRef}
                     tabIndex={-1}
-                    className={`recorder-fullscreen-container animate-fade-in ${isDemoStep ? "recorder-demo-active" : ""}`}
+                    className={`recorder-fullscreen-container animate-fade-in ${(isDemoStep || isGuidelineStep) ? "recorder-demo-active" : ""}`}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="exercise-recorder-title"
                 >
                     {/* Full-Screen Video Background Stage */}
                     <div className="recorder-fullscreen-stage">
-                        {isDemoStep ? (
+                        {isGuidelineStep ? (
+                            <div className="recorder-demo-screen">
+                                <div className="recorder-demo-card recorder-guideline-card">
+                                    <div className="recorder-demo-copy">
+                                        <span className="recorder-demo-eyebrow">Guidelines & safety · {guidelineIndex + 1} of {guidelines.length}</span>
+                                        <h3 id="exercise-recorder-title">Before {exerciseName}</h3>
+                                        <p className="recorder-guideline-slide">{guidelines[guidelineIndex]}</p>
+                                    </div>
+                                    <div className="recorder-guideline-progress" aria-label={`Guideline slide ${guidelineIndex + 1} of ${guidelines.length}`}>
+                                        {guidelines.map((_, index) => <span key={index} className={index <= guidelineIndex ? "is-complete" : ""} />)}
+                                    </div>
+                                    <div className="recorder-demo-actions">
+                                        <Button variant="outline" size="lg" onClick={handleClose}>Close</Button>
+                                        {canSkipGuidelines && <Button variant="outline" size="lg" onClick={handleSkipGuidelines}>Skip guidelines</Button>}
+                                        {guidelineIndex > 0 && <Button variant="outline" size="lg" onClick={() => setGuidelineIndex((index) => index - 1)}>Back</Button>}
+                                        {guidelineIndex < guidelines.length - 1 ? (
+                                            <Button size="lg" onClick={() => setGuidelineIndex((index) => index + 1)}>Next</Button>
+                                        ) : (
+                                            <Button size="lg" onClick={() => void handleGuidelineComplete()} disabled={isSavingGuideline}>
+                                                {isSavingGuideline ? "Saving…" : guidelinesOnly ? "Done" : "Continue to demo"}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : isDemoStep ? (
                             <div className="recorder-demo-screen">
                                 <div className="recorder-demo-card">
                                     <div className="recorder-demo-copy">
@@ -991,7 +1057,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         <div className="recorder-floating-top-left">
                             <div className="recorder-floating-title-badge">
                                 <Video size={18} style={{ color: "#2dd4bf" }} />
-                                <h3 id={isDemoStep ? undefined : "exercise-recorder-title"}>{exerciseName}</h3>
+                                <h3 id={(isDemoStep || isGuidelineStep) ? undefined : "exercise-recorder-title"}>{exerciseName}</h3>
                             </div>
 
                             {/* Floating Guide Video below exercise name */}

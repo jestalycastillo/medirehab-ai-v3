@@ -108,7 +108,7 @@ export default function ExercisesPage() {
     loadExercises();
   }, []);
 
-  const handleSaveExercise = async (data: { name: string; description: string; images: ExerciseImage[] }) => {
+  const handleSaveExercise = async (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[]; guidelineSlides: string[] }) => {
     if (!editingExercise) return;
     setFormLoading(true);
     setFormError("");

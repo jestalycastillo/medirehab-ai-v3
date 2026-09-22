@@ -16,6 +16,8 @@ const exerciseSelect = {
     name: true,
     description: true,
     analysisModelKey: true,
+    guidelineSlides: true,
+    guidelineVersion: true,
     isActive: true,
     archivedAt: true,
     images: {
@@ -206,6 +208,11 @@ export const updateExercise = async (
     input: ValidatedUpdateExerciseInput
 ) => {
     await ensureExerciseExists(exerciseId);
+    const existingGuideline = input.guidelineSlides === undefined ? null : await prisma.exercise.findUnique({
+        where: { id: exerciseId }, select: { guidelineSlides: true }
+    });
+    const guidelinesChanged = existingGuideline !== null
+        && JSON.stringify(existingGuideline.guidelineSlides) !== JSON.stringify(input.guidelineSlides);
 
     return prisma.$transaction(async (tx) => {
         if (input.images !== undefined) {
@@ -220,12 +227,40 @@ export const updateExercise = async (
                 ...(input.name !== undefined ? { name: input.name } : {}),
                 ...(input.description !== undefined ? { description: input.description } : {}),
                 ...(input.analysisModelKey !== undefined ? { analysisModelKey: input.analysisModelKey } : {}),
+                ...(input.guidelineSlides !== undefined ? { guidelineSlides: input.guidelineSlides } : {}),
+                ...(guidelinesChanged ? { guidelineVersion: { increment: 1 } } : {}),
                 ...(input.images !== undefined
                     ? { images: { create: toImageCreateMany(input) } }
                     : {})
             },
             select: exerciseSelect
         });
+    });
+};
+
+export const getExerciseGuidelineProgress = async (patientUserId: string, exerciseId: string) => {
+    const assignment = await prisma.exerciseAssignment.findFirst({
+        where: { exerciseId, archivedAt: null, patientProfile: { is: { userId: patientUserId } } },
+        select: { exercise: { select: { guidelineSlides: true, guidelineVersion: true } } }
+    });
+    if (!assignment) throw new HttpError(404, "Assigned exercise not found.");
+    const acknowledgement = await prisma.exerciseGuidelineAcknowledgement.findUnique({
+        where: { patientUserId_exerciseId: { patientUserId, exerciseId } },
+        select: { guidelineVersion: true, readAt: true }
+    });
+    return {
+        slides: assignment.exercise.guidelineSlides,
+        version: assignment.exercise.guidelineVersion,
+        hasReadCurrentVersion: acknowledgement?.guidelineVersion === assignment.exercise.guidelineVersion
+    };
+};
+
+export const acknowledgeExerciseGuideline = async (patientUserId: string, exerciseId: string) => {
+    const progress = await getExerciseGuidelineProgress(patientUserId, exerciseId);
+    return prisma.exerciseGuidelineAcknowledgement.upsert({
+        where: { patientUserId_exerciseId: { patientUserId, exerciseId } },
+        create: { patientUserId, exerciseId, guidelineVersion: progress.version },
+        update: { guidelineVersion: progress.version, readAt: new Date() }
     });
 };
 

@@ -234,9 +234,18 @@ export default function PatientDashboardPage() {
                   exerciseName={dashboard.nextAssignment.exercise?.name}
                   analysisModelKey={dashboard.nextAssignment.exercise?.analysisModelKey}
                   exerciseId={dashboard.nextAssignment.exercise?.id}
+                  guidelineSlides={dashboard.nextAssignment.exercise?.guidelineSlides}
+                  guidelinesOnly
+                  launchLabel="Review guidelines & safety"
+                />
+                <CameraRecorder
+                  exerciseName={dashboard.nextAssignment.exercise?.name}
+                  analysisModelKey={dashboard.nextAssignment.exercise?.analysisModelKey}
+                  exerciseId={dashboard.nextAssignment.exercise?.id}
                   assignmentId={dashboard.nextAssignment.id}
                   targetDurationSeconds={dashboard.nextAssignment.targetDurationSeconds}
                   minimumDurationSeconds={dashboard.nextAssignment.minimumDurationSeconds}
+                  guidelineSlides={dashboard.nextAssignment.exercise?.guidelineSlides}
                 />
               </div>
             </div>

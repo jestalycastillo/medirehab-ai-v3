@@ -78,9 +78,17 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
                   exerciseName={assignment.exercise?.name}
                   analysisModelKey={assignment.exercise?.analysisModelKey}
                   exerciseId={assignment.exercise?.id}
+                  guidelineSlides={assignment.exercise?.guidelineSlides}
+                  guidelinesOnly
+                />
+                <CameraRecorder
+                  exerciseName={assignment.exercise?.name}
+                  analysisModelKey={assignment.exercise?.analysisModelKey}
+                  exerciseId={assignment.exercise?.id}
                   assignmentId={assignment.id}
                   targetDurationSeconds={assignment.targetDurationSeconds}
                   minimumDurationSeconds={assignment.minimumDurationSeconds}
+                  guidelineSlides={assignment.exercise?.guidelineSlides}
                 />
               </div>
 

@@ -14,7 +14,9 @@ import {
     restoreExerciseCatalogItem,
     updateExerciseCatalogItem,
     evaluateExerciseAssignment,
-    createLiveCoaching
+    createLiveCoaching,
+    getMyExerciseGuidelineProgress,
+    acknowledgeMyExerciseGuideline
 } from "../controllers/exercise.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requirePasswordChanged } from "../middlewares/password.middleware";
@@ -36,6 +38,9 @@ router.get(
     requireRole(Role.PATIENT),
     getMyAssignedExercises
 );
+
+router.get("/:exerciseId/guideline-progress", authMiddleware, requirePasswordChanged, requireRole(Role.PATIENT), getMyExerciseGuidelineProgress);
+router.post("/:exerciseId/guideline-acknowledgement", authMiddleware, requirePasswordChanged, requireRole(Role.PATIENT), acknowledgeMyExerciseGuideline);
 
 router.post(
     "/patients/exercises/:exerciseId/assignments/:assignmentId/evaluate",

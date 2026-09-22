@@ -15,7 +15,9 @@ import {
     restoreExercise,
     updateExercise,
     updatePatientExercisePlan,
-    evaluateExercise
+    evaluateExercise,
+    getExerciseGuidelineProgress,
+    acknowledgeExerciseGuideline
 } from "../services/exercise.service";
 import { findRecordedExerciseSession, recordExerciseSession } from "../services/care.service";
 import { completeExerciseActivity } from "../services/presence.service";
@@ -104,6 +106,27 @@ export const getExercises = async (req: Request, res: Response): Promise<void> =
         });
     } catch (error) {
         handleExerciseError(error, res, "Unable to load exercises.");
+    }
+};
+
+export const getMyExerciseGuidelineProgress = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const patientUserId = getAuthenticatedUserId(req);
+        const exerciseId = validateExerciseIdParam(req.params.exerciseId);
+        res.status(200).json({ success: true, ...(await getExerciseGuidelineProgress(patientUserId, exerciseId)) });
+    } catch (error) {
+        handleExerciseError(error, res, "Unable to load exercise guidelines.");
+    }
+};
+
+export const acknowledgeMyExerciseGuideline = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const patientUserId = getAuthenticatedUserId(req);
+        const exerciseId = validateExerciseIdParam(req.params.exerciseId);
+        const acknowledgement = await acknowledgeExerciseGuideline(patientUserId, exerciseId);
+        res.status(200).json({ success: true, acknowledgement });
+    } catch (error) {
+        handleExerciseError(error, res, "Unable to save guideline acknowledgement.");
     }
 };
 
