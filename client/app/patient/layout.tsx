@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 import { QuickChat } from "@/components/care/quick-chat";
 
 function LayoutDashboardIcon() {
@@ -147,7 +148,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
     <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
+          <MediRehabLogo />
           <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--color-text-primary)" }}>
             MediRehab<span style={{ color: "var(--color-primary)" }}> AI</span>
           </span>
@@ -218,7 +219,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
       <div className="portal-content" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <header className="admin-mobile-header" style={{ display: "none", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", backgroundColor: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
+            <MediRehabLogo />
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Patient Portal</span>
           </div>
           <button ref={mobileMenuButtonRef} type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isMobileMenuOpen} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}>

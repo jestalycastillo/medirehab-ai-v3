@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { HeartPulse, LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 import { useAuth, ROLE_DASHBOARDS, type UserRole } from "@/lib/auth-context";
 import { api, ApiError } from "@/lib/api";
 
@@ -46,7 +47,7 @@ export default function ChangePasswordPage() {
   return (
     <div className="auth-page">
       <header className="auth-topbar">
-        <div className="auth-brand"><HeartPulse aria-hidden="true" /><span>MediRehab <strong>AI</strong></span></div>
+        <div className="auth-brand"><MediRehabLogo /><span>MediRehab <strong>AI</strong></span></div>
         <button type="button" className="btn btn-secondary" onClick={logout}>Sign out</button>
       </header>
 
