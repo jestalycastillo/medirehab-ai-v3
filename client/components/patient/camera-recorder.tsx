@@ -72,16 +72,21 @@ type CameraAccessIssue =
 
 const DEFAULT_GUIDELINES = [
     "Set up a clear, well-lit space. Wear comfortable clothing and keep anything you could trip on out of the way.",
-    "Move only within the range your clinician has recommended. Use slow, controlled movements and keep your breathing steady.",
-    "Stop if you feel sharp pain, dizziness, numbness, or unusual shortness of breath. Contact your care team if symptoms continue.",
+    "Do not force the movement. Move only within the range your clinician has recommended. Use slow, controlled movements and keep your breathing steady.",
+    "Stop if the movement hurts, or if you feel sharp pain, dizziness, numbness, or unusual shortness of breath. Contact your care team if symptoms continue.",
     "For the camera check, face the camera with your upper body visible. Review the movement demo if you need a reminder before recording."
 ];
+
+function getSafetyGuidelines(slides?: string[]) {
+    // Exercise-specific instructions supplement, never replace, the core safety checks.
+    return [...new Set([...DEFAULT_GUIDELINES, ...(slides ?? [])].map((slide) => slide.trim()).filter(Boolean))];
+}
 
 export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, exerciseId, assignmentId, targetDurationSeconds, minimumDurationSeconds, onSave, guidelineSlides, guidelinesOnly = false, demoOnly = false, launchLabel }: CameraRecorderProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isGuidelineStep, setIsGuidelineStep] = useState(false);
     const [isDemoStep, setIsDemoStep] = useState(false);
-    const [guidelines, setGuidelines] = useState<string[]>(guidelineSlides?.length ? guidelineSlides : DEFAULT_GUIDELINES);
+    const [guidelines, setGuidelines] = useState<string[]>(getSafetyGuidelines(guidelineSlides));
     const [guidelineIndex, setGuidelineIndex] = useState(0);
     const [hasReadGuidelines, setHasReadGuidelines] = useState(false);
     const [isLoadingGuidelines, setIsLoadingGuidelines] = useState(false);
@@ -493,7 +498,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         setSelectedSide(null);
         setIsSkeletonVisible(false);
         setGuidelineIndex(0);
-        setGuidelines(guidelineSlides?.length ? guidelineSlides : DEFAULT_GUIDELINES);
+        setGuidelines(getSafetyGuidelines(guidelineSlides));
         setHasReadGuidelines(false);
         setHasLoadedGuidelines(false);
         setGuidelineError("");
@@ -505,14 +510,10 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         void api.getExerciseGuidelineProgress(exerciseId).then((progress) => {
             if (visitIdRef.current !== visitId) return;
             if (Array.isArray(progress.slides) && progress.slides.every((slide) => typeof slide === "string") && progress.slides.length) {
-                setGuidelines(progress.slides as string[]);
+                setGuidelines(getSafetyGuidelines(progress.slides as string[]));
             }
             setHasReadGuidelines(progress.hasReadCurrentVersion);
             setHasLoadedGuidelines(true);
-            if (progress.hasReadCurrentVersion && !guidelinesOnly) {
-                setIsGuidelineStep(false);
-                setIsDemoStep(true);
-            }
         }).catch(() => {
             if (visitIdRef.current === visitId) setGuidelineError("We could not load your safety guidelines. Please try again before starting.");
         }).finally(() => {
@@ -537,6 +538,13 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         } finally {
             if (visitIdRef.current === visitId) setIsSavingGuideline(false);
         }
+    };
+
+    const handleSkipGuidelines = () => {
+        if (!hasLoadedGuidelines || !hasReadGuidelines || isLoadingGuidelines || isSavingGuideline) return;
+        if (guidelinesOnly) { handleClose(); return; }
+        setIsGuidelineStep(false);
+        setIsDemoStep(true);
     };
 
     const handleContinueToCamera = () => {
@@ -944,6 +952,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     </div>
                                     <div className="recorder-demo-actions">
                                         <Button variant="outline" size="lg" onClick={handleClose}>Close</Button>
+                                        {hasReadGuidelines && hasLoadedGuidelines && !isLoadingGuidelines && <Button variant="outline" size="lg" onClick={handleSkipGuidelines}>Skip guidelines</Button>}
                                         {guidelineError && !hasLoadedGuidelines && <Button size="lg" onClick={handleOpen}>Try again</Button>}
                                         {guidelineIndex > 0 && !isLoadingGuidelines && !isSavingGuideline && <Button variant="outline" size="lg" onClick={() => setGuidelineIndex((index) => index - 1)}>Back</Button>}
                                         {guidelineIndex < guidelines.length - 1 ? (
