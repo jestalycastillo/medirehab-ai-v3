@@ -18,5 +18,8 @@ app.use(auditMiddleware);
 
 app.use("/uploads", express.static(path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads")));
 app.use("/api", initRoutes);
+app.use("/sample", (req, res: Response) => {
+    res.json({ message: "Sample route works!" });
+});
 
 export default app;
