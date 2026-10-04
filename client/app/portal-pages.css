@@ -1,0 +1,68 @@
+/* The portal's secondary screens share the dashboard's restrained surfaces. */
+.portal-page { width: min(100%, 1080px); margin-inline: auto; display: flex; flex-direction: column; gap: 24px; color: var(--color-text-primary); }
+.portal-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.portal-page-header h1 { margin: 4px 0 6px; font-size: clamp(27px, 3vw, 36px); font-weight: 760; letter-spacing: -.035em; line-height: 1.2; }
+.portal-page-header p { margin: 0; max-width: 64ch; color: var(--color-text-muted); font-size: 14px; line-height: 1.6; }
+.portal-page-eyebrow { display: block; color: var(--color-primary); font-size: 12px; font-weight: 700; }
+.portal-page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.portal-page :is(.card, [data-slot="card"], .care-disclosure, .patient-page-disclosure, .patient-security-card) { border-color: var(--color-border); border-radius: 14px; box-shadow: none; }
+.portal-page :is(.care-page-panel, .admin-subpage-panel) { padding: 24px; }
+.portal-page :is(.admin-subpage-panel-heading h2, .care-page-panel > h2) { font-size: 18px; letter-spacing: -.02em; }
+.portal-page .admin-subpage-panel-heading { margin-bottom: 20px; }
+.portal-page :is(.input, .btn, [data-slot="button"], .account-tab) { min-height: 44px; }
+.portal-page .btn { border-radius: 8px; font-weight: 600; }
+.portal-page .account-tabs { border: 0; background: var(--color-page-bg); border-radius: 9px; }
+.portal-page .account-tab { font-size: 13px; box-shadow: none; }
+.portal-page .account-tab-active { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.portal-page .account-tab > svg { display: none; }
+.portal-page :is(.admin-directory-toolbar, .doctor-toolbar) { gap: 12px; flex-wrap: wrap; }
+.portal-page .admin-directory-filters,
+.portal-page .care-page-filters { width: auto; flex: 1 1 300px; justify-content: flex-end; }
+.portal-page .care-page-filters input { flex: 1 1 220px; }
+.portal-page .care-page-filters select { flex: 0 1 160px; }
+.portal-page .admin-directory-result-count { margin: 12px 0; font-size: 12px; }
+.portal-page .admin-directory-table { border-spacing: 0; border-collapse: separate; }
+.portal-page .admin-directory-table .directory-data-row td { border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: transparent; vertical-align: middle; }
+.portal-page .admin-directory-table .directory-data-row:hover td,
+.portal-page .admin-directory-table .directory-data-row:focus-within td { background: var(--color-primary-soft); }
+.portal-page .admin-directory-table th { padding: 12px 16px !important; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.portal-page :is(.directory-person-link, .directory-name-button) { color: var(--color-text-primary); font-weight: 650; }
+.portal-page :is(.directory-person-link, .directory-name-button):hover { color: var(--color-primary); }
+.portal-page :is(.care-page-empty, .admin-directory-empty) { min-height: 200px; }
+.portal-page :is(.admin-feedback, .patient-page-alert, .patient-settings-success) { font-size: 13px; border-radius: 8px; }
+.portal-page :is(.care-disclosure, .patient-page-disclosure, .patient-security-card) > summary { min-height: 56px; font-size: 14px; }
+.portal-panel { border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); overflow: hidden; }
+.portal-panel-heading { padding: 20px 24px; border-bottom: 1px solid var(--color-border); }
+.portal-panel-heading h2 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.02em; }
+.portal-panel-heading p { margin: 5px 0 0; color: var(--color-text-muted); font-size: 13px; }
+.portal-list-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px; }
+.portal-list-row + .portal-list-row { border-top: 1px solid var(--color-border); }
+.portal-list-copy { min-width: 0; flex: 1; }
+.portal-list-copy h3 { margin: 0; font-size: 15px; font-weight: 650; }
+.portal-list-copy p { margin: 4px 0 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
+.portal-list-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.portal-action-menu { position: relative; flex: 0 0 auto; color: var(--color-text-primary); }
+.portal-action-menu > summary { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; list-style: none; background: var(--color-surface); }
+.portal-action-menu > summary::-webkit-details-marker { display: none; }
+.portal-action-menu > summary:hover { background: var(--color-primary-soft); }
+.portal-action-menu-content { position: absolute; inset: calc(100% + 6px) 0 auto auto; z-index: 40; width: 208px; padding: 6px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); box-shadow: 0 8px 24px rgba(16,33,31,.12); }
+.portal-action-menu-content :is(button, a) { display: flex; width: 100%; min-height: 40px; align-items: center; gap: 8px; padding: 10px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-primary); font: inherit; font-size: 13px; text-align: left; text-decoration: none; cursor: pointer; }
+.portal-action-menu-content :is(button, a):hover { background: var(--color-primary-soft); }
+.portal-action-menu-content .list-row-action-danger { color: var(--color-danger); border-top: 1px solid var(--color-border); }
+.portal-action-menu-content button:disabled { opacity: .5; cursor: wait; }
+.portal-page :is(a, button, summary, input, select, textarea):focus-visible,
+.portal-action-menu :is(summary, button, a):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .portal-page .admin-directory-table .directory-data-row { overflow: visible; }
+}
+@media (max-width: 640px) {
+  .portal-page { gap: 20px; }
+  .portal-page-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .portal-page :is(.care-page-panel, .admin-subpage-panel) { padding: 18px; }
+  .portal-page :is(.admin-directory-filters, .care-page-filters) { flex-basis: auto; width: 100%; justify-content: flex-start; }
+  .portal-page .admin-directory-filters .input { max-width: 100%; }
+  .portal-list-row { align-items: flex-start; flex-direction: column; padding: 18px; gap: 12px; }
+  .portal-list-actions { width: 100%; justify-content: flex-end; }
+  .portal-panel-heading { padding: 18px; }
+}
+@media print { .portal-action-menu, .portal-page-actions { display: none; } }
