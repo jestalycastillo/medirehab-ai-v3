@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError } from "@/lib/api";
@@ -53,14 +54,8 @@ export default function AdminProfilePage() {
   };
 
   return (
-    <div className="role-dashboard admin-subpage animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <span className="role-dashboard-eyebrow">Admin / Profile</span>
-          <h1>Settings &amp; profile</h1>
-          <p>Review your account details and manage your password.</p>
-        </div>
-      </header>
+    <PortalPage className="admin-subpage">
+      <PortalPageHeader title="Profile & settings" eyebrow="Admin / Account" description="Review your account details and manage your password." />
 
       <div className="admin-profile-grid">
         <section className="card admin-subpage-panel admin-profile-card" aria-labelledby="admin-account-heading">
@@ -99,6 +94,6 @@ export default function AdminProfilePage() {
           </form>
         </section>
       </div>
-    </div>
+    </PortalPage>
   );
 }

@@ -50,6 +50,21 @@
 .portal-care-plans .portal-list-row { padding-inline: 0; }
 .portal-page .doctor-profile-page .input,
 .portal-page .doctor-form-grid .input { width: 100%; }
+.portal-page .exercise-catalog-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; }
+.portal-page .exercise-catalog-card { overflow: visible; border-radius: 12px; box-shadow: none; background: var(--color-surface); }
+.portal-page .exercise-catalog-media { height: 170px; border-radius: 12px 12px 0 0; overflow: hidden; }
+.portal-page .exercise-catalog-content { padding: 18px; }
+.portal-page .exercise-catalog-content h3 { font-size: 16px; }
+.portal-page .exercise-catalog-actions { display: flex; gap: 8px; padding-top: 16px; }
+.portal-page .exercise-catalog-actions > .btn { flex: 1; }
+.portal-page .exercise-catalog-toolbar { align-items: flex-start; gap: 16px; }
+.portal-page .exercise-catalog-toolbar-copy h2 { font-size: 18px; }
+.portal-page .exercise-catalog-controls { gap: 12px; flex-wrap: wrap; }
+.portal-assign-doctor { min-width: 0; }
+.portal-assign-doctor > summary { display: flex; min-height: 44px; align-items: center; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; color: var(--color-primary-dark); font-size: 13px; font-weight: 600; list-style: none; }
+.portal-assign-doctor > summary::-webkit-details-marker { display: none; }
+.portal-assign-doctor > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.portal-assign-doctor .directory-doctor-select { width: 190px; max-width: 100%; }
 .portal-action-menu { position: relative; flex: 0 0 auto; color: var(--color-text-primary); }
 .portal-action-menu > summary { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; list-style: none; background: var(--color-surface); }
 .portal-action-menu > summary::-webkit-details-marker { display: none; }
