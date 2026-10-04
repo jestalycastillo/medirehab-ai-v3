@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, BellRing, CalendarClock, Check, CheckCheck, ChevronRight, CircleAlert, HandHeart, LoaderCircle, MessageCircle, Sparkles } from "lucide-react";
@@ -82,18 +83,15 @@ export default function PatientNotificationsPage() {
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   return (
-    <div className="patient-page patient-notifications-page animate-fade-in">
-      <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Care updates</span><h1>Notifications</h1></div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+    <PortalPage className="patient-page patient-notifications-page">
+      <PortalPageHeader title="Notifications" eyebrow="Care updates" description="Messages, reminders, and feedback from your care team." actions={<div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           {unreadCount > 0 && <span className="patient-unread-count"><BellRing /> {unreadCount} new</span>}
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={markingAll}>
               {markingAll ? <LoaderCircle className="recorder-spin" /> : <CheckCheck />} Mark all as read
             </Button>
           )}
-        </div>
-      </header>
+        </div>} />
 
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
       {success && <div className="patient-settings-success" role="status"><Check aria-hidden="true" />{success}</div>}
@@ -126,6 +124,6 @@ export default function PatientNotificationsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PortalPage>
   );
 }

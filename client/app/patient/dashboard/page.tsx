@@ -234,14 +234,6 @@ export default function PatientDashboardPage() {
                   exerciseName={dashboard.nextAssignment.exercise?.name}
                   analysisModelKey={dashboard.nextAssignment.exercise?.analysisModelKey}
                   exerciseId={dashboard.nextAssignment.exercise?.id}
-                  guidelineSlides={dashboard.nextAssignment.exercise?.guidelineSlides}
-                  guidelinesOnly
-                  launchLabel="Review guidelines & safety"
-                />
-                <CameraRecorder
-                  exerciseName={dashboard.nextAssignment.exercise?.name}
-                  analysisModelKey={dashboard.nextAssignment.exercise?.analysisModelKey}
-                  exerciseId={dashboard.nextAssignment.exercise?.id}
                   assignmentId={dashboard.nextAssignment.id}
                   targetDurationSeconds={dashboard.nextAssignment.targetDurationSeconds}
                   minimumDurationSeconds={dashboard.nextAssignment.minimumDurationSeconds}
@@ -252,6 +244,23 @@ export default function PatientDashboardPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {assignments.length > 0 && (
+        <details className="patient-page-disclosure patient-dashboard-guidance">
+          <summary><span>Review demos & safety guidelines</span><ChevronRight aria-hidden="true" /></summary>
+          <div className="patient-page-disclosure-content">
+            {assignments.map((assignment) => (
+              <div className="patient-guidance-row" key={assignment.id}>
+                <strong>{assignment.exercise?.name || "Exercise"}</strong>
+                <div className="patient-guidance-actions">
+                  <CameraRecorder exerciseName={assignment.exercise?.name} exerciseId={assignment.exercise?.id} guidelineSlides={assignment.exercise?.guidelineSlides} guidelinesOnly launchLabel="Safety guidelines" />
+                  <CameraRecorder exerciseName={assignment.exercise?.name} exerciseId={assignment.exercise?.id} analysisModelKey={assignment.exercise?.analysisModelKey} demoOnly launchLabel="Movement demo" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       <div className="patient-dashboard-summary-grid">
         <Card className="patient-summary-card">

@@ -89,9 +89,11 @@ export function AnimatedExerciseGuide({
 
         // While counting down before recording starts: freeze at starting resting pose
         if (isCountingDown) {
-            setCyclePhase("Get Ready");
-            resetArmsToRest();
-            return;
+            const frame = requestAnimationFrame(() => {
+                setCyclePhase("Get Ready");
+                resetArmsToRest();
+            });
+            return () => cancelAnimationFrame(frame);
         }
 
         let frameId: number;

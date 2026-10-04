@@ -237,7 +237,7 @@ export function RoboticSkeletonOverlay({
                 // Determine systematic colors
                 let glowColor = isActiveArm ? "rgba(0, 240, 255, 0.45)" : "rgba(56, 189, 248, 0.25)";
                 let primaryColor = isActiveArm ? "#00F0FF" : "#38BDF8";
-                let coreColor = "#FFFFFF";
+                const coreColor = "#FFFFFF";
 
                 if (!hasReliablePose) {
                     glowColor = "rgba(234, 179, 8, 0.35)";
