@@ -41,6 +41,15 @@
 .portal-list-copy h3 { margin: 0; font-size: 15px; font-weight: 650; }
 .portal-list-copy p { margin: 4px 0 0; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; }
 .portal-list-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.portal-page .portal-assignment-panel { overflow: visible; }
+.portal-assignment-row { align-items: flex-start; }
+.portal-summary-meta { margin-left: 10px; color: var(--color-text-muted); font-size: 12px; font-weight: 400; }
+.portal-plan-form { display: grid; gap: 16px; margin-top: 20px; padding: 20px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-page-bg); }
+.portal-plan-form label { display: grid; gap: 6px; }
+.portal-plan-form .input { width: 100%; }
+.portal-care-plans .portal-list-row { padding-inline: 0; }
+.portal-page .doctor-profile-page .input,
+.portal-page .doctor-form-grid .input { width: 100%; }
 .portal-action-menu { position: relative; flex: 0 0 auto; color: var(--color-text-primary); }
 .portal-action-menu > summary { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; list-style: none; background: var(--color-surface); }
 .portal-action-menu > summary::-webkit-details-marker { display: none; }

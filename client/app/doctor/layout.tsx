@@ -80,7 +80,7 @@ function ActivityIcon() {
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/doctor/dashboard", icon: <LayoutDashboardIcon /> },
   { name: "Patients", href: "/doctor/patients", icon: <UsersIcon /> },
-  { name: "Exercises", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
+  { name: "Care plans", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
   { name: "Notifications", href: "/doctor/notifications", icon: <BellIcon /> },
   { name: "Profile", href: "/doctor/profile", icon: <SettingsIcon /> },
 ];
