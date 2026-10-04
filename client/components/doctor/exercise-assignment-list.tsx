@@ -51,7 +51,7 @@ export function ExerciseAssignmentList({
                 {assignment.scheduledDays?.length ? <div style={{ color: "var(--color-text-muted)", fontSize: "12px", marginTop: "4px" }}>Scheduled: {WEEKDAYS.filter(([day]) => assignment.scheduledDays?.includes(day)).map(([, label]) => label).join(", ")}</div> : null}
                 {(assignment.targetSets || assignment.targetRepsPerSet || assignment.targetDurationSeconds) && <div style={{ color: "var(--color-text-secondary)", fontSize: "12px", marginTop: "4px" }}>Prescription: {[assignment.targetSets ? `${assignment.targetSets} sets` : "", assignment.targetRepsPerSet ? `${assignment.targetRepsPerSet} reps/set` : "", assignment.targetDurationSeconds ? `${assignment.targetDurationSeconds}s` : ""].filter(Boolean).join(" · ")}</div>}
                 {(assignment.minimumScore != null || assignment.minimumDurationSeconds) && <div style={{ color: "var(--color-text-secondary)", fontSize: "12px", marginTop: "4px" }}>Counts when: {[assignment.minimumScore != null ? `score ≥ ${assignment.minimumScore}` : "", assignment.minimumDurationSeconds ? `duration ≥ ${assignment.minimumDurationSeconds}s` : ""].filter(Boolean).join(" · ")}</div>}
-                <AdherenceSummary adherence={assignment.adherence} />
+                <AdherenceSummary adherence={assignment.adherence} showHistory />
                 {assignment.doctorInstructions && <div style={{ marginTop: "6px", fontSize: "13px" }}><strong>Instructions:</strong> {assignment.doctorInstructions}</div>}
                 {editingId === assignment.id && <form onSubmit={async (event) => {
                   event.preventDefault();

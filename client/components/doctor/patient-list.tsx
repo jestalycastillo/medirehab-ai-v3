@@ -38,7 +38,7 @@ export function PatientList({
 
   return (
     <>
-      <div className="doctor-table-wrap" style={{ overflowX: "auto" }}>
+      <div className="doctor-table-wrap">
         <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>

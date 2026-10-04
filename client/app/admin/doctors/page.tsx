@@ -327,7 +327,7 @@ export default function DoctorsPage() {
         {loading ? (
           <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading doctors…</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="portal-directory-wrap">
             <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
