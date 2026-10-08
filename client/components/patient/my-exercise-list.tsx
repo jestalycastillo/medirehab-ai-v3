@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronDown, Dumbbell } from "lucide-react";
+import { CalendarDays, ChevronRight, Dumbbell, X } from "lucide-react";
 import { useState } from "react";
 import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
@@ -31,7 +31,75 @@ function ExerciseImage({ assignment }: { assignment: ExerciseAssignment }) {
   );
 }
 
+function ExerciseDetailPanel({
+  assignment,
+  onClose,
+}: {
+  assignment: ExerciseAssignment | null;
+  onClose: () => void;
+}) {
+  if (!assignment) {
+    return (
+      <aside className="patient-exercise-detail-panel patient-exercise-detail-empty" aria-label="Exercise details">
+        <Dumbbell aria-hidden="true" />
+        <strong>Select an exercise</strong>
+        <p>Its schedule, guidance, and safety information will appear here.</p>
+      </aside>
+    );
+  }
+
+  const prescription = [
+    assignment.targetSets ? `${assignment.targetSets} sets` : "",
+    assignment.targetRepsPerSet ? `${assignment.targetRepsPerSet} reps` : "",
+    assignment.targetDurationSeconds ? `${assignment.targetDurationSeconds} sec` : "",
+  ].filter(Boolean);
+  const schedule = assignment.scheduledDays?.length
+    ? assignment.scheduledDays.map((day) => WEEKDAY_LABELS[day]).join(", ")
+    : assignment.targetSessionsPerDay
+      ? `${assignment.targetSessionsPerDay} session${assignment.targetSessionsPerDay === 1 ? "" : "s"} each day`
+      : `${assignment.targetSessionsPerWeek ?? 3} sessions each week`;
+
+  return (
+    <aside className="patient-exercise-detail-panel" id="exercise-details-panel" aria-live="polite" aria-labelledby="exercise-details-title">
+      <header className="patient-exercise-detail-heading">
+        <div>
+          <span>Exercise details</span>
+          <h2 id="exercise-details-title">{assignment.exercise?.name || "Exercise"}</h2>
+        </div>
+        <button type="button" className="patient-exercise-detail-close" onClick={onClose} aria-label="Close exercise details">
+          <X aria-hidden="true" />
+        </button>
+      </header>
+      <ExerciseImage assignment={assignment} />
+      <div className="patient-exercise-detail-content">
+        <p className="patient-exercise-detail-description">{assignment.exercise?.description || "Follow the movement your doctor assigned."}</p>
+        {prescription.length > 0 && <div className="patient-exercise-prescription">{prescription.map((item) => <span key={item}>{item}</span>)}</div>}
+        {assignment.doctorInstructions && <div className="patient-exercise-doctor-note"><strong>Your doctor says:</strong> {assignment.doctorInstructions}</div>}
+
+        <section className="patient-exercise-detail-section">
+          <h3>Plan</h3>
+          <p><CalendarDays aria-hidden="true" /><span>{schedule}</span></p>
+          {assignment.dueDate && <p><strong>Due:</strong> {formatDate(assignment.dueDate)}</p>}
+          {assignment.minimumScore != null && <p><strong>Minimum score:</strong> {assignment.minimumScore}</p>}
+          {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
+        </section>
+
+        <section className="patient-exercise-detail-section">
+          <h3>Guidance</h3>
+          <div className="patient-guidance-actions">
+            <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} guidelineSlides={assignment.exercise?.guidelineSlides} guidelinesOnly launchLabel="Safety guidelines" />
+            <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} demoOnly launchLabel="Movement demo" />
+          </div>
+        </section>
+      </div>
+    </aside>
+  );
+}
+
 export function MyExerciseList({ assignments, compact = false, emptyMessage = "No exercises found", emptyDescription = "Your assigned exercises will appear here." }: { assignments: ExerciseAssignment[]; compact?: boolean; emptyMessage?: string; emptyDescription?: string }) {
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const selectedAssignment = assignments.find((assignment) => assignment.id === selectedAssignmentId) ?? null;
+
   if (assignments.length === 0) {
     return (
       <div className="patient-exercise-empty" role="status">
@@ -43,7 +111,8 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
   }
 
   return (
-    <div className={`patient-exercise-grid ${compact ? "patient-exercise-grid-compact" : ""}`}>
+    <div className="patient-exercise-layout">
+      <div className={`patient-exercise-grid ${compact ? "patient-exercise-grid-compact" : ""}`}>
       {assignments.map((assignment) => {
         const primary = assignment.adherence?.today ?? assignment.adherence?.currentWeek;
         const progress = primary?.target ? Math.min(100, (primary.completed / primary.target) * 100) : 0;
@@ -54,7 +123,7 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
         ].filter(Boolean);
 
         return (
-          <article className="patient-exercise-card" key={assignment.id}>
+          <article className={`patient-exercise-card ${selectedAssignmentId === assignment.id ? "patient-exercise-card-selected" : ""}`} key={assignment.id}>
             <ExerciseImage assignment={assignment} />
             <div className="patient-exercise-card-body">
               <div>
@@ -71,8 +140,6 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
                 </div>
               )}
 
-              {assignment.doctorInstructions && <div className="patient-exercise-doctor-note"><strong>Your doctor says:</strong> {assignment.doctorInstructions}</div>}
-
               <div className="patient-exercise-card-action">
                 <CameraRecorder
                   exerciseName={assignment.exercise?.name}
@@ -85,35 +152,21 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
                 />
               </div>
 
-              <details className="patient-exercise-details patient-exercise-guidance">
-                <summary>Demo & safety <ChevronDown /></summary>
-                <div className="patient-guidance-actions">
-                <CameraRecorder
-                  exerciseName={assignment.exercise?.name}
-                  analysisModelKey={assignment.exercise?.analysisModelKey}
-                  exerciseId={assignment.exercise?.id}
-                  guidelineSlides={assignment.exercise?.guidelineSlides}
-                  guidelinesOnly
-                  launchLabel="Safety guidelines"
-                />
-
-                  <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} demoOnly launchLabel="Movement demo" />
-                </div>
-              </details>
-
-              <details className="patient-exercise-details">
-                <summary>Plan details <ChevronDown /></summary>
-                <div>
-                  <p><CalendarDays /> <span>{assignment.scheduledDays?.length ? assignment.scheduledDays.map((day) => WEEKDAY_LABELS[day]).join(", ") : assignment.targetSessionsPerDay ? `${assignment.targetSessionsPerDay} session${assignment.targetSessionsPerDay === 1 ? "" : "s"} each day` : `${assignment.targetSessionsPerWeek ?? 3} sessions each week`}</span></p>
-                  {assignment.dueDate && <p><strong>Due:</strong> {formatDate(assignment.dueDate)}</p>}
-                  {assignment.minimumScore != null && <p><strong>Minimum score:</strong> {assignment.minimumScore}</p>}
-                  {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
-                </div>
-              </details>
+              <button
+                type="button"
+                className="patient-exercise-details-trigger"
+                onClick={() => setSelectedAssignmentId(assignment.id)}
+                aria-pressed={selectedAssignmentId === assignment.id}
+                aria-controls="exercise-details-panel"
+              >
+                View details <ChevronRight aria-hidden="true" />
+              </button>
             </div>
           </article>
         );
       })}
+      </div>
+      <ExerciseDetailPanel assignment={selectedAssignment} onClose={() => setSelectedAssignmentId(null)} />
     </div>
   );
 }
