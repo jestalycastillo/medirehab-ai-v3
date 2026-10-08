@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { type AssignmentPlanUpdate, type ExerciseAssignment } from "@/lib/api";
 import { formatAssignmentScoreSummary } from "@/lib/score";
 import { AdherenceSummary } from "@/components/care/adherence-summary";
@@ -25,9 +26,9 @@ export function ExerciseAssignmentList({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   return (
-    <div className="card" style={{ padding: "0", overflow: "hidden" }}>
-      <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--color-border)" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Assigned Exercises</h2>
+    <div className="portal-panel portal-assignment-panel">
+      <div className="portal-panel-heading">
+        <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Prescribed exercises</h2>
       </div>
       {assignments.length === 0 ? (
         <div className="care-page-empty" role="status">
@@ -37,8 +38,8 @@ export function ExerciseAssignmentList({
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
           {assignments.map((assignment) => (
-            <div key={assignment.id} style={{ padding: "18px 24px", borderBottom: "1px solid var(--color-page-bg)", display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ minWidth: 0 }}>
+            <div key={assignment.id} className="portal-list-row portal-assignment-row">
+              <div className="portal-list-copy">
                 <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{assignment.exercise?.name || "Exercise"}</div>
                 <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Assigned {formatDate(assignment.assignedAt)}</div>
                 {assignment.exercise?.description && (
@@ -70,7 +71,7 @@ export function ExerciseAssignmentList({
                     doctorInstructions: String(form.get("doctorInstructions") || "") || null,
                   });
                   if (saved) setEditingId(null);
-                }} style={{ marginTop: "12px", display: "grid", gap: "8px" }}>
+                }} className="portal-plan-form">
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per week<input className="input" name="targetSessionsPerWeek" type="number" min="1" max="14" defaultValue={assignment.targetSessionsPerWeek ?? 3} /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Sessions per day <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(optional; enables daily tracking)</span><input className="input" name="targetSessionsPerDay" type="number" min="1" max="5" defaultValue={assignment.targetSessionsPerDay ?? ""} placeholder="Use weekly target" /></label>
                   <fieldset style={{ border: 0, padding: 0, margin: 0 }}><legend style={{ fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>Scheduled days <span style={{ fontWeight: 400, color: "var(--color-text-muted)" }}>(none means any day)</span></legend><div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>{WEEKDAYS.map(([day, label]) => <label className="plan-day-choice" key={day}><input type="checkbox" name="scheduledDays" value={day} defaultChecked={assignment.scheduledDays?.includes(day)} />{label}</label>)}</div></fieldset>
@@ -84,15 +85,15 @@ export function ExerciseAssignmentList({
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Due date<input className="input" name="dueDate" type="date" defaultValue={assignment.dueDate?.slice(0, 10) ?? ""} /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Review date<input className="input" name="reviewDate" type="date" defaultValue={assignment.reviewDate?.slice(0, 10) ?? ""} /></label>
                   <label style={{ fontSize: "12px", fontWeight: 700 }}>Instructions<textarea className="input" name="doctorInstructions" maxLength={2000} defaultValue={assignment.doctorInstructions ?? ""} style={{ minHeight: "70px", paddingTop: "8px" }} /></label>
-                  <div><button className="btn btn-primary" type="submit" disabled={isBusy}>Save plan</button></div>
+                  <div className="portal-list-actions"><button className="btn btn-primary" type="submit" disabled={isBusy}>Save plan</button><button className="btn btn-secondary" type="button" onClick={() => setEditingId(null)} disabled={isBusy}>Cancel</button></div>
                 </form>}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <div className="portal-list-actions">
                 <span className="badge badge-blue">{formatAssignmentScoreSummary(assignment)}</span>
                 <button className="btn btn-secondary" onClick={() => setEditingId(editingId === assignment.id ? null : assignment.id)} disabled={isBusy} aria-expanded={editingId === assignment.id} aria-label={`${editingId === assignment.id ? "Close" : "Edit"} plan for ${assignment.exercise?.name || "exercise"}`} style={{ padding: "0 14px" }}>Plan</button>
-                <button className="btn btn-danger" onClick={() => onRemove(assignment)} disabled={isBusy} aria-label={`Remove ${assignment.exercise?.name || "exercise"}`} style={{ padding: "0 14px" }}>
-                  Remove
-                </button>
+                <PortalActionMenu label={`More actions for ${assignment.exercise?.name || "exercise"}`}>
+                  <button className="list-row-action-danger" onClick={() => onRemove(assignment)} disabled={isBusy}>Remove from care plan</button>
+                </PortalActionMenu>
               </div>
             </div>
           ))}

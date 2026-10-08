@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
+import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { useEffect, useState } from "react";
 import { api, type ApiDoctor, type DoctorProfile, ApiError } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -248,14 +250,8 @@ export default function DoctorsPage() {
   const archivedAccountCount = doctors.filter((doctor) => doctor.archivedAt).length;
 
   return (
-    <div className="role-dashboard admin-subpage animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <span className="role-dashboard-eyebrow">Admin / Doctors</span>
-          <h1>Doctors</h1>
-          <p>Manage doctor accounts and profiles.</p>
-        </div>
-        <button
+    <PortalPage className="admin-subpage">
+      <PortalPageHeader title="Doctors" eyebrow="Admin / Doctors" description="Manage your care team and clinician accounts." actions={<button
           className="btn btn-primary"
           onClick={() => {
             setEditingDoctor(undefined);
@@ -264,8 +260,7 @@ export default function DoctorsPage() {
           }}
         >
           <PlusIcon /> Add Doctor
-        </button>
-      </header>
+        </button>} />
 
       <section className="card admin-subpage-panel" aria-label="Doctor accounts">
         <div className="admin-subpage-panel-heading">
@@ -332,7 +327,7 @@ export default function DoctorsPage() {
         {loading ? (
           <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading doctors…</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="portal-directory-wrap">
             <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
@@ -374,16 +369,13 @@ export default function DoctorsPage() {
                         <StatusBadge isActive={doctor.isActive} archivedAt={doctor.archivedAt} />
                       </td>
                       <td data-label="Actions" style={{ padding: "12px 16px", textAlign: "right" }}>
-                        <details className="list-row-actions">
-                          <summary>More</summary>
-                          <div>
+                        <PortalActionMenu label={`More actions for ${doctorName(doctor)}`}>
                             <button onClick={() => { setEditingDoctor(doctor); setFormError(""); setIsFormOpen(true); }}>Edit profile</button>
                             <button onClick={() => handleResetPassword(doctor)}>Reset password</button>
-                            {!doctor.archivedAt && <button onClick={() => handleArchive(doctor)}>Archive</button>}
+                            {!doctor.archivedAt && <button className="list-row-action-danger" onClick={() => handleArchive(doctor)}>Archive</button>}
                             {doctor.archivedAt && <button onClick={() => handleRestore(doctor)}>Restore</button>}
                             {doctor.archivedAt && <button className="list-row-action-danger" onClick={() => handlePermanentDelete(doctor)}>Delete permanently</button>}
-                          </div>
-                        </details>
+                          </PortalActionMenu>
                       </td>
                     </tr>
                   ))
@@ -460,7 +452,7 @@ export default function DoctorsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PortalPage>
   );
 }
 

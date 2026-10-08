@@ -1,9 +1,9 @@
 "use client";
 
 import { CalendarDays, ChevronDown, Dumbbell } from "lucide-react";
+import { useState } from "react";
 import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
-import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 
 function formatDate(value?: string | null) {
   if (!value) return null;
@@ -15,18 +15,18 @@ const WEEKDAY_LABELS: Record<number, string> = { 1: "Mon", 2: "Tue", 3: "Wed", 4
 function ExerciseImage({ assignment }: { assignment: ExerciseAssignment }) {
   const image = assignment.exercise?.images?.[0];
   const imageSrc = getExerciseImageUrl(assignment.exercise);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   return (
     <div className="patient-exercise-card-image">
-      {imageSrc ? (
+      {imageSrc && failedSrc !== imageSrc ? (
         // Exercise images can come from the API or an administrator-provided URL.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imageSrc}
           alt={image?.imageName || `${assignment.exercise.name} guide`}
-          onError={(event) => { event.currentTarget.style.display = "none"; }}
+          onError={() => setFailedSrc(imageSrc)}
         />
-      ) : null}
-      <div className="patient-exercise-card-placeholder" aria-hidden="true"><Dumbbell /><span>Exercise guide</span></div>
+      ) : <div className="patient-exercise-card-placeholder" aria-hidden="true"><Dumbbell /><span>Exercise guide</span></div>}
     </div>
   );
 }
@@ -81,8 +81,25 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
                   assignmentId={assignment.id}
                   targetDurationSeconds={assignment.targetDurationSeconds}
                   minimumDurationSeconds={assignment.minimumDurationSeconds}
+                  guidelineSlides={assignment.exercise?.guidelineSlides}
                 />
               </div>
+
+              <details className="patient-exercise-details patient-exercise-guidance">
+                <summary>Demo & safety <ChevronDown /></summary>
+                <div className="patient-guidance-actions">
+                <CameraRecorder
+                  exerciseName={assignment.exercise?.name}
+                  analysisModelKey={assignment.exercise?.analysisModelKey}
+                  exerciseId={assignment.exercise?.id}
+                  guidelineSlides={assignment.exercise?.guidelineSlides}
+                  guidelinesOnly
+                  launchLabel="Safety guidelines"
+                />
+
+                  <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} demoOnly launchLabel="Movement demo" />
+                </div>
+              </details>
 
               <details className="patient-exercise-details">
                 <summary>Plan details <ChevronDown /></summary>

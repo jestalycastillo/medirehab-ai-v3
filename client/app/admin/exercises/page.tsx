@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
+import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { useEffect, useState } from "react";
 import { api, type ApiExercise, ApiError, type ExerciseImage, getExerciseImageUrl } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -108,7 +110,7 @@ export default function ExercisesPage() {
     loadExercises();
   }, []);
 
-  const handleSaveExercise = async (data: { name: string; description: string; images: ExerciseImage[] }) => {
+  const handleSaveExercise = async (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[]; guidelineSlides: string[] }) => {
     if (!editingExercise) return;
     setFormLoading(true);
     setFormError("");
@@ -206,16 +208,10 @@ export default function ExercisesPage() {
   });
 
   return (
-    <div className="role-dashboard admin-subpage exercise-catalog-page animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <span className="role-dashboard-eyebrow">Admin / Exercises</span>
-          <h1>Exercises</h1>
-          <p>Review movement guides, preview demos, and manage which exercises are available for care plans.</p>
-        </div>
-      </header>
+    <PortalPage className="admin-subpage exercise-catalog-page">
+      <PortalPageHeader title="Exercise library" eyebrow="Admin / Exercises" description="Manage movement demonstrations, safety guidelines, and exercise availability." />
 
-      <section className="exercise-catalog-section" aria-label="Exercise catalog">
+      <section className="card admin-subpage-panel exercise-catalog-section" aria-label="Exercise catalog">
         <div className="exercise-catalog-toolbar">
           <div className="exercise-catalog-toolbar-copy">
             <h2>Browse library</h2>
@@ -332,24 +328,26 @@ export default function ExercisesPage() {
                           <button type="button" className="btn btn-primary" onClick={() => setViewingExercise(exercise)}>
                             View details
                           </button>
-                          <button type="button" className="exercise-catalog-action" onClick={() => { setEditingExercise(exercise); setFormError(""); setIsFormOpen(true); }}>
+                          <PortalActionMenu label={`More actions for ${exercise.name}`}>
+                          <button type="button" onClick={() => { setEditingExercise(exercise); setFormError(""); setIsFormOpen(true); }}>
                             <EditIcon /> Edit
                           </button>
                           {accountTab === "ACTIVE" && !exercise.archivedAt && (
-                            <button type="button" className="exercise-catalog-action" onClick={() => handleArchive(exercise)}>
+                            <button type="button" className="list-row-action-danger" onClick={() => handleArchive(exercise)}>
                               <ArchiveIcon /> Archive
                             </button>
                           )}
                           {accountTab === "ARCHIVED" && exercise.archivedAt && (
-                            <button type="button" className="exercise-catalog-action" onClick={() => handleRestore(exercise)}>
+                            <button type="button" onClick={() => handleRestore(exercise)}>
                               <RestoreIcon /> Restore
                             </button>
                           )}
                           {accountTab === "ARCHIVED" && exercise.archivedAt && (
-                            <button type="button" className="exercise-catalog-action exercise-catalog-action-danger" onClick={() => handlePermanentDelete(exercise)}>
+                            <button type="button" className="list-row-action-danger" onClick={() => handlePermanentDelete(exercise)}>
                               <TrashIcon /> Delete
                             </button>
                           )}
+                          </PortalActionMenu>
                         </div>
                       </div>
                     </article>
@@ -441,6 +439,6 @@ export default function ExercisesPage() {
           </div>
         </div>
       )}
-    </div>
+    </PortalPage>
   );
 }

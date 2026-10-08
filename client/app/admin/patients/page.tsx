@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
+import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, ApiError, type ApiDoctor, type ApiPatient, type PatientProfile } from "@/lib/api";
@@ -116,9 +118,8 @@ export default function AdminPatientsPage() {
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("create") === "1") {
-      setEditingPatient(undefined);
-      setFormError("");
-      setIsFormOpen(true);
+      const frame = window.requestAnimationFrame(() => setIsFormOpen(true));
+      return () => window.cancelAnimationFrame(frame);
     }
   }, []);
 
@@ -290,14 +291,8 @@ export default function AdminPatientsPage() {
   };
 
   return (
-    <div className="role-dashboard admin-subpage animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <span className="role-dashboard-eyebrow">Admin / Patients</span>
-          <h1>Patients</h1>
-          <p>Assign patient accounts to active doctors.</p>
-        </div>
-        <button
+    <PortalPage className="admin-subpage">
+      <PortalPageHeader title="Patients" eyebrow="Admin / Patients" description="Manage patient accounts and their assigned care team." actions={<button
           className="btn btn-primary"
           onClick={() => {
             setEditingPatient(undefined);
@@ -306,8 +301,7 @@ export default function AdminPatientsPage() {
           }}
         >
           <PlusIcon /> Add Patient
-        </button>
-      </header>
+        </button>} />
 
       <section className="card admin-subpage-panel" aria-label="Patient accounts">
         <div className="admin-subpage-panel-heading">
@@ -370,7 +364,7 @@ export default function AdminPatientsPage() {
         {loading ? (
           <div className="admin-directory-loading" role="status"><div className="spinner" aria-hidden="true" />Loading patients…</div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div className="portal-directory-wrap">
             <table className="admin-directory-table admin-directory-table-patients" style={{ width: "100%", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
@@ -414,7 +408,7 @@ export default function AdminPatientsPage() {
                       </td>
                       <td data-label="Actions" style={{ padding: "12px 16px", textAlign: "right" }}>
                         <div className="directory-row-actions">
-                          {accountTab === "ACTIVE" && <>
+                          {accountTab === "ACTIVE" && <details className="portal-assign-doctor"><summary>Assign doctor</summary><div>
                           <select
                             className="input directory-doctor-select"
                             aria-label={`Choose doctor for ${patientName(patient)}`}
@@ -435,17 +429,14 @@ export default function AdminPatientsPage() {
                           >
                             {savingPatientId === patient.id ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Assigning…</> : "Assign"}
                           </button>
-                          </>}
-                          <details className="list-row-actions">
-                            <summary>More</summary>
-                            <div>
+                          </div></details>}
+                          <PortalActionMenu label={`More actions for ${patientName(patient)}`}>
                               {accountTab === "ACTIVE" && <button onClick={() => { setEditingPatient(patient); setFormError(""); setIsFormOpen(true); }}>Edit profile</button>}
                               <button onClick={() => handleResetPassword(patient)}>Reset password</button>
-                              {!patient.archivedAt && <button onClick={() => handleArchive(patient)}>Archive</button>}
+                              {!patient.archivedAt && <button className="list-row-action-danger" onClick={() => handleArchive(patient)}>Archive</button>}
                               {patient.archivedAt && <button onClick={() => handleRestore(patient)}>Restore</button>}
                               {patient.archivedAt && <button className="list-row-action-danger" onClick={() => handlePermanentDelete(patient)}>Delete permanently</button>}
-                            </div>
-                          </details>
+                          </PortalActionMenu>
                         </div>
                       </td>
                     </tr>
@@ -528,7 +519,7 @@ export default function AdminPatientsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PortalPage>
   );
 }
 

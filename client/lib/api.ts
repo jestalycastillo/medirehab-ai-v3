@@ -88,6 +88,8 @@ export interface ApiExercise {
   name: string;
   description: string;
   analysisModelKey?: string | null;
+  guidelineSlides?: string[];
+  guidelineVersion?: number;
   archivedAt: string | null;
   images: ExerciseImage[];
 }
@@ -426,11 +428,19 @@ export const api = {
     });
   },
 
-  updateExercise(exerciseId: string, data: Partial<{ name: string; exercise: string; description: string; images: ExerciseImage[] }>) {
+  updateExercise(exerciseId: string, data: Partial<{ name: string; exercise: string; description: string; analysisModelKey: string | null; images: ExerciseImage[]; guidelineSlides: string[] }>) {
     return request<{ success: boolean; exercise: ApiExercise }>(`/exercises/${exerciseId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
+  },
+
+  getExerciseGuidelineProgress(exerciseId: string) {
+    return request<{ success: boolean; slides: unknown; version: number; hasReadCurrentVersion: boolean }>(`/exercises/${exerciseId}/guideline-progress`);
+  },
+
+  acknowledgeExerciseGuideline(exerciseId: string) {
+    return request<{ success: boolean }>(`/exercises/${exerciseId}/guideline-acknowledgement`, { method: "POST" });
   },
 
   deleteExercise(exerciseId: string) {

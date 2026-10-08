@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -128,27 +129,17 @@ export default function PatientExercisesPage() {
   }
 
   return (
-    <div className="role-dashboard care-page animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-        <Link className="care-page-back" href={`/doctor/patients/${patientUserId}`}>
-          Back to patient
-        </Link>
-        <span className="role-dashboard-eyebrow">Doctor / Care plan</span>
-        <h1>Exercise assignments</h1>
-        <p>
-          Manage rehabilitation exercises for {patientName(patient)}.
-        </p>
-        </div>
-      </header>
+    <PortalPage>
+      <PortalPageHeader title={`${patientName(patient)}’s care plan`} eyebrow="Doctor / Care plan" description="Review prescribed exercises, adjust goals, and add movements to the plan." back={<Link className="care-page-back" href={`/doctor/patients/${patientUserId}`}>Back to patient</Link>} />
 
       {actionError && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{actionError}</div>}
       {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
 
-      <section className="doctor-two-column">
-        <ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} />
-        <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} onUpdatePlan={handleUpdatePlan} isBusy={busy} />
-      </section>
+      <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} onUpdatePlan={handleUpdatePlan} isBusy={busy} />
+      <details className="care-disclosure" open={assignedExercises.length === 0 ? true : undefined}>
+        <summary>Add exercises <span className="portal-summary-meta">{availableExercises.length} available</span></summary>
+        <div className="care-disclosure-content"><ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} /></div>
+      </details>
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -160,6 +151,6 @@ export default function PatientExercisesPage() {
         onConfirm={confirmDialog.action}
         onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
       />
-    </div>
+    </PortalPage>
   );
 }

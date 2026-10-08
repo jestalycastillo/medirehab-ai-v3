@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { QuickChat } from "@/components/care/quick-chat";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -79,7 +80,7 @@ function ActivityIcon() {
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/doctor/dashboard", icon: <LayoutDashboardIcon /> },
   { name: "Patients", href: "/doctor/patients", icon: <UsersIcon /> },
-  { name: "Exercises", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
+  { name: "Care plans", href: "/doctor/exercise-assignments", icon: <ActivityIcon /> },
   { name: "Notifications", href: "/doctor/notifications", icon: <BellIcon /> },
   { name: "Profile", href: "/doctor/profile", icon: <SettingsIcon /> },
 ];
@@ -161,7 +162,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ color: "var(--color-primary)" }}>
-            <ActivityIcon />
+            <MediRehabLogo />
           </div>
           <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "-0.01em" }}>
             MediRehab<span style={{ color: "var(--color-primary)" }}> AI</span>
@@ -268,7 +269,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           borderBottom: "1px solid var(--color-border)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
+            <MediRehabLogo />
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Doctor Portal</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>

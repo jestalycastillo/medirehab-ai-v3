@@ -12,8 +12,8 @@ export function ExercisePicker({
   isBusy?: boolean;
 }) {
   return (
-    <div className="card" style={{ padding: "0", overflow: "hidden" }}>
-      <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--color-border)" }}>
+    <div className="portal-panel">
+      <div className="portal-panel-heading">
         <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Available Exercises</h2>
       </div>
       {exercises.length === 0 ? (
@@ -24,8 +24,8 @@ export function ExercisePicker({
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
           {exercises.map((exercise) => (
-            <div key={exercise.id} style={{ padding: "18px 24px", borderBottom: "1px solid var(--color-page-bg)", display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
-              <div style={{ minWidth: 0 }}>
+            <div key={exercise.id} className="portal-list-row">
+              <div className="portal-list-copy">
                 <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{exercise.name}</div>
                 <div style={{ color: "var(--color-text-secondary)", fontSize: "14px", maxWidth: "56ch" }}>{exercise.description || "No description provided."}</div>
               </div>

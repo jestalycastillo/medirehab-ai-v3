@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, HeartPulse, Activity, ShieldCheck } from "lucide-react";
+import { ArrowRight, Activity, ShieldCheck } from "lucide-react";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 
 export default function HomePage() {
   return (
@@ -12,7 +13,7 @@ export default function HomePage() {
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-12">
           {/* Brand / Logo */}
           <Link href="/" className="inline-flex items-center gap-2.5 no-underline group">
-            <HeartPulse className="size-6 text-[#0F766E] transition-transform duration-300 group-hover:scale-110" />
+            <MediRehabLogo className="size-9" />
             <span className="text-xl font-bold tracking-tight text-[#0F2926]">
               MediRehab<span className="text-[#0F766E]"> AI</span>
             </span>
@@ -219,7 +220,7 @@ export default function HomePage() {
       <footer className="bg-[#0B4A47] px-6 py-12 text-white/80 lg:px-12">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 sm:flex-row">
           <Link href="/" className="inline-flex items-center gap-2.5 no-underline">
-            <HeartPulse className="size-5 text-[#34D399]" />
+            <MediRehabLogo className="size-8" />
             <span className="text-base font-bold text-white">
               MediRehab<span className="text-[#34D399]"> AI</span>
             </span>

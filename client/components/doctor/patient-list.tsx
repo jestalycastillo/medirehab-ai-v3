@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { UsersRound } from "lucide-react";
 import { type ApiPatient } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -37,7 +38,7 @@ export function PatientList({
 
   return (
     <>
-      <div className="doctor-table-wrap" style={{ overflowX: "auto" }}>
+      <div className="doctor-table-wrap">
         <table className="admin-directory-table" style={{ width: "100%", textAlign: "left" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--color-border)", color: "var(--color-text-muted)", fontSize: "14px" }}>
@@ -61,17 +62,14 @@ export function PatientList({
                 <td style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", flexWrap: "wrap" }}>
                     <Link className="btn btn-secondary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "34px", padding: "0 12px", fontSize: "13px" }}>
-                      Assign
+                      Care plan
                     </Link>
-                    <details className="list-row-actions">
-                      <summary>More</summary>
-                      <div>
+                    <PortalActionMenu label={`More actions for ${patientName(patient)}`}>
                         <button onClick={() => onEdit(patient)}>Edit profile</button>
                         <button onClick={() => onResetPassword(patient)}>Reset password</button>
                         <button onClick={() => onToggleStatus(patient)}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-                        {!patient.archivedAt && <button onClick={() => onArchive(patient)}>Archive</button>}
-                      </div>
-                    </details>
+                        {!patient.archivedAt && <button className="list-row-action-danger" onClick={() => onArchive(patient)}>Archive</button>}
+                    </PortalActionMenu>
                   </div>
                 </td>
               </tr>
@@ -94,16 +92,13 @@ export function PatientList({
             </div>
             <div style={{ color: "var(--color-text-secondary)", fontSize: "14px" }}>{patient.profile?.medicalCondition || "No condition recorded."}</div>
             <div className="responsive-actions">
-              <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "38px" }}>Assign Exercise</Link>
-              <details className="list-row-actions">
-                <summary>More options</summary>
-                <div>
+              <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`} style={{ height: "38px" }}>Care plan</Link>
+              <PortalActionMenu label={`More actions for ${patientName(patient)}`}>
                   <button onClick={() => onEdit(patient)}>Edit profile</button>
                   <button onClick={() => onResetPassword(patient)}>Reset password</button>
                   <button onClick={() => onToggleStatus(patient)}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-                  {!patient.archivedAt && <button onClick={() => onArchive(patient)}>Archive</button>}
-                </div>
-              </details>
+                  {!patient.archivedAt && <button className="list-row-action-danger" onClick={() => onArchive(patient)}>Archive</button>}
+                    </PortalActionMenu>
             </div>
           </div>
         ))}

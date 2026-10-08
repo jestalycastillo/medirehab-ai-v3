@@ -53,13 +53,15 @@ export function HumanInstructorGuide({
 
     const timeRef = useRef(0);
     const isPlayingRef = useRef(isPlaying);
-    isPlayingRef.current = isPlaying;
 
     const movementRef = useRef(movement);
-    movementRef.current = movement;
 
     const durationRef = useRef(animationDuration);
-    durationRef.current = animationDuration;
+    useEffect(() => {
+        isPlayingRef.current = isPlaying;
+        movementRef.current = movement;
+        durationRef.current = animationDuration;
+    }, [isPlaying, movement, animationDuration]);
 
     useEffect(() => {
         const container = containerRef.current;

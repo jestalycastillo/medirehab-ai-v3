@@ -12,7 +12,7 @@ export function ExerciseForm({
 }: {
   isOpen: boolean;
   initialData?: ApiExercise;
-  onSave: (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[] }) => void;
+  onSave: (data: { name: string; description: string; analysisModelKey?: string | null; images: ExerciseImage[]; guidelineSlides: string[] }) => void;
   onCancel: () => void;
   isLoading: boolean;
   error?: string;
@@ -22,11 +22,13 @@ export function ExerciseForm({
     description: string;
     analysisModelKey: string;
     images: ExerciseImage[];
+    guidelineSlides: string[];
   }>({
     name: "",
     description: "",
     analysisModelKey: "",
     images: [],
+    guidelineSlides: [],
   });
   const modalRef = usePortalModalFocus(isOpen, onCancel);
   const [uploadError, setUploadError] = useState("");
@@ -39,9 +41,10 @@ export function ExerciseForm({
         description: initialData.description || "",
         analysisModelKey: initialData.analysisModelKey || "",
         images: initialData.images || [],
+        guidelineSlides: initialData.guidelineSlides || [],
       });
     } else {
-      setFormData({ name: "", description: "", analysisModelKey: "", images: [] });
+      setFormData({ name: "", description: "", analysisModelKey: "", images: [], guidelineSlides: [] });
     }
   }, [initialData, isOpen]);
 
@@ -65,6 +68,12 @@ export function ExerciseForm({
     const newImages = [...formData.images];
     newImages.splice(index, 1);
     setFormData({ ...formData, images: newImages });
+  };
+
+  const handleGuidelineChange = (index: number, value: string) => {
+    const guidelineSlides = [...formData.guidelineSlides];
+    guidelineSlides[index] = value;
+    setFormData({ ...formData, guidelineSlides });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -122,6 +131,23 @@ export function ExerciseForm({
               <option value="shoulder_abduction">Shoulder Abduction (shoulder_abduction)</option>
               <option value="side_arms_raise_v1">Side Arms Raise (side_arms_raise_v1)</option>
             </select>
+          </div>
+
+          <div>
+            <div className="portal-modal-section-heading">
+              <div><strong>Guidelines & safety slideshow</strong><p>Patients read this before their first recording. Updating it asks every patient to read the new version.</p></div>
+              <button type="button" className="btn btn-secondary" onClick={() => setFormData({ ...formData, guidelineSlides: [...formData.guidelineSlides, ""] })}>Add slide</button>
+            </div>
+            {formData.guidelineSlides.length === 0 ? <p style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>The built-in safety template will be used until you add custom slides.</p> : (
+              <div style={{ display: "grid", gap: "10px" }}>
+                {formData.guidelineSlides.map((slide, index) => (
+                  <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "start" }}>
+                    <textarea className="input" aria-label={`Guideline slide ${index + 1}`} value={slide} onChange={(event) => handleGuidelineChange(index, event.target.value)} placeholder={`Slide ${index + 1}`} style={{ minHeight: "70px", padding: "10px 14px" }} required />
+                    <button type="button" className="btn btn-secondary" onClick={() => setFormData({ ...formData, guidelineSlides: formData.guidelineSlides.filter((_, slideIndex) => slideIndex !== index) })}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           <div>

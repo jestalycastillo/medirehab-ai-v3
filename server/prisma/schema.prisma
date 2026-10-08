@@ -33,6 +33,7 @@ model User {
   patientHelpRequests HelpRequest[] @relation("PatientHelpRequests")
   doctorHelpRequests HelpRequest[] @relation("DoctorHelpRequests")
   auditLogs AuditLog[]
+  guidelineAcknowledgements ExerciseGuidelineAcknowledgement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -97,17 +98,35 @@ model Exercise {
   name             String    @unique
   description      String
   analysisModelKey String?   @unique
+  guidelineSlides  Json      @default("[]")
+  guidelineVersion Int       @default(1)
   isActive         Boolean   @default(true)
   archivedAt       DateTime?
 
   images      ExerciseImage[]
   assignments ExerciseAssignment[]
+  guidelineAcknowledgements ExerciseGuidelineAcknowledgement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("exercises")
   @@index([isActive])
+}
+
+model ExerciseGuidelineAcknowledgement {
+  id               String   @id @default(cuid())
+  patientUserId    String
+  exerciseId       String
+  guidelineVersion Int
+  readAt           DateTime @default(now())
+
+  patient  User     @relation(fields: [patientUserId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([patientUserId, exerciseId])
+  @@index([exerciseId])
+  @@map("exercise_guideline_acknowledgements")
 }
 
 model ExerciseImage {

@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, CircleAlert, FileText, History, LoaderCircle, Search } from "lucide-react";
 import { api, ApiError, type CareSession, type ExerciseAssignment, type PatientProfile } from "@/lib/api";
@@ -56,13 +57,10 @@ export default function PatientExercisesPage() {
   }, [assignments, searchTerm]);
 
   return (
-    <div className="patient-page patient-exercises-page animate-fade-in">
-      <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Your care plan</span><h1>My exercises</h1></div>
-        {assignments.length > 3 && (
+    <PortalPage className="patient-page patient-exercises-page">
+      <PortalPageHeader title="My exercises" eyebrow="Your care plan" description="Follow your prescribed movements and keep track of your progress." actions={assignments.length > 3 && (
           <label className="patient-search"><Search /><span className="sr-only">Search exercises</span><input type="search" placeholder="Find an exercise" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} /></label>
-        )}
-      </header>
+        )} />
 
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
 
@@ -94,6 +92,6 @@ export default function PatientExercisesPage() {
       )}
 
       {!loading && <div className="patient-help-wrap"><HelpRequestPanel assignments={assignments} /></div>}
-    </div>
+    </PortalPage>
   );
 }

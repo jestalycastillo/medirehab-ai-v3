@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError, type ApiPatient, type PatientProfile } from "@/lib/api";
 import { PatientForm } from "@/components/doctor/patient-form";
@@ -199,12 +200,8 @@ export default function DoctorPatientsPage() {
   };
 
   return (
-    <div className="role-dashboard care-page animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Patients</h1>
-        </div>
-      </header>
+    <PortalPage>
+      <PortalPageHeader title="Patients" eyebrow="Doctor / Patients" description="Review patient records and manage their care plans." />
 
       <div className="card care-page-panel">
         <div className="admin-subpage-panel-heading">
@@ -299,6 +296,6 @@ export default function DoctorPatientsPage() {
         password={temporaryPassword}
         onClose={() => setIsTemporaryPasswordOpen(false)}
       />
-    </div>
+    </PortalPage>
   );
 }

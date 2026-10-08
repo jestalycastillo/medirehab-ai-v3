@@ -4713,6 +4713,39 @@ a.admin-metric:hover {
 
 .patient-exercise-card-action {
   margin-top: auto;
+  display: grid;
+  gap: 10px;
+}
+
+.recorder-guideline-card {
+  max-width: 680px;
+}
+
+.recorder-guideline-slide {
+  min-height: 120px;
+  padding: 20px;
+  border-radius: 14px;
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--color-text-primary) !important;
+  font-size: 18px !important;
+  line-height: 1.65 !important;
+}
+
+.recorder-guideline-progress {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 20px;
+}
+
+.recorder-guideline-progress span {
+  height: 6px;
+  flex: 1;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.18);
+}
+
+.recorder-guideline-progress span.is-complete {
+  background: var(--color-primary);
 }
 
 .patient-exercise-card-action .camera-launch-button {
