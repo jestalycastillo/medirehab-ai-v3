@@ -47,8 +47,11 @@ circumduction and cross-body stretch, and omitted for the rotation models.
 
 The recorder's model config enables all four exercises. Visibility checks stay
 active in preview and recording. New exercises have their own movement
-instructions and a visibility-only guidance branch; flexion/abduction repetition
-and form rules remain specific to those existing exercises. The two combined
+instructions and upper-body live-coaching rules. The rules require the same
+nose, chest, shoulder, elbow, and wrist points used during model extraction,
+then give pose-position prompts without estimating repetitions or a clinical
+range-of-motion score. Flexion/abduction repetition and form rules remain
+specific to those existing exercises. The two combined
 models support per-arm recordings, shared visits, and per-arm score summaries.
 Both arms remain required in the visibility checks. Anatomical arm labels are
 independent of the mirrored webcam preview.
