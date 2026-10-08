@@ -4563,10 +4563,7 @@ a.admin-metric:hover {
 }
 
 .patient-exercise-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(290px, 360px);
-  align-items: start;
-  gap: 24px;
+  min-width: 0;
 }
 
 .patient-exercise-layout .patient-exercise-grid {
@@ -4800,12 +4797,26 @@ a.admin-metric:hover {
 }
 
 .patient-exercise-detail-panel {
-  position: sticky;
-  top: 24px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 81;
+  width: min(440px, 100vw);
+  height: 100dvh;
+  overflow-y: auto;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  border-radius: 0;
   background: var(--color-surface);
+  box-shadow: -16px 0 42px rgba(16, 33, 31, 0.16);
+}
+
+.patient-exercise-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  border: 0;
+  background: rgba(15, 23, 42, 0.28);
+  cursor: default;
 }
 
 .patient-exercise-detail-empty {
@@ -4837,11 +4848,16 @@ a.admin-metric:hover {
 }
 
 .patient-exercise-detail-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .patient-exercise-detail-heading span {
@@ -6947,12 +6963,12 @@ video.session-mirrored-video:-ms-fullscreen {
 
 @media (max-width: 640px) {
   .patient-exercise-layout {
-    grid-template-columns: 1fr;
-    gap: 18px;
+    min-width: 0;
   }
 
   .patient-exercise-detail-panel {
-    position: static;
+    width: 100vw;
+    border-left: 0;
   }
 }
 

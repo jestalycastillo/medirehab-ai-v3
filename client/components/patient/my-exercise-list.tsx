@@ -38,15 +38,7 @@ function ExerciseDetailPanel({
   assignment: ExerciseAssignment | null;
   onClose: () => void;
 }) {
-  if (!assignment) {
-    return (
-      <aside className="patient-exercise-detail-panel patient-exercise-detail-empty" aria-label="Exercise details">
-        <Dumbbell aria-hidden="true" />
-        <strong>Select an exercise</strong>
-        <p>Its schedule, guidance, and safety information will appear here.</p>
-      </aside>
-    );
-  }
+  if (!assignment) return null;
 
   const prescription = [
     assignment.targetSets ? `${assignment.targetSets} sets` : "",
@@ -60,39 +52,42 @@ function ExerciseDetailPanel({
       : `${assignment.targetSessionsPerWeek ?? 3} sessions each week`;
 
   return (
-    <aside className="patient-exercise-detail-panel" id="exercise-details-panel" aria-live="polite" aria-labelledby="exercise-details-title">
-      <header className="patient-exercise-detail-heading">
-        <div>
-          <span>Exercise details</span>
-          <h2 id="exercise-details-title">{assignment.exercise?.name || "Exercise"}</h2>
-        </div>
-        <button type="button" className="patient-exercise-detail-close" onClick={onClose} aria-label="Close exercise details">
-          <X aria-hidden="true" />
-        </button>
-      </header>
-      <ExerciseImage assignment={assignment} />
-      <div className="patient-exercise-detail-content">
-        <p className="patient-exercise-detail-description">{assignment.exercise?.description || "Follow the movement your doctor assigned."}</p>
-        {prescription.length > 0 && <div className="patient-exercise-prescription">{prescription.map((item) => <span key={item}>{item}</span>)}</div>}
-        {assignment.doctorInstructions && <div className="patient-exercise-doctor-note"><strong>Your doctor says:</strong> {assignment.doctorInstructions}</div>}
-
-        <section className="patient-exercise-detail-section">
-          <h3>Plan</h3>
-          <p><CalendarDays aria-hidden="true" /><span>{schedule}</span></p>
-          {assignment.dueDate && <p><strong>Due:</strong> {formatDate(assignment.dueDate)}</p>}
-          {assignment.minimumScore != null && <p><strong>Minimum score:</strong> {assignment.minimumScore}</p>}
-          {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
-        </section>
-
-        <section className="patient-exercise-detail-section">
-          <h3>Guidance</h3>
-          <div className="patient-guidance-actions">
-            <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} guidelineSlides={assignment.exercise?.guidelineSlides} guidelinesOnly launchLabel="Safety guidelines" />
-            <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} demoOnly launchLabel="Movement demo" />
+    <>
+      <button type="button" className="patient-exercise-detail-backdrop" onClick={onClose} aria-label="Close exercise details" />
+      <aside className="patient-exercise-detail-panel" id="exercise-details-panel" role="dialog" aria-labelledby="exercise-details-title">
+        <header className="patient-exercise-detail-heading">
+          <div>
+            <span>Exercise details</span>
+            <h2 id="exercise-details-title">{assignment.exercise?.name || "Exercise"}</h2>
           </div>
-        </section>
-      </div>
-    </aside>
+          <button type="button" className="patient-exercise-detail-close" onClick={onClose} aria-label="Close exercise details">
+            <X aria-hidden="true" />
+          </button>
+        </header>
+        <ExerciseImage assignment={assignment} />
+        <div className="patient-exercise-detail-content">
+          <p className="patient-exercise-detail-description">{assignment.exercise?.description || "Follow the movement your doctor assigned."}</p>
+          {prescription.length > 0 && <div className="patient-exercise-prescription">{prescription.map((item) => <span key={item}>{item}</span>)}</div>}
+          {assignment.doctorInstructions && <div className="patient-exercise-doctor-note"><strong>Your doctor says:</strong> {assignment.doctorInstructions}</div>}
+
+          <section className="patient-exercise-detail-section">
+            <h3>Plan</h3>
+            <p><CalendarDays aria-hidden="true" /><span>{schedule}</span></p>
+            {assignment.dueDate && <p><strong>Due:</strong> {formatDate(assignment.dueDate)}</p>}
+            {assignment.minimumScore != null && <p><strong>Minimum score:</strong> {assignment.minimumScore}</p>}
+            {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
+          </section>
+
+          <section className="patient-exercise-detail-section">
+            <h3>Guidance</h3>
+            <div className="patient-guidance-actions">
+              <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} guidelineSlides={assignment.exercise?.guidelineSlides} guidelinesOnly launchLabel="Safety guidelines" />
+              <CameraRecorder exerciseName={assignment.exercise?.name} analysisModelKey={assignment.exercise?.analysisModelKey} exerciseId={assignment.exercise?.id} demoOnly launchLabel="Movement demo" />
+            </div>
+          </section>
+        </div>
+      </aside>
+    </>
   );
 }
 
