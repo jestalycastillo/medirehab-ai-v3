@@ -1,0 +1,345 @@
+[
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_001.mp4",
+    "group": "recording_pair_001",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_002.mp4",
+    "group": "recording_pair_002",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_003.mp4",
+    "group": "recording_pair_003",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_004.mp4",
+    "group": "recording_pair_004",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_005.mp4",
+    "group": "recording_pair_005",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_006.mp4",
+    "group": "recording_pair_006",
+    "side": "left",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_007.mp4",
+    "group": "recording_pair_007",
+    "side": "left",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_008.mp4",
+    "group": "recording_pair_008",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_009.mp4",
+    "group": "recording_pair_009",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_010.mp4",
+    "group": "recording_pair_010",
+    "side": "left",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_011.mp4",
+    "group": "recording_pair_011",
+    "side": "left",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_012.mp4",
+    "group": "recording_pair_012",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_013.mp4",
+    "group": "recording_pair_013",
+    "side": "left",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_014.mp4",
+    "group": "recording_pair_014",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_015.mp4",
+    "group": "recording_pair_015",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_016.mp4",
+    "group": "recording_pair_016",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_017.mp4",
+    "group": "recording_pair_017",
+    "side": "left",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_018.mp4",
+    "group": "recording_pair_018",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_019.mp4",
+    "group": "recording_pair_019",
+    "side": "left",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_020.mp4",
+    "group": "recording_pair_020",
+    "side": "left",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_021.mp4",
+    "group": "recording_pair_021",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_022.mp4",
+    "group": "recording_pair_022",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_023.mp4",
+    "group": "recording_pair_023",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_024.mp4",
+    "group": "recording_pair_024",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\LEFT\\cross-body_shoulder_stretch_LEFT_025.mp4",
+    "group": "recording_pair_025",
+    "side": "left",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_001.mp4",
+    "group": "recording_pair_001",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_002.mp4",
+    "group": "recording_pair_002",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_003.mp4",
+    "group": "recording_pair_003",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_004.mp4",
+    "group": "recording_pair_004",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_005.mp4",
+    "group": "recording_pair_005",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_006.mp4",
+    "group": "recording_pair_006",
+    "side": "right",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_007.mp4",
+    "group": "recording_pair_007",
+    "side": "right",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_008.mp4",
+    "group": "recording_pair_008",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_009.mp4",
+    "group": "recording_pair_009",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_010.mp4",
+    "group": "recording_pair_010",
+    "side": "right",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_011.mp4",
+    "group": "recording_pair_011",
+    "side": "right",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_012.mp4",
+    "group": "recording_pair_012",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_013.mp4",
+    "group": "recording_pair_013",
+    "side": "right",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_014.mp4",
+    "group": "recording_pair_014",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_015.mp4",
+    "group": "recording_pair_015",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_016.mp4",
+    "group": "recording_pair_016",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_017.mp4",
+    "group": "recording_pair_017",
+    "side": "right",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_018.mp4",
+    "group": "recording_pair_018",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_019.mp4",
+    "group": "recording_pair_019",
+    "side": "right",
+    "view": null,
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_020.mp4",
+    "group": "recording_pair_020",
+    "side": "right",
+    "view": null,
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_021.mp4",
+    "group": "recording_pair_021",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_022.mp4",
+    "group": "recording_pair_022",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_023.mp4",
+    "group": "recording_pair_023",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\cross-body_shoulder_stretch\\RIGHT\\cross-body_shoulder_stretch_RIGHT_024.mp4",
+    "group": "recording_pair_024",
+    "side": "right",
+    "view": null,
+    "split": "train"
+  }
+]
