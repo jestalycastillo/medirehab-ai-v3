@@ -51,9 +51,7 @@ export function getExerciseDemoVideoUrl(
   const key = (modelKey || "").toLowerCase();
 
   if (getNewExerciseInstructions(modelKey, exerciseName)) {
-    const exerciseKey = modelKey || (exerciseName ?? "").trim().toLowerCase().replaceAll(/[-\s]+/g, "_");
-    const sidePrefix = MODEL_GUIDANCE[exerciseKey]?.selectableSide ? `${selectedSide ?? "left"}_` : "";
-    return `/exercises/videos/${sidePrefix}${exerciseKey}.mp4`;
+    return "";
   }
 
   if (norm.includes("flexion") || key.includes("flexion")) {

@@ -19,5 +19,5 @@
       "prompt": "Use case: scientific-educational. Generate a new exercise catalog illustration, landscape 3:2. The supplied image is STYLE REFERENCE ONLY. Match its clean digitally drawn medical illustration, subtle outlines and shading, teal athletic tank top, charcoal leggings, gray trainers, brown hair ponytail, tan skin. Draw ONE full-body adult woman centered on opaque pure white with generous margins, all hands and feet visible. This is an illustration, never a photograph. No text, numbers, labels, watermark, equipment or extra limbs. Internal shoulder rotation representative pose: front three-quarter view, anatomical LEFT upper arm extends laterally at shoulder height, elbow bent 90 degrees, forearm projects forward horizontally with palm facing down. Show perspective clearly so elbow bend and horizontal forearm are visible. Right arm relaxed. No arrows."
     }
   ],
-  "videos": "Unmodified demo recordings copied from C:/proj/medirehab/Physiotherapy. LEFT/RIGHT 001 for circumduction and cross-body stretch; E03_P01_AL_VFL_GM and E04_P01_AL_VFL_GM for rotations."
+  "animation": "The pre-exercise guide uses client/components/patient/new-exercise-animated-guide.tsx, matching the code-based flexion and abduction guides. No recorded demo videos are used for these four exercises."
 }

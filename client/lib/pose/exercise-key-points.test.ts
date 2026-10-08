@@ -34,18 +34,13 @@ test("existing side-specific flexion requirements are preserved", () => {
         ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow"]);
 });
 
-test("new exercises use their own instructions rather than a flexion demonstration", () => {
+test("new exercises use illustrations and the animated guide rather than recorded demos", () => {
     for (const key of ["arm_circumduction", "cross_body_shoulder_stretch", "external_rotation", "internal_rotation"]) {
         assert(getNewExerciseInstructions(key));
         const image = getExerciseIllustrationUrl(key)!;
         assert.equal(image, `/exercises/${key}.png`);
         assert(existsSync(resolve("public", image.slice(1))));
-        for (const side of ["left", "right"] as const) {
-            const sidePrefix = key === "arm_circumduction" || key === "cross_body_shoulder_stretch" ? `${side}_` : "";
-            const video = getExerciseDemoVideoUrl(undefined, side, key);
-            assert.equal(video, `/exercises/videos/${sidePrefix}${key}.mp4`);
-            assert(existsSync(resolve("public", video.slice(1))));
-        }
+        assert.equal(getExerciseDemoVideoUrl(undefined, "right", key), "");
     }
     assert.equal(getNewExerciseInstructions("shoulder_flexion"), null);
     assert.equal(getExerciseDemoVideoUrl("Shoulder Flexion", "right"), "/exercises/videos/right_shoulder_flexion.mp4");
