@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronRight, Dumbbell, X } from "lucide-react";
+import { CalendarDays, Dumbbell, X } from "lucide-react";
 import { useState } from "react";
 import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
@@ -118,7 +118,21 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
         ].filter(Boolean);
 
         return (
-          <article className={`patient-exercise-card ${selectedAssignmentId === assignment.id ? "patient-exercise-card-selected" : ""}`} key={assignment.id}>
+          <article
+            className={`patient-exercise-card patient-exercise-card-clickable ${selectedAssignmentId === assignment.id ? "patient-exercise-card-selected" : ""}`}
+            key={assignment.id}
+            tabIndex={0}
+            aria-label={`View details for ${assignment.exercise?.name || "exercise"}`}
+            onClick={(event) => {
+              if (event.target instanceof Element && event.target.closest("button, a, input, select, textarea")) return;
+              setSelectedAssignmentId(assignment.id);
+            }}
+            onKeyDown={(event) => {
+              if (event.currentTarget !== event.target || (event.key !== "Enter" && event.key !== " ")) return;
+              event.preventDefault();
+              setSelectedAssignmentId(assignment.id);
+            }}
+          >
             <ExerciseImage assignment={assignment} />
             <div className="patient-exercise-card-body">
               <div>
@@ -147,15 +161,6 @@ export function MyExerciseList({ assignments, compact = false, emptyMessage = "N
                 />
               </div>
 
-              <button
-                type="button"
-                className="patient-exercise-details-trigger"
-                onClick={() => setSelectedAssignmentId(assignment.id)}
-                aria-pressed={selectedAssignmentId === assignment.id}
-                aria-controls="exercise-details-panel"
-              >
-                View details <ChevronRight aria-hidden="true" />
-              </button>
             </div>
           </article>
         );

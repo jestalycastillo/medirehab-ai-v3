@@ -4590,6 +4590,21 @@ a.admin-metric:hover {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 14%, transparent);
 }
 
+.patient-exercise-card-clickable {
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.patient-exercise-card-clickable:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.patient-exercise-card-clickable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
 .patient-exercise-card-image {
   position: relative;
   aspect-ratio: 3 / 2;
@@ -4766,34 +4781,6 @@ a.admin-metric:hover {
   min-height: 46px;
   border-radius: 11px;
   font-size: 14px;
-}
-
-.patient-exercise-details-trigger {
-  display: flex;
-  width: 100%;
-  min-height: 42px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 0 0;
-  border: 0;
-  border-top: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-primary-dark);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-}
-
-.patient-exercise-details-trigger:hover {
-  color: var(--color-primary);
-}
-
-.patient-exercise-details-trigger svg {
-  width: 17px;
-  height: 17px;
 }
 
 .patient-exercise-detail-panel {
