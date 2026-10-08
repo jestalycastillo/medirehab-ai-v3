@@ -4787,7 +4787,7 @@ a.admin-metric:hover {
   position: fixed;
   inset: 0 0 0 auto;
   z-index: 81;
-  width: min(440px, 100vw);
+  width: min(560px, 100vw);
   height: 100dvh;
   overflow-y: auto;
   border: 0;
