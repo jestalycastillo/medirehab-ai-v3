@@ -1,0 +1,197 @@
+{
+  "checkpoint": "C:\\proj\\medirehab\\v3\\ai-service\\training\\runs\\20261008_183313_49eb033f\\external_rotation\\external_rotation.pth",
+  "best_epoch": 96,
+  "best_validation_loss": 0.010594114855242273,
+  "split_counts": {
+    "train": 8,
+    "validation": 6,
+    "test": 6
+  },
+  "rejected_count": 0,
+  "sequences": [
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P01_AF_VFL_GM.mp4",
+      "group": "P01",
+      "side": "unverified",
+      "view": "AF",
+      "split": "train",
+      "reconstruction_error": 0.0010508019477128983,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P01_AL_VFL_GM.mp4",
+      "group": "P01",
+      "side": "unverified",
+      "view": "AL",
+      "split": "train",
+      "reconstruction_error": 0.0011185925686731935,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P01_AR_VFL_GM.mp4",
+      "group": "P01",
+      "side": "unverified",
+      "view": "AR",
+      "split": "train",
+      "reconstruction_error": 0.0012953621335327625,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P06_AF_VFL_GM.mp4",
+      "group": "P06",
+      "side": "unverified",
+      "view": "AF",
+      "split": "train",
+      "reconstruction_error": 0.0009257294004783034,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P06_AL_VFL_GM.mp4",
+      "group": "P06",
+      "side": "unverified",
+      "view": "AL",
+      "split": "train",
+      "reconstruction_error": 0.002150945132598281,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P06_AR_VFL_GM.mp4",
+      "group": "P06",
+      "side": "unverified",
+      "view": "AR",
+      "split": "train",
+      "reconstruction_error": 0.0017152855871245265,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P07_AF_VFL_GM.mp4",
+      "group": "P07",
+      "side": "unverified",
+      "view": "AF",
+      "split": "train",
+      "reconstruction_error": 0.000649618508759886,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P07_AL_VFL_GM.mp4",
+      "group": "P07",
+      "side": "unverified",
+      "view": "AL",
+      "split": "train",
+      "reconstruction_error": 0.0028579419013112783,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P03_AF_VFL_GM.mp4",
+      "group": "P03",
+      "side": "unverified",
+      "view": "AF",
+      "split": "validation",
+      "reconstruction_error": 0.006519203074276447,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P03_AL_VFL_GM.mp4",
+      "group": "P03",
+      "side": "unverified",
+      "view": "AL",
+      "split": "validation",
+      "reconstruction_error": 0.019683539867401123,
+      "similarity_score": 75.7218188175155
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P03_AR_VFL_GM.mp4",
+      "group": "P03",
+      "side": "unverified",
+      "view": "AR",
+      "split": "validation",
+      "reconstruction_error": 0.00837983563542366,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P05_AF_VFL_GM.mp4",
+      "group": "P05",
+      "side": "unverified",
+      "view": "AF",
+      "split": "validation",
+      "reconstruction_error": 0.0017956325318664312,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P05_AL_VFL_GM.mp4",
+      "group": "P05",
+      "side": "unverified",
+      "view": "AL",
+      "split": "validation",
+      "reconstruction_error": 0.02203785814344883,
+      "similarity_score": 70.45911709157289
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P05_AR_VFL_GM.mp4",
+      "group": "P05",
+      "side": "unverified",
+      "view": "AR",
+      "split": "validation",
+      "reconstruction_error": 0.005148619879037142,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P02_AF_VFL_GM.mp4",
+      "group": "P02",
+      "side": "unverified",
+      "view": "AF",
+      "split": "test",
+      "reconstruction_error": 0.0032585677690804005,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P02_AL_VFL_GM.mp4",
+      "group": "P02",
+      "side": "unverified",
+      "view": "AL",
+      "split": "test",
+      "reconstruction_error": 0.005249192472547293,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P02_AR_VFL_GM.mp4",
+      "group": "P02",
+      "side": "unverified",
+      "view": "AR",
+      "split": "test",
+      "reconstruction_error": 0.021257705986499786,
+      "similarity_score": 72.16119983648196
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P04_AF_VFL_GM.mp4",
+      "group": "P04",
+      "side": "unverified",
+      "view": "AF",
+      "split": "test",
+      "reconstruction_error": 0.002332327887415886,
+      "similarity_score": 100.0
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P04_AL_VFL_GM.mp4",
+      "group": "P04",
+      "side": "unverified",
+      "view": "AL",
+      "split": "test",
+      "reconstruction_error": 0.046847034245729446,
+      "similarity_score": 32.98195983092585
+    },
+    {
+      "path": "C:\\proj\\medirehab\\Physiotherapy\\external-rotation\\E03_P04_AR_VFL_GM.mp4",
+      "group": "P04",
+      "side": "unverified",
+      "view": "AR",
+      "split": "test",
+      "reconstruction_error": 0.006695208605378866,
+      "similarity_score": 100.0
+    }
+  ],
+  "limitations": [
+    "Reconstruction similarity is not validated clinical accuracy.",
+    "Arm labels are unverified; AF/AL/AR are preserved as view codes."
+  ]
+}
