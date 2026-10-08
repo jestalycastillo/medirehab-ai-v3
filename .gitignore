@@ -2,3 +2,4 @@
 .pnpm-store/
 /brag-output/
 /brag-output-*/
+/ai-service/training/runs/*/*/traces/
