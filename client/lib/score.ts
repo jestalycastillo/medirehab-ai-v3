@@ -1,11 +1,12 @@
 import type { ExerciseAssignment } from "./api";
+import { getExerciseModelGuidanceConfig } from "./pose/exercise-model-config";
 
 export function formatScore(score?: number | null): string {
   return Number.isFinite(score) ? Number(score).toFixed(2) : "0.00";
 }
 
 export function formatAssignmentScoreSummary(assignment: ExerciseAssignment): string {
-  if (assignment.exercise.analysisModelKey === "shoulder_flexion" || assignment.exercise.analysisModelKey === "shoulder_abduction") {
+  if (getExerciseModelGuidanceConfig(assignment.exercise.analysisModelKey)?.selectableSide) {
     const sides = (["left", "right"] as const)
       .filter((side) => assignment.latestScoresBySide?.[side] !== undefined)
       .map((side) => `${side === "left" ? "Left" : "Right"} ${formatScore(assignment.latestScoresBySide?.[side])}`);

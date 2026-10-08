@@ -39,20 +39,31 @@ left/right joint labels as well as reflect x coordinates, including wrists.
 
 `client/lib/pose/exercise-key-points.ts` contains matching required-point
 profiles for these exercises, including both wrists for either selected arm.
-The live pose worker already exposes wrist landmarks. Add the four model
-definitions only after compatible checkpoints are trained and evaluated;
-the evaluation endpoint now requests each model's exact extraction features.
+The live pose worker already exposes wrist landmarks. The four trained
+checkpoints are deployed in `app/models` and registered with their feature and
+arm-transformation metadata. The evaluation endpoint requests each model's exact
+extraction features. Its multipart `selected_side` field is required for
+circumduction and cross-body stretch, and omitted for the rotation models.
 
-When enabling the new exercises in the recorder's model guidance config,
-retain their exercise names so framing resolves the correct required points.
-Keep visibility checks active during recording as well as preview. The current
-live hook implements movement coaching only for flexion/abduction and otherwise
-falls through to flexion coaching: add a framing/visibility-only branch for
-these four exercises before enabling them. Do not reuse flexion repetition or
-form rules for rotation, circumduction, or stretches. Side selection must reach
-inference for the two combined-side models and must not remove the opposite
-arm from visibility requirements. Anatomical arm labels must remain independent
-of the mirrored webcam preview.
+The recorder's model config enables all four exercises. Visibility checks stay
+active in preview and recording. New exercises have their own movement
+instructions and a visibility-only guidance branch; flexion/abduction repetition
+and form rules remain specific to those existing exercises. The two combined
+models support per-arm recordings, shared visits, and per-arm score summaries.
+Both arms remain required in the visibility checks. Anatomical arm labels are
+independent of the mirrored webcam preview.
+
+The new scores use the validation-calibrated reconstruction similarity from the
+training reports, rather than the legacy arm-elevation clinical scoring formula.
+
+## Database catalog activation
+
+From `server`, run `npm run db:add:physiotherapy -- --dry-run` for a read-only
+preview. After explicit database-write approval, `npm run db:add:physiotherapy
+-- --apply` adds only the four missing exercise records. It preserves all
+existing exercises, assignments, results, and session history; conflicts fail
+without updating existing entries. No schema migration or automatic startup
+seeding is needed.
 
 Validate held-out results per arm and camera view. Existing 2D pose features
 do not by themselves guarantee reliable rotation scoring for every camera view;

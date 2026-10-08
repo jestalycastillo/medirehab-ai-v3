@@ -1,9 +1,9 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import BinaryIO
+from typing import BinaryIO, Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from starlette.concurrency import run_in_threadpool
 
 from app.model_registry import (
@@ -18,6 +18,8 @@ from app.utils.evaluate import (
     compute_torso_stability_metrics,
     get_reconstruction_error,
     get_score_feedback,
+    compute_calibrated_similarity_score,
+    get_new_exercise_feedback,
 )
 from app.utils.preprocess import TracePreprocessingError, preprocess
 from app.utils.process_video import (
@@ -91,11 +93,14 @@ def _score_trace(
     loaded_model: LoadedAnalysisModel,
     trace_path: Path,
     model_key: str,
+    selected_side: str | None = None,
 ) -> tuple[float, float, list[str]]:
     data, input_dim = preprocess(
         trace_path,
         target_frames=loaded_model.definition.input_frames,
         expected_features=loaded_model.definition.features,
+        canonical_side=loaded_model.definition.canonical_side,
+        selected_side=selected_side,
     )
 
     if input_dim != len(loaded_model.definition.features):
@@ -105,6 +110,10 @@ def _score_trace(
 
     with loaded_model.inference_lock:
         error = get_reconstruction_error(loaded_model.model, data)
+
+    if loaded_model.definition.scoring_mode == "similarity":
+        score = compute_calibrated_similarity_score(error, loaded_model.mean_val_loss, loaded_model.beta)
+        return error, score, get_new_exercise_feedback(score, model_key)
 
     min_angle, max_angle, rom = compute_arm_motion_stats(trace_path, model_key)
     stability_stats = compute_torso_stability_metrics(trace_path)
@@ -129,7 +138,7 @@ def _score_trace(
 
 
 @router.post("/{model_key}")
-async def evaluate(model_key: str, video: UploadFile = File(...)):
+async def evaluate(model_key: str, video: UploadFile = File(...), selected_side: Literal["left", "right"] | None = Form(None)):
     content_type = (video.content_type or "").split(";", 1)[0].strip().lower()
     extension = ALLOWED_VIDEO_TYPES.get(content_type)
 
@@ -148,6 +157,11 @@ async def evaluate(model_key: str, video: UploadFile = File(...)):
             status_code=503,
             detail="The selected analysis model is unavailable.",
         ) from error
+
+    if loaded_model.definition.canonical_side is not None and selected_side is None:
+        raise HTTPException(status_code=400, detail="Select the left or right exercising arm.")
+    if loaded_model.definition.scoring_mode == "similarity" and loaded_model.definition.canonical_side is None and selected_side is not None:
+        raise HTTPException(status_code=400, detail="This exercise does not use an arm selection.")
 
     evaluation_id = str(uuid4())
     EVALUATION_TEMP_ROOT.mkdir(parents=True, exist_ok=True)
@@ -190,6 +204,7 @@ async def evaluate(model_key: str, video: UploadFile = File(...)):
                 loaded_model,
                 trace_path,
                 model_key,
+                selected_side,
             )
     except HTTPException:
         raise

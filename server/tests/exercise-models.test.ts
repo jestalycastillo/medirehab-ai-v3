@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { resolveExerciseAnalysisModel } from "../src/utils/exerciseAnalysisModel";
+import { isSideSelectableExercise, resolveExerciseAnalysisModel } from "../src/utils/exerciseAnalysisModel";
 import { HttpError } from "../src/utils/httpError";
 
 for (const movement of ["flexion", "abduction"] as const) {
@@ -23,5 +23,18 @@ assert.throws(
     () => resolveExerciseAnalysisModel("right_flexion", "left"),
     (error) => error instanceof HttpError && error.statusCode === 400
 );
+
+for (const modelKey of ["arm_circumduction", "cross_body_shoulder_stretch"]) {
+    assert.equal(isSideSelectableExercise(modelKey), true);
+    for (const side of ["left", "right"] as const) {
+        assert.deepEqual(resolveExerciseAnalysisModel(modelKey, side), { evaluatedModelKey: modelKey, selectedSide: side });
+    }
+    assert.throws(() => resolveExerciseAnalysisModel(modelKey), (error) => error instanceof HttpError && error.statusCode === 400);
+}
+for (const modelKey of ["external_rotation", "internal_rotation"]) {
+    assert.equal(isSideSelectableExercise(modelKey), false);
+    assert.deepEqual(resolveExerciseAnalysisModel(modelKey), { evaluatedModelKey: modelKey, selectedSide: null });
+    assert.throws(() => resolveExerciseAnalysisModel(modelKey, "left"), (error) => error instanceof HttpError && error.statusCode === 400);
+}
 
 console.log("Exercise analysis model routing passed.");

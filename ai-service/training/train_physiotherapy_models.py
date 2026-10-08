@@ -66,16 +66,8 @@ def split_groups(records, seed):
 
 def canonicalize_right(trace):
     """Reflect a right-arm trace into the left-arm reference convention."""
-    trace = trace.copy()
-    for column in trace.columns:
-        if column.endswith("_x"):
-            trace[column] = 1.0 - trace[column]
-    for joint in ("Shoulder", "Elbow", "Wrist"):
-        for axis in ("x", "y"):
-            left, right = f"Left {joint}_{axis}", f"Right {joint}_{axis}"
-            left_values, right_values = trace[left].copy(), trace[right].copy()
-            trace[left], trace[right] = right_values, left_values
-    return trace
+    from app.utils.preprocess import canonicalize_right as transform
+    return transform(trace)
 
 
 def write_json(path, payload):

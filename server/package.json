@@ -14,7 +14,8 @@
     "start": "node ./dist/server.js",
     "dev": "nodemon --exec \"ts-node --files\" ./src/server.ts",
     "db:seed": "prisma db seed",
-    "db:seed:exercises": "tsx prisma/seed-exercises.ts"
+    "db:seed:exercises": "tsx prisma/seed-exercises.ts",
+    "db:add:physiotherapy": "tsx prisma/add-physiotherapy-exercises.ts"
   },
   "keywords": [],
   "author": "",
