@@ -182,6 +182,7 @@ async def evaluate(model_key: str, video: UploadFile = File(...)):
                 process_video_to_csv,
                 str(video_path),
                 str(trace_path),
+                loaded_model.definition.features,
             )
             _validate_trace_summary(trace_summary)
             error, score, feedback = await run_in_threadpool(

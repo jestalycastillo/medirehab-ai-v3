@@ -7,19 +7,11 @@ from threading import Lock
 import cv2
 from ultralytics import YOLO
 
+from app.pose_features import BODY_PARTS, LEGACY_SHOULDER_FEATURES, keypoint_indices_for_features
+
 POSE_CHECKPOINT_PATH = Path(__file__).resolve().parents[2] / "yolo26s-pose.pt"
 pose_model = YOLO(POSE_CHECKPOINT_PATH)
 pose_inference_lock = Lock()
-
-BODY_PARTS = [
-    "Nose", "Left Eye", "Right Eye", "Left Ear", "Right Ear",
-    "Left Shoulder", "Right Shoulder",
-    "Left Elbow", "Right Elbow",
-    "Left Wrist", "Right Wrist",
-    "Left Hip", "Right Hip",
-    "Left Knee", "Right Knee",
-    "Left Ankle", "Right Ankle"
-]
 
 KEEP_INDICES = (0, 5, 6, 7, 8)
 MAX_ANALYSIS_FRAMES = 200
@@ -53,11 +45,13 @@ def _analysis_frame_indices(frame_count: int) -> set[int] | None:
     }
 
 
-def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
+def process_video_to_csv(video_path, output_csv_path, expected_features=None) -> TraceSummary:
     """
     Reads a video file frame-by-frame, runs YOLO Pose estimation, 
-    and saves keypoint coordinates of shoulders and elbows to a CSV file.
+    and saves the selected model's keypoint coordinates to a CSV file.
     """
+    features = tuple(LEGACY_SHOULDER_FEATURES if expected_features is None else expected_features)
+    keep_indices = keypoint_indices_for_features(features)
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise VideoProcessingError("The exercise recording could not be opened.")
@@ -86,10 +80,7 @@ def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
     try:
         with open(output_csv_path, "w", newline="") as file:
             writer = csv.writer(file)
-            header = ["frame", "Chest_x", "Chest_y"]
-            for idx in KEEP_INDICES:
-                part = BODY_PARTS[idx]
-                header += [f"{part}_x", f"{part}_y"]
+            header = ["frame", *features]
             writer.writerow(header)
 
             while True:
@@ -125,11 +116,14 @@ def process_video_to_csv(video_path, output_csv_path) -> TraceSummary:
                         # Compute chest reference point from left (5) and right (6) shoulders
                         chest_x = (xy[5][0].item() + xy[6][0].item()) / (2 * width)
                         chest_y = (xy[5][1].item() + xy[6][1].item()) / (2 * height)
-                        row = [total_frames, chest_x, chest_y]
-                        for idx in KEEP_INDICES:
+                        coordinates = {"Chest_x": chest_x, "Chest_y": chest_y}
+                        for idx in keep_indices:
                             x = xy[idx][0].item() / width
                             y = xy[idx][1].item() / height
-                            row += [x, y]
+                            part = BODY_PARTS[idx]
+                            coordinates[f"{part}_x"] = x
+                            coordinates[f"{part}_y"] = y
+                        row = [total_frames, *(coordinates[feature] for feature in features)]
                         writer.writerow(row)
                         pose_frames += 1
 
