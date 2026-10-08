@@ -1,2 +1,4 @@
 .local/
 .pnpm-store/
+/brag-output/
+/brag-output-*/
