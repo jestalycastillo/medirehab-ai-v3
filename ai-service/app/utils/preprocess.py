@@ -10,6 +10,8 @@ def preprocess(
     trace_path,
     target_frames=200,
     expected_features=None,
+    canonical_side=None,
+    selected_side=None,
 ):
     try:
         trace = pd.read_csv(trace_path)
@@ -41,6 +43,18 @@ def preprocess(
     if not np.isfinite(sequence_frame.to_numpy(dtype=np.float32)).all():
         raise TracePreprocessingError("The pose trace contains invalid coordinates.")
 
+    if "Left Wrist_x" in feature_columns and "Right Wrist_x" in feature_columns:
+        for joint in ("Nose", "Left Shoulder", "Right Shoulder", "Left Elbow", "Right Elbow", "Left Wrist", "Right Wrist"):
+            absent = (sequence_frame[f"{joint}_x"] == 0) & (sequence_frame[f"{joint}_y"] == 0)
+            if absent.mean() > 0.2:
+                raise TracePreprocessingError(f"Keep your {joint.lower()} visible throughout the recording.")
+
+    if canonical_side is not None:
+        if canonical_side != "left" or selected_side not in ("left", "right"):
+            raise TracePreprocessingError("Select the left or right exercising arm.")
+        if selected_side == "right":
+            sequence_frame = canonicalize_right(sequence_frame)
+
     sequence_frame = normalize_pose(sequence_frame)
     sequence = sequence_frame.to_numpy(dtype=np.float32)
     sequence = resample_sequence(sequence, target_frames=target_frames)
@@ -50,6 +64,21 @@ def preprocess(
     input_dim = data.shape[2]
 
     return data, input_dim
+
+
+def canonicalize_right(trace):
+    """Match combined-arm training: reflect x and swap anatomical arm labels."""
+    trace = trace.copy()
+    for column in trace.columns:
+        if column.endswith("_x"):
+            trace[column] = 1.0 - trace[column]
+    for joint in ("Shoulder", "Elbow", "Wrist"):
+        for axis in ("x", "y"):
+            left, right = f"Left {joint}_{axis}", f"Right {joint}_{axis}"
+            if left in trace.columns and right in trace.columns:
+                left_values, right_values = trace[left].copy(), trace[right].copy()
+                trace[left], trace[right] = right_values, left_values
+    return trace
 
 def normalize_pose(df):
     if "Chest_x" not in df.columns or "Chest_y" not in df.columns:

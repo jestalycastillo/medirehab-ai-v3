@@ -1,0 +1,18 @@
+{
+  "arm_circumduction": {
+    "status": "complete",
+    "checkpoint": "C:\\proj\\medirehab\\v3\\ai-service\\training\\runs\\20261008_183313_49eb033f\\arm_circumduction\\arm_circumduction.pth"
+  },
+  "cross_body_shoulder_stretch": {
+    "status": "complete",
+    "checkpoint": "C:\\proj\\medirehab\\v3\\ai-service\\training\\runs\\20261008_183313_49eb033f\\cross_body_shoulder_stretch\\cross_body_shoulder_stretch.pth"
+  },
+  "external_rotation": {
+    "status": "complete",
+    "checkpoint": "C:\\proj\\medirehab\\v3\\ai-service\\training\\runs\\20261008_183313_49eb033f\\external_rotation\\external_rotation.pth"
+  },
+  "internal_rotation": {
+    "status": "complete",
+    "checkpoint": "C:\\proj\\medirehab\\v3\\ai-service\\training\\runs\\20261008_183313_49eb033f\\internal_rotation\\internal_rotation.pth"
+  }
+}

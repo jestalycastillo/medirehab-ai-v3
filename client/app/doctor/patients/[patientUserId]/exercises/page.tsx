@@ -8,11 +8,47 @@ import { api, ApiError, type ApiExercise, type ApiPatient, type AssignmentPlanUp
 import { ExerciseAssignmentList } from "@/components/doctor/exercise-assignment-list";
 import { ExercisePicker } from "@/components/doctor/exercise-picker";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { CheckCircle2, CircleAlert } from "lucide-react";
+import { CheckCircle2, CircleAlert, X } from "lucide-react";
 
 function patientName(patient?: ApiPatient | null) {
   if (!patient) return "Patient";
   return [patient.profile?.firstName, patient.profile?.lastName].filter(Boolean).join(" ") || patient.email;
+}
+
+function AddExercisesDrawer({
+  open,
+  onClose,
+  exercises,
+  onAssign,
+  isBusy,
+}: {
+  open: boolean;
+  onClose: () => void;
+  exercises: ApiExercise[];
+  onAssign: (exerciseId: string) => void;
+  isBusy: boolean;
+}) {
+  if (!open) return null;
+  return (
+    <>
+      <button type="button" className="doctor-care-drawer-backdrop" onClick={onClose} aria-label="Close available exercises" />
+      <aside className="doctor-care-drawer" role="dialog" aria-labelledby="add-exercises-drawer-title">
+        <header className="doctor-care-drawer-heading">
+          <div>
+            <span>Care plan</span>
+            <h2 id="add-exercises-drawer-title">Add exercises</h2>
+          </div>
+          <button type="button" className="doctor-care-drawer-close" onClick={onClose} aria-label="Close available exercises">
+            <X aria-hidden="true" />
+          </button>
+        </header>
+        <div className="doctor-care-drawer-content">
+          <p className="doctor-care-drawer-description">Choose movements to add to this patient’s care plan.</p>
+          <ExercisePicker exercises={exercises} onAssign={onAssign} isBusy={isBusy} />
+        </div>
+      </aside>
+    </>
+  );
 }
 
 export default function PatientExercisesPage() {
@@ -26,6 +62,7 @@ export default function PatientExercisesPage() {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isAddingExercises, setIsAddingExercises] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: "",
@@ -136,10 +173,10 @@ export default function PatientExercisesPage() {
       {success && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{success}</div>}
 
       <ExerciseAssignmentList assignments={assignedExercises} onRemove={handleRemove} onUpdatePlan={handleUpdatePlan} isBusy={busy} />
-      <details className="care-disclosure" open={assignedExercises.length === 0 ? true : undefined}>
-        <summary>Add exercises <span className="portal-summary-meta">{availableExercises.length} available</span></summary>
-        <div className="care-disclosure-content"><ExercisePicker exercises={availableExercises} onAssign={handleAssign} isBusy={busy} /></div>
-      </details>
+      <button type="button" className="btn btn-primary doctor-add-exercises-button" onClick={() => setIsAddingExercises(true)}>
+        Add exercises <span>{availableExercises.length} available</span>
+      </button>
+      <AddExercisesDrawer open={isAddingExercises} onClose={() => setIsAddingExercises(false)} exercises={availableExercises} onAssign={handleAssign} isBusy={busy} />
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

@@ -1,0 +1,9 @@
+{
+  "data_root": "C:\\proj\\medirehab\\Physiotherapy",
+  "output_root": "C:\\proj\\medirehab\\v3\\ai-service\\training\\runs",
+  "epochs": 100,
+  "batch_size": 4,
+  "seed": 42,
+  "device": "cuda",
+  "inspect": false
+}

@@ -601,7 +601,7 @@ export const evaluateExercise = async (
         select: {
             id: true,
             exercise: {
-                select: { analysisModelKey: true }
+                select: { analysisModelKey: true, name: true }
             }
         }
     });
@@ -629,6 +629,7 @@ export const evaluateExercise = async (
         new Blob([uint8Array], { type: videoContentType }),
         "exercise.webm"
     );
+    if (resolvedModel.selectedSide) formData.append("selected_side", resolvedModel.selectedSide);
 
     const aiServiceBaseUrl = getAiServiceBaseUrl();
     const encodedModelKey = encodeURIComponent(resolvedModel.evaluatedModelKey);
@@ -677,9 +678,11 @@ export const evaluateExercise = async (
         : [];
 
     if (feedback.length === 0) {
-        const exerciseName = modelKey.includes("abduction") ? "Shoulder Abduction" : "Shoulder Flexion";
+        const exerciseName = assignment.exercise.name;
         const arm = selectedSide ? `${selectedSide} arm` : "arm";
-        if (roundedScore >= 85) {
+        if (["arm_circumduction", "cross_body_shoulder_stretch", "external_rotation", "internal_rotation"].includes(modelKey)) {
+            feedback = [`${exerciseName}: movement similarity score ${roundedScore.toFixed(2)}%.`, "Follow your clinician’s prescribed movement and recording position."];
+        } else if (roundedScore >= 85) {
             feedback = [
                 `Excellent form and control on your ${exerciseName} with your ${arm}.`,
                 "Target range of motion and movement trajectory were consistently achieved."
