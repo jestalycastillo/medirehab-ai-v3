@@ -1,3 +1,5 @@
+import { getExerciseIllustrationUrl } from "./pose/exercise-model-config";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export function resolveMediaUrl(url?: string | null): string | null {
@@ -18,6 +20,8 @@ export function getExerciseImageUrl(exercise?: { name?: string; analysisModelKey
   }
   const key = (exercise.analysisModelKey || "").toLowerCase();
   const name = (exercise.name || "").toLowerCase();
+  const illustration = getExerciseIllustrationUrl(key, name);
+  if (illustration) return illustration;
   if (key.includes("flexion") || name.includes("flexion")) {
     return "/exercises/shoulder_flexion.png";
   }

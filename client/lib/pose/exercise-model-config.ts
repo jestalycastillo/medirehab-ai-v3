@@ -37,6 +37,11 @@ export function getNewExerciseInstructions(modelKey?: string | null, exerciseNam
   return NEW_EXERCISE_INSTRUCTIONS[key] ?? null;
 }
 
+export function getExerciseIllustrationUrl(modelKey?: string | null, exerciseName?: string): string | null {
+  const key = modelKey || (exerciseName ?? "").trim().toLowerCase().replaceAll(/[-\s]+/g, "_");
+  return NEW_EXERCISE_INSTRUCTIONS[key] ? `/exercises/${key}.png` : null;
+}
+
 export function getExerciseDemoVideoUrl(
   exerciseName?: string,
   selectedSide?: "left" | "right" | null,
@@ -45,7 +50,11 @@ export function getExerciseDemoVideoUrl(
   const norm = (exerciseName || "").toLowerCase();
   const key = (modelKey || "").toLowerCase();
 
-  if (getNewExerciseInstructions(modelKey, exerciseName)) return "";
+  if (getNewExerciseInstructions(modelKey, exerciseName)) {
+    const exerciseKey = modelKey || (exerciseName ?? "").trim().toLowerCase().replaceAll(/[-\s]+/g, "_");
+    const sidePrefix = MODEL_GUIDANCE[exerciseKey]?.selectableSide ? `${selectedSide ?? "left"}_` : "";
+    return `/exercises/videos/${sidePrefix}${exerciseKey}.mp4`;
+  }
 
   if (norm.includes("flexion") || key.includes("flexion")) {
     if (selectedSide === "right" || key.includes("right")) {

@@ -1,0 +1,23 @@
+{
+  "generation": "Built-in image_gen tool",
+  "styleReference": "client/public/exercises/shoulder_abduction.png",
+  "images": [
+    {
+      "path": "client/public/exercises/arm_circumduction.png",
+      "prompt": "Use case: scientific-educational. Generate a new exercise catalog illustration, landscape 3:2. The supplied image is STYLE REFERENCE ONLY. Match its clean digitally drawn medical illustration, subtle outlines and shading, teal athletic tank top, charcoal leggings, gray trainers, brown hair ponytail, tan skin. Draw ONE full-body adult woman centered on opaque pure white with generous margins, all hands and feet visible. This is an illustration, never a photograph. No text, numbers, labels, watermark, equipment or extra limbs. Arm circumduction: face forward, anatomical LEFT arm extends toward viewer RIGHT slightly below shoulder height, elbow straight. A small teal circular arrow near the extended hand indicates small arm circles. Right arm relaxed beside torso."
+    },
+    {
+      "path": "client/public/exercises/cross_body_shoulder_stretch.png",
+      "prompt": "Use case: scientific-educational. Generate a new exercise catalog illustration, landscape 3:2. The supplied image is STYLE REFERENCE ONLY. Match its clean digitally drawn medical illustration, subtle outlines and shading, teal athletic tank top, charcoal leggings, gray trainers, brown hair ponytail, tan skin. Draw ONE full-body adult woman centered on opaque pure white with generous margins, all hands and feet visible. This is an illustration, never a photograph. No text, numbers, labels, watermark, equipment or extra limbs. Cross-body shoulder stretch: front view, anatomical LEFT arm extends horizontally across chest toward viewer LEFT, left elbow nearly straight. Right hand supports the left upper arm just above the elbow. Shoulders level, torso upright. No arrows."
+    },
+    {
+      "path": "client/public/exercises/external_rotation.png",
+      "prompt": "Use case: scientific-educational. Generate a new exercise catalog illustration, landscape 3:2. The supplied image is STYLE REFERENCE ONLY. Match its clean digitally drawn medical illustration, subtle outlines and shading, teal athletic tank top, charcoal leggings, gray trainers, brown hair ponytail, tan skin. Draw ONE full-body adult woman centered on opaque pure white with generous margins, all hands and feet visible. This is an illustration, never a photograph. No text, numbers, labels, watermark, equipment or extra limbs. External shoulder rotation representative pose: front three-quarter view, anatomical RIGHT upper arm extends laterally at shoulder height toward viewer LEFT, elbow bent 90 degrees, forearm upright and hand directly above elbow. Left arm relaxed. It is a bent-elbow rotation pose, not a straight overhead raise. No arrows."
+    },
+    {
+      "path": "client/public/exercises/internal_rotation.png",
+      "prompt": "Use case: scientific-educational. Generate a new exercise catalog illustration, landscape 3:2. The supplied image is STYLE REFERENCE ONLY. Match its clean digitally drawn medical illustration, subtle outlines and shading, teal athletic tank top, charcoal leggings, gray trainers, brown hair ponytail, tan skin. Draw ONE full-body adult woman centered on opaque pure white with generous margins, all hands and feet visible. This is an illustration, never a photograph. No text, numbers, labels, watermark, equipment or extra limbs. Internal shoulder rotation representative pose: front three-quarter view, anatomical LEFT upper arm extends laterally at shoulder height, elbow bent 90 degrees, forearm projects forward horizontally with palm facing down. Show perspective clearly so elbow bend and horizontal forearm are visible. Right arm relaxed. No arrows."
+    }
+  ],
+  "videos": "Unmodified demo recordings copied from C:/proj/medirehab/Physiotherapy. LEFT/RIGHT 001 for circumduction and cross-body stretch; E03_P01_AL_VFL_GM and E04_P01_AL_VFL_GM for rotations."
+}

@@ -35,8 +35,8 @@ export function FollowAlongVideo({
                 type="button"
                 className="follow-along-reopen-btn"
                 onClick={() => setIsVisible(true)}
-                title="Show Exercise Avatar Guide"
-                aria-label="Show Exercise Avatar Guide"
+                title="Show Exercise Guide"
+                aria-label="Show Exercise Guide"
             >
                 <Bot size={15} style={{ color: "#2dd4bf" }} />
                 <span>Show Guide</span>

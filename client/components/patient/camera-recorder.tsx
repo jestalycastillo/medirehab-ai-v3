@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
-import { getExerciseModelGuidanceConfig, getNewExerciseInstructions } from "@/lib/pose/exercise-model-config";
+import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config";
 import { canRecordArm, canSwitchArm, getRecordingTimeState, resolveRecordingSide, type ArmSide } from "@/lib/camera-visit";
 import { ExerciseKeyPointFigure } from "./exercise-key-point-figure";
 import { RoboticSkeletonOverlay } from "./robotic-skeleton-overlay";
@@ -970,7 +970,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                 <div className="recorder-demo-card">
                                     <div className="recorder-demo-copy">
                                         <span className="recorder-demo-eyebrow">Movement demo · Optional</span>
-                                        <h3 id="exercise-recorder-title">{getNewExerciseInstructions(analysisModelKey, exerciseName) ? "Review the movement instructions" : "Watch the movement"}</h3>
+                                        <h3 id="exercise-recorder-title">Watch the movement</h3>
                                         <p>Review the motion for {exerciseName} whenever you need a reminder. When you are ready, open the camera to check your position before recording.</p>
                                     </div>
                                     <div className="recorder-demo-visual">

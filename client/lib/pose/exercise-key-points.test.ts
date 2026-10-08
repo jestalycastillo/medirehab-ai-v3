@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { getRequiredExerciseKeyPointVisibility } from "./exercise-key-points";
 import type { PoseLandmarkMap } from "./pose-landmarker.types";
-import { getExerciseDemoVideoUrl, getNewExerciseInstructions } from "./exercise-model-config";
+import { getExerciseDemoVideoUrl, getExerciseIllustrationUrl, getNewExerciseInstructions } from "./exercise-model-config";
 
 test("new shoulder exercises require wrists and never require legs", () => {
     for (const exercise of ["Arm_Circumduction", "cross-body_shoulder_stretch", "external-rotation", "internal-rotation"]) {
@@ -35,7 +37,15 @@ test("existing side-specific flexion requirements are preserved", () => {
 test("new exercises use their own instructions rather than a flexion demonstration", () => {
     for (const key of ["arm_circumduction", "cross_body_shoulder_stretch", "external_rotation", "internal_rotation"]) {
         assert(getNewExerciseInstructions(key));
-        assert.equal(getExerciseDemoVideoUrl(undefined, "right", key), "");
+        const image = getExerciseIllustrationUrl(key)!;
+        assert.equal(image, `/exercises/${key}.png`);
+        assert(existsSync(resolve("public", image.slice(1))));
+        for (const side of ["left", "right"] as const) {
+            const sidePrefix = key === "arm_circumduction" || key === "cross_body_shoulder_stretch" ? `${side}_` : "";
+            const video = getExerciseDemoVideoUrl(undefined, side, key);
+            assert.equal(video, `/exercises/videos/${sidePrefix}${key}.mp4`);
+            assert(existsSync(resolve("public", video.slice(1))));
+        }
     }
     assert.equal(getNewExerciseInstructions("shoulder_flexion"), null);
     assert.equal(getExerciseDemoVideoUrl("Shoulder Flexion", "right"), "/exercises/videos/right_shoulder_flexion.mp4");
