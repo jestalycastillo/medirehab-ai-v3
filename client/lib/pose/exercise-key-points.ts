@@ -44,6 +44,12 @@ const EXERCISE_REQUIRED_KEY_POINTS: Record<string, PoseLandmarkKey[]> = {
     "right shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
     "shoulder flexion": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
     "shoulder abduction": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"],
+    // Match app.pose_features.EXERCISE_FEATURES for the four new models.
+    // Both wrists are needed even when a single exercising side is selected.
+    "arm circumduction": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"],
+    "cross body shoulder stretch": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"],
+    "external rotation": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"],
+    "internal rotation": ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow", "leftWrist", "rightWrist"],
 };
 
 export function getExerciseKeyPointVisibility(
@@ -69,7 +75,10 @@ export function getExerciseKeyPointVisibility(
             requiredList = ["nose", "chest", "leftShoulder", "rightShoulder", "leftElbow", "rightElbow"];
         }
     } else {
-        requiredList = EXERCISE_REQUIRED_KEY_POINTS[normalized];
+        const profileName = Object.keys(EXERCISE_REQUIRED_KEY_POINTS).find(
+            (name) => normalized === name || normalized === `left ${name}` || normalized === `right ${name}`,
+        );
+        requiredList = profileName ? EXERCISE_REQUIRED_KEY_POINTS[profileName] : undefined;
     }
 
     if (!requiredList) {
