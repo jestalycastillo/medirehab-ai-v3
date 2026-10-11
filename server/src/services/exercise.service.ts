@@ -10,6 +10,7 @@ import {
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
 import { resolveExerciseAnalysisModel } from "../utils/exerciseAnalysisModel";
+import { EXERCISE_PRESETS, getExercisePreset, resolvePresetExercises } from "../utils/exercisePresets";
 
 const exerciseSelect = {
     id: true,
@@ -422,6 +423,59 @@ export const assignExerciseToPatient = async (
         select: assignmentSelect
     });
     return withAdherence(created);
+};
+
+export const listExercisePresetsForPatient = async (patientUserId: string, doctorUserId: string) => {
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const [exercises, assignments] = await Promise.all([
+        listExercises(),
+        prisma.exerciseAssignment.findMany({ where: { patientProfileId, archivedAt: null }, select: { exerciseId: true } })
+    ]);
+    const assignedIds = new Set(assignments.map((assignment) => assignment.exerciseId));
+    return EXERCISE_PRESETS.map((preset) => ({
+        ...preset,
+        ...resolvePresetExercises(preset, exercises),
+        assignedExerciseIds: exercises.filter((exercise) => assignedIds.has(exercise.id)).map((exercise) => exercise.id)
+    }));
+};
+
+export const assignExercisePresetToPatient = async (patientUserId: string, doctorUserId: string, presetId: unknown) => {
+    const preset = getExercisePreset(presetId);
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const doctorProfileId = await getDoctorProfileIdForUser(doctorUserId);
+    // Either the whole preset is assigned, or none of its changes are committed.
+    return prisma.$transaction(async (tx) => {
+        const catalog = await tx.exercise.findMany({
+            where: { name: { in: [...preset.exerciseNames] }, isActive: true, archivedAt: null },
+            select: { id: true, name: true }
+        });
+        const resolved = resolvePresetExercises(preset, catalog);
+        if (resolved.missingExerciseNames.length) {
+            throw new HttpError(409, `Preset exercises are unavailable: ${resolved.missingExerciseNames.join(", ")}.`);
+        }
+        let assignedCount = 0;
+        for (const exercise of resolved.exercises) {
+            const assignment = await tx.exerciseAssignment.findUnique({
+                where: { exerciseId_patientProfileId: { exerciseId: exercise.id, patientProfileId } },
+                select: { id: true, archivedAt: true }
+            });
+            if (assignment?.archivedAt === null) continue;
+            if (assignment) {
+                await tx.exerciseAssignment.update({
+                    where: { id: assignment.id },
+                    data: { archivedAt: null, assignedAt: new Date(), assignedByDoctorId: doctorProfileId,
+                        result: { upsert: { create: { score: 0 }, update: { score: 0 } } } }
+                });
+            } else {
+                await tx.exerciseAssignment.create({
+                    data: { exerciseId: exercise.id, patientProfileId, assignedByDoctorId: doctorProfileId,
+                        result: { create: { score: 0 } } }
+                });
+            }
+            assignedCount++;
+        }
+        return { presetName: preset.name, assignedCount, skippedCount: resolved.exercises.length - assignedCount };
+    });
 };
 
 export const archivePatientExerciseAssignment = async (

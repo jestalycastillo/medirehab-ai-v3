@@ -3,6 +3,8 @@ import { Role } from "@prisma/client";
 import {
     archiveExerciseCatalogItem,
     assignExercise,
+    getExercisePresets,
+    assignExercisePreset,
     createExerciseCatalogItem,
     deleteExerciseCatalogItemPermanently,
     getAssignedExercisesForPatient,
@@ -23,6 +25,9 @@ import { requirePasswordChanged } from "../middlewares/password.middleware";
 import { requireRole } from "../middlewares/role.middleware";
 
 const router = Router();
+
+router.get("/patients/:patientUserId/presets", authMiddleware, requirePasswordChanged, requireRole(Role.DOCTOR), getExercisePresets);
+router.post("/patients/:patientUserId/presets/assign", authMiddleware, requirePasswordChanged, requireRole(Role.DOCTOR), assignExercisePreset);
 
 router.get(
     "/",

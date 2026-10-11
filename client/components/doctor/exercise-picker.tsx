@@ -1,6 +1,7 @@
 "use client";
 
 import { type ApiExercise } from "@/lib/api";
+import { DoctorExerciseImage } from "./doctor-exercise-image";
 
 export function ExercisePicker({
   exercises,
@@ -14,7 +15,8 @@ export function ExercisePicker({
   return (
     <div className="portal-panel">
       <div className="portal-panel-heading">
-        <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>Available Exercises</h2>
+        <h2>Individual exercises</h2>
+        <p>Choose a movement to add to the care plan.</p>
       </div>
       {exercises.length === 0 ? (
         <div className="care-page-empty" role="status">
@@ -22,17 +24,18 @@ export function ExercisePicker({
           <p>No additional exercises can be assigned right now.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div className="doctor-exercise-picker-grid">
           {exercises.map((exercise) => (
-            <div key={exercise.id} className="portal-list-row">
-              <div className="portal-list-copy">
-                <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{exercise.name}</div>
-                <div style={{ color: "var(--color-text-secondary)", fontSize: "14px", maxWidth: "56ch" }}>{exercise.description || "No description provided."}</div>
+            <article key={exercise.id} className="doctor-exercise-picker-card">
+              <DoctorExerciseImage exercise={exercise} name={exercise.name} />
+              <div className="doctor-exercise-picker-card-body">
+                <h3>{exercise.name}</h3>
+                <p className="doctor-exercise-picker-description">{exercise.description || "No description provided."}</p>
+                <button type="button" className="btn btn-primary" onClick={() => onAssign(exercise.id)} disabled={isBusy} aria-label={`Assign ${exercise.name}`}>
+                  Assign exercise
+                </button>
               </div>
-              <button className="btn btn-primary" onClick={() => onAssign(exercise.id)} disabled={isBusy} aria-label={`Assign ${exercise.name}`} style={{ padding: "0 14px" }}>
-                Assign
-              </button>
-            </div>
+            </article>
           ))}
         </div>
       )}

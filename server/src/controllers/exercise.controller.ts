@@ -6,6 +6,8 @@ import {
     archiveExercise,
     archivePatientExerciseAssignment,
     assignExerciseToPatient,
+    listExercisePresetsForPatient,
+    assignExercisePresetToPatient,
     deleteExercisePermanently,
     createExercise,
     listAssignedExercisesForDoctorPatient,
@@ -319,6 +321,20 @@ export const assignExercise = async (
     } catch (error) {
         handleExerciseError(error, res, "Unable to assign exercise.");
     }
+};
+
+export const getExercisePresets = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const presets = await listExercisePresetsForPatient(validateUserIdParam(req.params.patientUserId), getAuthenticatedUserId(req));
+        res.status(200).json({ success: true, presets });
+    } catch (error) { handleExerciseError(error, res, "Unable to load exercise presets."); }
+};
+
+export const assignExercisePreset = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await assignExercisePresetToPatient(validateUserIdParam(req.params.patientUserId), getAuthenticatedUserId(req), req.body?.presetId);
+        res.status(200).json({ success: true, ...result });
+    } catch (error) { handleExerciseError(error, res, "Unable to assign exercise preset."); }
 };
 
 export const removeAssignedExercise = async (
