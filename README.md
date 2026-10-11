@@ -18,98 +18,84 @@ is published on Kaggle by [toobasaeed11](https://www.kaggle.com/toobasaeed11).
 ##### Server: https://medirehab-ai-server.onrender.com
 ##### AI Service: https://medirehab-ai-service.onrender.com
 
-## Containerized Live Coaching
+## Deployment
 
-For the full local stack, including Ollama and the `coach-qwen:latest` model:
+The deployment images contain the application, runtime dependencies, and active
+model weights. Tests, datasets, notebooks, training checkpoints, secrets, and
+local build output are excluded. Research sources remain in Git.
+
+Copy the root `.env.example` to `.env` and configure:
+
+- `DATABASE_URL`: the existing PostgreSQL database, with the provider's TLS settings.
+- `JWT_SECRET`: a strong deployment secret.
+- `CLIENT_URL`: the HTTPS frontend origin allowed by backend CORS.
+- `NEXT_PUBLIC_API_URL`: the HTTPS browser-facing API URL, including `/api`.
+  This value is embedded during the frontend build; changing it requires a rebuild.
 
 ```powershell
-docker compose up --build
+docker compose --env-file .env config --quiet
+docker compose --env-file .env build
 ```
 
-The first start downloads the Ollama base model, so wait for `ollama-init` to
-finish before testing coaching. The AI service reaches Ollama at
-`http://ollama:11434` inside Docker; do not override it with `localhost` or
-`127.0.0.1`. For a no-camera verification request and host-only instructions,
-see [the live-coaching setup guide](ai-service/ollama/README.md).
+After separately approving any required database changes and verifying the
+existing database schema, start the services:
+
+```powershell
+docker compose --env-file .env up -d
+```
+
+Compose uses the existing database; it does not provision PostgreSQL, migrate,
+reset, or seed it. Prisma migration tooling stays in the repository’s development dependencies
+for an explicitly approved manual operation from `server`. Never use container startup to apply
+schema changes automatically.
+
+Put an HTTPS reverse proxy in front of ports 3000 (frontend) and 5000 (backend),
+which bind to loopback by default. Route `/uploads` to the backend too. HTTPS is
+required for production authentication cookies and browser camera access. Use
+the same site for frontend and API (for example, sibling subdomains) because
+session cookies use `SameSite=Lax`.
+
+Backend uploads persist in the `backend_uploads` volume. Back up this volume
+alongside PostgreSQL; do not remove deployment volumes during a routine restart.
+Ollama weights persist in `ollama_models`. The first startup downloads the
+coaching base model. AI and Ollama ports are internal to the Compose network.
+For coaching details, see [the setup guide](ai-service/ollama/README.md).
 
 ## Model-backed exercises
 
-The built-in catalog has Shoulder Flexion (`shoulder_flexion`) and Shoulder
-Abduction (`shoulder_abduction`). For each exercise, the patient selects an arm
-before recording; the backend routes evaluation to the corresponding `left_*`
-or `right_*` checkpoint. Each session stores the actual checkpoint key and arm,
-which are returned in care history.
+The catalog contains Shoulder Flexion, Shoulder Abduction, Side Arms Raise,
+Arm Circumduction, Cross-body Shoulder Stretch, External Rotation, and Internal
+Rotation. Active checkpoints live under `ai-service/app/models`, with YOLO pose
+weights at `ai-service/yolo26s-pose.pt`. Versioned shoulder model keys remain
+compatible aliases of their canonical runtime checkpoints.
 
-Docker startup runs migrations and the exercise-only catalog seed automatically.
-For a host-only backend, run these from `server` after setting `DATABASE_URL`:
+The seven-exercise catalog migration is a manual deployment step. It preserves
+existing IDs, assignments, results, custom images, and archived status. Review
+and explicitly approve database changes before applying migrations or seeds.
+An unavailable checkpoint fails evaluation rather than producing a fake score.
 
-```bash
-npx prisma migrate deploy
-npx prisma generate
-npm run db:seed:exercises
-```
+## Development
 
-The exercise seed is safe to rerun: it adds missing built-ins and model keys
-without resetting admin credentials, deleting assignments, or replacing edited
-descriptions and images. Run `npm run db:seed` only when you also intend to
-create the initial admin account. Checkpoints are packaged under
-`ai-service/app/models`; an unavailable checkpoint makes evaluation fail rather
-than recording a fabricated score.
+Install Node dependencies with `npm ci` inside `client` and `server`. Copy each
+service's `.env.example` to `.env` and configure the existing database and URLs.
+Generate the Prisma client with `npx prisma generate` from `server`; this is a
+code generation step, not a migration. Run `npm run dev` in each Node service.
 
-Deployment, retention, consent, and backup guidance is documented in
-[Operations and Privacy](docs/operations-and-privacy.md).
+For the Python API:
 
-## DEVELOPMENT SETUP
-### 1. Clone this repository.
-```bash
-clone https://github.com/jc14-ai/medirehab-ai-v3.git
-```
-### 2. Navigate inside the folder.
-```bash
-cd medirehab-ai-v3
-```
-### 3. Navigate to client folder then install dependencies.
-```bash
-cd client
-cp .env.example .env # configure the env variables
-npm install
-```
-### 4. Run client server.
-```bash
-npm run dev
-```
-### 5. Navigate to ai-service folder then create local environment and install requirements.txt.
-```bash
-cd ../ai-service
-
-python3.10 -m venv venv # macOS
-py -3.10 -m venv venv # Windows
-
-venv/Scripts/activate # macOS
-source venv/bin/activate # Windows
-
-pip install -r requirements.txt # do this if the project contains requirements.txt already
-```
-### 6. Run AI service server.
-```bash
+```powershell
+cd ai-service
+py -3.10 -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
-### 7. Navigate to server folder then install dependencies.
-```bash
-cd ../server
-cp .env.example .env # configure the env variables
-npm install
 
-cd src
-cp .env.example .env # configure the env variables
-```
-### 8. Migrate prisma models then generate client.
-```bash
-npx prisma migrate dev
-npx prisma generate
-npm run db:seed:exercises
-```
-### 9. Run backend server.
-```bash
-npm run dev
-```
+On macOS/Linux, use `python3.10 -m venv venv` and `source venv/bin/activate`.
+`requirements.txt` contains pinned runtime dependencies. Use
+`requirements-dev.txt` for notebooks, training, and research evaluation.
+The Docker image installs CPU PyTorch wheels because deployed inference uses
+CPU; GPU development environments can install the matching CUDA wheels first.
+
+Deployment, retention, consent, and backup guidance is in
+[Operations and Privacy](docs/operations-and-privacy.md).

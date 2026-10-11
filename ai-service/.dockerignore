@@ -1,5 +1,8 @@
-venv
-training
-data
-logs
-/app/__pycache__
+# Explicit allowlist: only inference code, dependencies, and deployed weights.
+**
+!requirements.txt
+!app/
+!app/**
+!yolo26s-pose.pt
+app/**/__pycache__/
+app/**/*.pyc
