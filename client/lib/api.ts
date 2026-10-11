@@ -98,6 +98,16 @@ export interface ApiExercise {
   images: ExerciseImage[];
 }
 
+export interface ExercisePreset {
+  id: string;
+  name: string;
+  description: string;
+  exerciseNames: string[];
+  exercises: ApiExercise[];
+  missingExerciseNames: string[];
+  assignedExerciseIds: string[];
+}
+
 export interface ExerciseResult {
   id: string;
   score: number;
@@ -537,6 +547,17 @@ export const api = {
   },
 
   // --- Doctor: Exercise Assignments ---
+  getExercisePresets(patientId: string) {
+    return request<{ success: boolean; presets: ExercisePreset[] }>(`/exercises/patients/${patientId}/presets`);
+  },
+
+  assignExercisePreset(patientId: string, presetId: string) {
+    return request<{ success: boolean; presetName: string; assignedCount: number; skippedCount: number }>(`/exercises/patients/${patientId}/presets/assign`, {
+      method: "POST",
+      body: JSON.stringify({ presetId }),
+    });
+  },
+
   getAvailableExercises(patientId: string) {
     return request<{ success: boolean; exercises: ApiExercise[] }>(`/exercises/patients/${patientId}/available`);
   },

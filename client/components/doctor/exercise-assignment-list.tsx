@@ -6,6 +6,7 @@ import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { type AssignmentPlanUpdate, type ExerciseAssignment } from "@/lib/api";
 import { formatAssignmentScoreSummary } from "@/lib/score";
 import { AdherenceSummary } from "@/components/care/adherence-summary";
+import { DoctorExerciseImage } from "./doctor-exercise-image";
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -109,6 +110,7 @@ export function ExerciseAssignmentList({
           <div style={{ display: "flex", flexDirection: "column" }}>
             {assignments.map((assignment) => (
               <div key={assignment.id} className="portal-list-row portal-assignment-row">
+                <DoctorExerciseImage exercise={assignment.exercise} name={assignment.exercise?.name || "Exercise"} className="doctor-assigned-exercise-image" />
                 <div className="portal-list-copy">
                   <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{assignment.exercise?.name || "Exercise"}</div>
                   <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>Assigned {formatDate(assignment.assignedAt)}</div>
