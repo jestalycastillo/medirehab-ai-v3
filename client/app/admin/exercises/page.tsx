@@ -288,7 +288,6 @@ export default function ExercisesPage() {
                           <ExerciseThumbnail
                             imagePath={mainImage}
                             alt={exercise.name}
-                            modelKey={exercise.analysisModelKey}
                             onImageError={(e) => {
                               e.currentTarget.style.display = "none";
                               const fallbackParent = e.currentTarget.parentElement;
