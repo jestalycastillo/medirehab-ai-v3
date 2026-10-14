@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { api, ApiError, type ApiPatient, type CareSession, type ExerciseAssignment, type HelpRequest, type PatientProfile } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PatientForm } from "@/components/doctor/patient-form";
@@ -224,7 +225,7 @@ export default function PatientDetailPage() {
   const activeAssignment = assignments.find((assignment) => assignment.activeAt && lastLoadedAt - new Date(assignment.activeAt).getTime() < 2 * 60_000);
 
   return (
-    <div className="role-dashboard care-page animate-fade-in">
+    <div className="portal-page care-page">
       <header className="role-dashboard-header doctor-detail-header">
         <div>
           <Link className="care-page-back" href="/doctor/patients">Back to patients</Link>
@@ -238,16 +239,13 @@ export default function PatientDetailPage() {
           </div>
         </div>
         <div className="doctor-patient-header-actions">
-          <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`}>Assign Exercise</Link>
-          <details className="doctor-account-actions">
-            <summary>Account options</summary>
-            <div>
+          <Link className="btn btn-primary" href={`/doctor/patients/${patient.id}/exercises`}>Manage care plan</Link>
+          <PortalActionMenu label="Account options for this patient">
               <button className="btn btn-secondary" onClick={() => { setFormError(""); setIsFormOpen(true); }}>Edit profile</button>
               <button className="btn btn-secondary" onClick={resetPassword}>Reset password</button>
               <button className="btn btn-secondary" onClick={toggleStatus}>{patient.isActive ? "Deactivate" : "Activate"}</button>
-              {!patient.archivedAt && <button className="btn btn-danger" onClick={archivePatient}>Archive</button>}
-            </div>
-          </details>
+              {!patient.archivedAt && <button className="list-row-action-danger" onClick={archivePatient}>Archive</button>}
+          </PortalActionMenu>
         </div>
       </header>
 
@@ -268,7 +266,6 @@ export default function PatientDetailPage() {
                   <div style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>{formatAssignmentScoreSummary(assignment)}</div>
                 </div>
               ))}
-              <Link className="btn btn-secondary btn-full" href={`/doctor/patients/${patient.id}/exercises`}>Manage exercises</Link>
             </div>
           )}
       </section>

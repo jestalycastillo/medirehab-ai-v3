@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import ANY, patch
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from app.utils.evaluate import compute_similarity_score, get_reconstruction_erro
 from app.utils.preprocess import preprocess
 from app.utils.process_video import TraceSummary
 from app.utils import process_video as process_video_module
+from app.pose_features import EXERCISE_FEATURES
 
 
 class ModelRegistryTests(unittest.TestCase):
@@ -146,6 +148,29 @@ class TracePreprocessingTests(unittest.TestCase):
 
 
 class VideoProcessingTests(unittest.TestCase):
+    def test_wrist_profile_produces_matching_training_and_inference_columns(self):
+        features = EXERCISE_FEATURES["external_rotation"]
+        xy = torch.arange(34, dtype=torch.float32).reshape(1, 17, 2) + 50
+        result = SimpleNamespace(keypoints=SimpleNamespace(xy=xy))
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            video_path = Path(temporary_directory) / "recording.avi"
+            trace_path = Path(temporary_directory) / "trace.csv"
+            writer = cv2.VideoWriter(str(video_path), cv2.VideoWriter_fourcc(*"MJPG"), 20.0, (320, 240))
+            self.assertTrue(writer.isOpened())
+            for _ in range(3):
+                writer.write(np.zeros((240, 320, 3), dtype=np.uint8))
+            writer.release()
+            with patch.object(process_video_module, "pose_model", return_value=[result]):
+                process_video_module.process_video_to_csv(str(video_path), str(trace_path), features)
+            trace = pd.read_csv(trace_path)
+            self.assertEqual(tuple(trace.columns), ("frame", *features))
+            self.assertAlmostEqual(trace.iloc[0]["Left Wrist_x"], xy[0, 9, 0].item() / 320)
+            self.assertAlmostEqual(trace.iloc[0]["Right Wrist_y"], xy[0, 10, 1].item() / 240)
+            data, input_dim = preprocess(trace_path, expected_features=features)
+            self.assertEqual(input_dim, 16)
+            self.assertEqual(data.shape, (1, 200, 16))
+            self.assertTrue(np.isfinite(data).all())
+
     def test_long_recordings_are_uniformly_capped_at_model_frame_count(self):
         frame_count = 240
         keypoint_coordinates = torch.zeros((1, 17, 2), dtype=torch.float32)
@@ -259,7 +284,9 @@ class EvaluationRouteTests(unittest.TestCase):
         )
 
         with (
-            patch.object(evaluate_route, "get_loaded_model", return_value=object()),
+            patch.object(evaluate_route, "get_loaded_model", return_value=SimpleNamespace(
+                definition=get_model_definition("left_flexion"),
+            )),
             patch.object(
                 evaluate_route,
                 "process_video_to_csv",

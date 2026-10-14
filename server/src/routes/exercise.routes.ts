@@ -3,6 +3,8 @@ import { Role } from "@prisma/client";
 import {
     archiveExerciseCatalogItem,
     assignExercise,
+    getExercisePresets,
+    assignExercisePreset,
     createExerciseCatalogItem,
     deleteExerciseCatalogItemPermanently,
     getAssignedExercisesForPatient,
@@ -14,13 +16,18 @@ import {
     restoreExerciseCatalogItem,
     updateExerciseCatalogItem,
     evaluateExerciseAssignment,
-    createLiveCoaching
+    createLiveCoaching,
+    getMyExerciseGuidelineProgress,
+    acknowledgeMyExerciseGuideline
 } from "../controllers/exercise.controller";
 import { authMiddleware } from "../middlewares/auth.middleware";
 import { requirePasswordChanged } from "../middlewares/password.middleware";
 import { requireRole } from "../middlewares/role.middleware";
 
 const router = Router();
+
+router.get("/patients/:patientUserId/presets", authMiddleware, requirePasswordChanged, requireRole(Role.DOCTOR), getExercisePresets);
+router.post("/patients/:patientUserId/presets/assign", authMiddleware, requirePasswordChanged, requireRole(Role.DOCTOR), assignExercisePreset);
 
 router.get(
     "/",
@@ -36,6 +43,9 @@ router.get(
     requireRole(Role.PATIENT),
     getMyAssignedExercises
 );
+
+router.get("/:exerciseId/guideline-progress", authMiddleware, requirePasswordChanged, requireRole(Role.PATIENT), getMyExerciseGuidelineProgress);
+router.post("/:exerciseId/guideline-acknowledgement", authMiddleware, requirePasswordChanged, requireRole(Role.PATIENT), acknowledgeMyExerciseGuideline);
 
 router.post(
     "/patients/exercises/:exerciseId/assignments/:assignmentId/evaluate",

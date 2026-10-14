@@ -3,7 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Eye, EyeOff, HeartPulse, LockKeyhole, Mail } from "lucide-react";
+import { Check, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 import { useAuth, ROLE_DASHBOARDS, type UserRole } from "@/lib/auth-context";
 import { ApiError } from "@/lib/api";
 
@@ -60,7 +61,7 @@ export default function LoginForm({ expectedRole }: { expectedRole: UserRole }) 
   return (
     <div className="auth-page">
       <header className="auth-topbar">
-        <Link className="auth-brand" href="/"><HeartPulse aria-hidden="true" /><span>MediRehab <strong>AI</strong></span></Link>
+        <Link className="auth-brand" href="/"><MediRehabLogo /><span>MediRehab <strong>AI</strong></span></Link>
       </header>
 
       <main className="auth-main">

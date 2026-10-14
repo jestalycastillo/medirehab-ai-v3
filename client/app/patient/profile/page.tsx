@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useState } from "react";
 import { ChevronDown, CircleAlert, LoaderCircle, LockKeyhole, Mail, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -7,7 +8,7 @@ import { api, ApiError, type ConsentSettings, type PatientProfile } from "@/lib/
 import { PatientProfileForm } from "@/components/patient/patient-profile-form";
 import { NotificationPreferences } from "@/components/care/notification-preferences";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PatientProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -100,10 +101,8 @@ export default function PatientProfilePage() {
   const doctorName = [profile?.assignedDoctor?.firstName, profile?.assignedDoctor?.lastName].filter(Boolean).join(" ");
 
   return (
-    <div className="patient-page patient-profile-page animate-fade-in">
-      <header className="patient-page-header">
-        <div><span className="patient-page-eyebrow">Your account</span><h1>Profile & settings</h1></div>
-      </header>
+    <PortalPage className="patient-page patient-profile-page">
+      <PortalPageHeader title="Profile & settings" eyebrow="Your account" description="Update your personal information, privacy choices, and account preferences." />
 
       {error && <div className="patient-page-alert" role="alert"><CircleAlert /><span>{error}</span></div>}
 
@@ -164,6 +163,6 @@ export default function PatientProfilePage() {
           </details>
         </aside>
       </div>
-    </div>
+    </PortalPage>
   );
 }

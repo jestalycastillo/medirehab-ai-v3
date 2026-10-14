@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError, type DoctorProfile } from "@/lib/api";
@@ -91,14 +92,12 @@ export default function DoctorProfilePage() {
   if (loading) return <div className="role-dashboard-loading" role="status"><div className="spinner" aria-hidden="true" />Loading your profile…</div>;
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", maxWidth: "760px" }}>
-      <div>
-        <h1 style={{ fontSize: "28px", fontWeight: 700, margin: "0 0 8px 0" }}>Profile</h1>
-      </div>
+    <PortalPage>
+      <PortalPageHeader title="Profile & settings" eyebrow="Doctor / Account" description="Manage your professional information and account preferences." />
 
       {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
-      <NotificationPreferences />
+
 
       <section className="card care-page-panel">
         <span className="role-dashboard-eyebrow">Your account</span>
@@ -154,9 +153,9 @@ export default function DoctorProfilePage() {
         </form>
       </section>
 
-      <section className="card care-page-panel">
-        <span className="role-dashboard-eyebrow">Security</span>
-        <h2>Change password</h2>
+      <details className="care-disclosure">
+        <summary>Change password</summary>
+        <div className="care-disclosure-content">
         {passwordMessage && <div className="admin-feedback admin-feedback-success" role="status"><CheckCircle2 aria-hidden="true" />{passwordMessage}</div>}
         <form onSubmit={handleChangePassword} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
@@ -177,7 +176,9 @@ export default function DoctorProfilePage() {
             {savingPassword ? <><span className="spinner spinner-white" style={{ width: "16px", height: "16px" }} aria-hidden="true" />Updating…</> : "Update Password"}
           </button>
         </form>
-      </section>
-    </div>
+        </div>
+      </details>
+      <details className="care-disclosure"><summary>Notification preferences</summary><div className="care-disclosure-content"><NotificationPreferences /></div></details>
+    </PortalPage>
   );
 }

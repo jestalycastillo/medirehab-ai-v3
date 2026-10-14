@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test:adherence && npm run test:exercise-models && npm run test:pose-guidance && npm run test:camera-visit && npm run test:integration",
+    "test": "npm run test:adherence && npm run test:exercise-models && npm run test:exercise-presets && npm run test:pose-guidance && npm run test:camera-visit && npm run test:integration",
+    "test:exercise-presets": "tsx tests/exercise-presets.test.ts",
     "test:adherence": "tsx tests/adherence.test.ts",
     "test:exercise-models": "tsx tests/exercise-models.test.ts",
     "test:pose-guidance": "tsx ../client/lib/pose/shoulder-movement-direction.test.ts",
@@ -14,7 +15,8 @@
     "start": "node ./dist/server.js",
     "dev": "nodemon --exec \"ts-node --files\" ./src/server.ts",
     "db:seed": "prisma db seed",
-    "db:seed:exercises": "tsx prisma/seed-exercises.ts"
+    "db:seed:exercises": "tsx prisma/seed-exercises.ts",
+    "db:add:physiotherapy": "tsx prisma/add-physiotherapy-exercises.ts"
   },
   "keywords": [],
   "author": "",

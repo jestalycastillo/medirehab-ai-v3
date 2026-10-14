@@ -104,7 +104,7 @@ export default function AdminDoctorDetailPage() {
   }
 
   return (
-    <div className="role-dashboard admin-subpage animate-fade-in">
+    <div className="portal-page admin-subpage">
       <header className="role-dashboard-header">
         <div>
           <Link className="care-page-back" href="/admin/doctors">Back to doctors</Link>

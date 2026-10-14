@@ -22,6 +22,7 @@ export type ValidatedUpdateExerciseInput = {
     description?: string | undefined;
     analysisModelKey?: string | null | undefined;
     images?: ValidatedExerciseImageInput[] | undefined;
+    guidelineSlides?: string[] | undefined;
 };
 
 export type ValidatedAssignExerciseInput = {
@@ -82,11 +83,23 @@ export const validateUpdateExerciseInput = (
         name: optionalString(body.name ?? body.exercise, "Exercise name"),
         description: optionalString(body.description, "Description"),
         analysisModelKey: body.analysisModelKey === null ? null : optionalString(body.analysisModelKey, "Analysis model key"),
-        images: hasImages ? validateImages(body.images) : undefined
+        images: hasImages ? validateImages(body.images) : undefined,
+        guidelineSlides: body.guidelineSlides === undefined ? undefined : validateGuidelineSlides(body.guidelineSlides)
     };
 
     ensureAtLeastOneDefined(input);
     return input;
+};
+
+const validateGuidelineSlides = (value: unknown): string[] => {
+    if (!Array.isArray(value) || value.length > 12) {
+        throw new HttpError(400, "Guidelines can contain up to 12 slides.");
+    }
+    return value.map((slide, index) => {
+        const content = requireString(slide, `Guideline slide ${index + 1}`);
+        if (content.length > 1_000) throw new HttpError(400, "Each guideline slide must be 1,000 characters or fewer.");
+        return content;
+    });
 };
 
 export const validateAssignExerciseInput = (

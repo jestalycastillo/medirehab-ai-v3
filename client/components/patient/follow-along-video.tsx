@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { EyeOff, Bot } from "lucide-react";
-import { AnimatedExerciseGuide } from "./animated-exercise-guide";
+import { ExerciseMovementGuide } from "./exercise-movement-guide";
 
 interface FollowAlongVideoProps {
     exerciseName: string;
@@ -35,8 +35,8 @@ export function FollowAlongVideo({
                 type="button"
                 className="follow-along-reopen-btn"
                 onClick={() => setIsVisible(true)}
-                title="Show Exercise Avatar Guide"
-                aria-label="Show Exercise Avatar Guide"
+                title="Show Exercise Guide"
+                aria-label="Show Exercise Guide"
             >
                 <Bot size={15} style={{ color: "#2dd4bf" }} />
                 <span>Show Guide</span>
@@ -48,7 +48,7 @@ export function FollowAlongVideo({
         <div
             className="follow-along-card animate-scale-in"
             role="region"
-            aria-label="Animated exercise demonstration avatar guide to follow along"
+            aria-label="Exercise guidance to follow along"
         >
             {/* Header Bar */}
             <div className="follow-along-header">
@@ -94,7 +94,7 @@ export function FollowAlongVideo({
 
             {/* Avatar Guide Display */}
             <div className="follow-along-video-wrapper" style={{ backgroundColor: "#ffffff", background: "#ffffff" }}>
-                <AnimatedExerciseGuide
+                <ExerciseMovementGuide
                     exerciseName={exerciseName}
                     selectedSide={selectedSide}
                     analysisModelKey={analysisModelKey}

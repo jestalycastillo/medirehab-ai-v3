@@ -4,6 +4,7 @@ import { useAuth, ROLE_DASHBOARDS } from "@/lib/auth-context";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -127,7 +128,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ color: "var(--color-primary)" }}>
-            <ActivityIcon />
+            <MediRehabLogo />
           </div>
           <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--color-text-primary)", letterSpacing: "-0.01em" }}>
             MediRehab<span style={{ color: "var(--color-primary)" }}> AI</span>
@@ -221,7 +222,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           borderBottom: "1px solid var(--color-border)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={{ color: "var(--color-primary)" }}><ActivityIcon /></div>
+            <MediRehabLogo />
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Admin Portal</span>
           </div>
           <button

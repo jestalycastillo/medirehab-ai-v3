@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, HeartPulse, Stethoscope, UserCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Stethoscope, UserCheck } from "lucide-react";
+import { MediRehabLogo } from "@/components/medirehab-logo";
 
 export const metadata: Metadata = {
   title: "Let's Get Started — MediRehab AI",
@@ -26,9 +27,7 @@ export default function GetStartedPage() {
         {/* Brand Logo */}
         <div className="flex justify-center">
           <Link href="/" className="inline-flex items-center gap-3 no-underline group">
-            <div className="grid size-10 place-items-center rounded-2xl bg-gradient-to-br from-[#0F766E] to-[#0B4A47] text-white shadow-md shadow-[#0F766E]/20 transition-transform group-hover:scale-105">
-              <HeartPulse className="size-5" />
-            </div>
+            <MediRehabLogo className="size-10" />
             <span className="text-xl font-bold tracking-tight text-[#0F2926]">
               MediRehab<span className="text-[#0F766E]"> AI</span>
             </span>

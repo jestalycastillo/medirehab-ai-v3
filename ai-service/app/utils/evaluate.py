@@ -26,6 +26,25 @@ def get_reconstruction_error(model, sequence):
         return float(error.item())
 
 
+def compute_calibrated_similarity_score(error, mean_val_loss, beta):
+    """Use the same validation calibration as the four-model training reports."""
+    if not all(math.isfinite(value) for value in (error, mean_val_loss, beta)) or beta <= 0:
+        raise ValueError("Invalid model calibration.")
+    return round(float(100.0 * math.exp(-beta * max(0.0, error - mean_val_loss))), 2)
+
+
+def get_new_exercise_feedback(score, model_key):
+    cues = {
+        "arm_circumduction": ("Arm Circumduction", "Follow the prescribed circular arm movement at a steady pace."),
+        "cross_body_shoulder_stretch": ("Cross-body Shoulder Stretch", "Follow the prescribed stretch position and hold duration."),
+        "external_rotation": ("External Rotation", "Follow the prescribed outward forearm rotation while keeping your arm position controlled."),
+        "internal_rotation": ("Internal Rotation", "Follow the prescribed inward forearm rotation while keeping your arm position controlled."),
+    }
+    name, cue = cues[model_key]
+    match = "close" if score >= 75 else "limited"
+    return [f"{name}: {match} similarity to the recorded training examples.", cue]
+
+
 def compute_arm_motion_stats(
     trace_path: Union[str, Path],
     model_key: str,

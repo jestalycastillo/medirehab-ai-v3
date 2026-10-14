@@ -39,3 +39,24 @@ test("doctor score summary names each arm instead of displaying a combined score
   } as ExerciseAssignment;
   assert.equal(formatAssignmentScoreSummary(assignment), "Left 91.23 · Right 83.10");
 });
+
+test("combined-arm models support switching and per-arm score summaries", () => {
+  for (const key of ["arm_circumduction", "cross_body_shoulder_stretch"]) {
+    const config = getExerciseModelGuidanceConfig(key);
+    assert(config?.selectableSide);
+    assert.equal(canSwitchArm(config, "left", ["left"]), true);
+    assert.equal(canRecordArm(config, "right", ["left"]), true);
+    const assignment = { exercise: { analysisModelKey: key }, latestScoresBySide: { left: 91, right: 83 } } as ExerciseAssignment;
+    assert.equal(formatAssignmentScoreSummary(assignment), "Left 91.00 · Right 83.00");
+  }
+});
+
+test("rotation models have a single recording with no arm selection", () => {
+  for (const key of ["external_rotation", "internal_rotation"]) {
+    const config = getExerciseModelGuidanceConfig(key);
+    assert(config);
+    assert.equal(resolveRecordingSide(config, "right"), undefined);
+    assert.equal(canSwitchArm(config, "left", []), false);
+    assert.equal(canRecordArm(config, null, []), true);
+  }
+});

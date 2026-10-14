@@ -10,12 +10,15 @@ import {
     ValidatedUpdateExerciseInput
 } from "../utils/exerciseValidation";
 import { resolveExerciseAnalysisModel } from "../utils/exerciseAnalysisModel";
+import { EXERCISE_PRESETS, getExercisePreset, resolvePresetExercises } from "../utils/exercisePresets";
 
 const exerciseSelect = {
     id: true,
     name: true,
     description: true,
     analysisModelKey: true,
+    guidelineSlides: true,
+    guidelineVersion: true,
     isActive: true,
     archivedAt: true,
     images: {
@@ -206,6 +209,11 @@ export const updateExercise = async (
     input: ValidatedUpdateExerciseInput
 ) => {
     await ensureExerciseExists(exerciseId);
+    const existingGuideline = input.guidelineSlides === undefined ? null : await prisma.exercise.findUnique({
+        where: { id: exerciseId }, select: { guidelineSlides: true }
+    });
+    const guidelinesChanged = existingGuideline !== null
+        && JSON.stringify(existingGuideline.guidelineSlides) !== JSON.stringify(input.guidelineSlides);
 
     return prisma.$transaction(async (tx) => {
         if (input.images !== undefined) {
@@ -220,12 +228,40 @@ export const updateExercise = async (
                 ...(input.name !== undefined ? { name: input.name } : {}),
                 ...(input.description !== undefined ? { description: input.description } : {}),
                 ...(input.analysisModelKey !== undefined ? { analysisModelKey: input.analysisModelKey } : {}),
+                ...(input.guidelineSlides !== undefined ? { guidelineSlides: input.guidelineSlides } : {}),
+                ...(guidelinesChanged ? { guidelineVersion: { increment: 1 } } : {}),
                 ...(input.images !== undefined
                     ? { images: { create: toImageCreateMany(input) } }
                     : {})
             },
             select: exerciseSelect
         });
+    });
+};
+
+export const getExerciseGuidelineProgress = async (patientUserId: string, exerciseId: string) => {
+    const assignment = await prisma.exerciseAssignment.findFirst({
+        where: { exerciseId, archivedAt: null, patientProfile: { is: { userId: patientUserId } } },
+        select: { exercise: { select: { guidelineSlides: true, guidelineVersion: true } } }
+    });
+    if (!assignment) throw new HttpError(404, "Assigned exercise not found.");
+    const acknowledgement = await prisma.exerciseGuidelineAcknowledgement.findUnique({
+        where: { patientUserId_exerciseId: { patientUserId, exerciseId } },
+        select: { guidelineVersion: true, readAt: true }
+    });
+    return {
+        slides: assignment.exercise.guidelineSlides,
+        version: assignment.exercise.guidelineVersion,
+        hasReadCurrentVersion: acknowledgement?.guidelineVersion === assignment.exercise.guidelineVersion
+    };
+};
+
+export const acknowledgeExerciseGuideline = async (patientUserId: string, exerciseId: string) => {
+    const progress = await getExerciseGuidelineProgress(patientUserId, exerciseId);
+    return prisma.exerciseGuidelineAcknowledgement.upsert({
+        where: { patientUserId_exerciseId: { patientUserId, exerciseId } },
+        create: { patientUserId, exerciseId, guidelineVersion: progress.version },
+        update: { guidelineVersion: progress.version, readAt: new Date() }
     });
 };
 
@@ -387,6 +423,59 @@ export const assignExerciseToPatient = async (
         select: assignmentSelect
     });
     return withAdherence(created);
+};
+
+export const listExercisePresetsForPatient = async (patientUserId: string, doctorUserId: string) => {
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const [exercises, assignments] = await Promise.all([
+        listExercises(),
+        prisma.exerciseAssignment.findMany({ where: { patientProfileId, archivedAt: null }, select: { exerciseId: true } })
+    ]);
+    const assignedIds = new Set(assignments.map((assignment) => assignment.exerciseId));
+    return EXERCISE_PRESETS.map((preset) => ({
+        ...preset,
+        ...resolvePresetExercises(preset, exercises),
+        assignedExerciseIds: exercises.filter((exercise) => assignedIds.has(exercise.id)).map((exercise) => exercise.id)
+    }));
+};
+
+export const assignExercisePresetToPatient = async (patientUserId: string, doctorUserId: string, presetId: unknown) => {
+    const preset = getExercisePreset(presetId);
+    const patientProfileId = await getAssignedPatientProfileId(patientUserId, doctorUserId);
+    const doctorProfileId = await getDoctorProfileIdForUser(doctorUserId);
+    // Either the whole preset is assigned, or none of its changes are committed.
+    return prisma.$transaction(async (tx) => {
+        const catalog = await tx.exercise.findMany({
+            where: { name: { in: [...preset.exerciseNames] }, isActive: true, archivedAt: null },
+            select: { id: true, name: true }
+        });
+        const resolved = resolvePresetExercises(preset, catalog);
+        if (resolved.missingExerciseNames.length) {
+            throw new HttpError(409, `Preset exercises are unavailable: ${resolved.missingExerciseNames.join(", ")}.`);
+        }
+        let assignedCount = 0;
+        for (const exercise of resolved.exercises) {
+            const assignment = await tx.exerciseAssignment.findUnique({
+                where: { exerciseId_patientProfileId: { exerciseId: exercise.id, patientProfileId } },
+                select: { id: true, archivedAt: true }
+            });
+            if (assignment?.archivedAt === null) continue;
+            if (assignment) {
+                await tx.exerciseAssignment.update({
+                    where: { id: assignment.id },
+                    data: { archivedAt: null, assignedAt: new Date(), assignedByDoctorId: doctorProfileId,
+                        result: { upsert: { create: { score: 0 }, update: { score: 0 } } } }
+                });
+            } else {
+                await tx.exerciseAssignment.create({
+                    data: { exerciseId: exercise.id, patientProfileId, assignedByDoctorId: doctorProfileId,
+                        result: { create: { score: 0 } } }
+                });
+            }
+            assignedCount++;
+        }
+        return { presetName: preset.name, assignedCount, skippedCount: resolved.exercises.length - assignedCount };
+    });
 };
 
 export const archivePatientExerciseAssignment = async (
@@ -566,7 +655,7 @@ export const evaluateExercise = async (
         select: {
             id: true,
             exercise: {
-                select: { analysisModelKey: true }
+                select: { analysisModelKey: true, name: true }
             }
         }
     });
@@ -594,6 +683,7 @@ export const evaluateExercise = async (
         new Blob([uint8Array], { type: videoContentType }),
         "exercise.webm"
     );
+    if (resolvedModel.selectedSide) formData.append("selected_side", resolvedModel.selectedSide);
 
     const aiServiceBaseUrl = getAiServiceBaseUrl();
     const encodedModelKey = encodeURIComponent(resolvedModel.evaluatedModelKey);
@@ -642,9 +732,11 @@ export const evaluateExercise = async (
         : [];
 
     if (feedback.length === 0) {
-        const exerciseName = modelKey.includes("abduction") ? "Shoulder Abduction" : "Shoulder Flexion";
+        const exerciseName = assignment.exercise.name;
         const arm = selectedSide ? `${selectedSide} arm` : "arm";
-        if (roundedScore >= 85) {
+        if (["arm_circumduction", "cross_body_shoulder_stretch", "external_rotation", "internal_rotation"].includes(modelKey)) {
+            feedback = [`${exerciseName}: movement similarity score ${roundedScore.toFixed(2)}%.`, "Follow your clinician’s prescribed movement and recording position."];
+        } else if (roundedScore >= 85) {
             feedback = [
                 `Excellent form and control on your ${exerciseName} with your ${arm}.`,
                 "Target range of motion and movement trajectory were consistently achieved."

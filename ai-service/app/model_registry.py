@@ -6,6 +6,7 @@ import torch
 from torch import nn
 
 from app.utils.build_model import build_model
+from app.pose_features import EXERCISE_FEATURES
 
 
 class UnsupportedAnalysisModelError(ValueError):
@@ -17,6 +18,8 @@ class AnalysisModelDefinition:
     checkpoint_path: Path
     input_frames: int
     features: tuple[str, ...]
+    canonical_side: str | None = None
+    scoring_mode: str = "clinical"
 
 
 @dataclass(frozen=True)
@@ -211,6 +214,15 @@ MODEL_REGISTRY = {
     ),
 }
 
+for exercise_key in ("arm_circumduction", "cross_body_shoulder_stretch", "external_rotation", "internal_rotation"):
+    MODEL_REGISTRY[exercise_key] = AnalysisModelDefinition(
+        checkpoint_path=Path(__file__).resolve().parent / "models" / f"{exercise_key}.pth",
+        input_frames=200,
+        features=EXERCISE_FEATURES[exercise_key],
+        canonical_side="left" if exercise_key in ("arm_circumduction", "cross_body_shoulder_stretch") else None,
+        scoring_mode="similarity",
+    )
+
 _LOADED_MODELS: dict[str, LoadedAnalysisModel] = {}
 _MODEL_LOAD_LOCK = Lock()
 
@@ -240,6 +252,11 @@ def get_loaded_model(model_key: str) -> LoadedAnalysisModel:
             )
 
         checkpoint = torch.load(definition.checkpoint_path, map_location="cpu")
+        if definition.scoring_mode == "similarity":
+            if (tuple(checkpoint.get("features", ())) != definition.features
+                    or checkpoint.get("input_frames") != definition.input_frames
+                    or checkpoint.get("canonical_side") != definition.canonical_side):
+                raise RuntimeError("Checkpoint preprocessing metadata does not match this exercise.")
         model = build_model(len(definition.features))
         model.load_state_dict(checkpoint["model"])
         model.eval()

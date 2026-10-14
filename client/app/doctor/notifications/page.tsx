@@ -1,5 +1,6 @@
 "use client";
 
+import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useState } from "react";
 import { api, ApiError, type CareNotification } from "@/lib/api";
 import { NotificationsPanel } from "@/components/care/notifications-panel";
@@ -55,43 +56,8 @@ export default function DoctorNotificationsPage() {
   }
 
   return (
-    <div className="role-dashboard care-page animate-fade-in">
-      <header className="role-dashboard-header">
-        <div>
-          <span className="role-dashboard-eyebrow">Doctor / Notifications</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
-            <h1 className="role-dashboard-title" style={{ margin: 0 }}>Notifications</h1>
-            {unreadCount > 0 && (
-              <span
-                style={{
-                  backgroundColor: "var(--color-primary)",
-                  color: "#ffffff",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  padding: "3px 10px",
-                  borderRadius: "999px",
-                }}
-              >
-                {unreadCount} Unread
-              </span>
-            )}
-          </div>
-          <p className="role-dashboard-description">
-            Keep track of new patient sessions, check-ins, and reminder items.
-          </p>
-        </div>
-
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleMarkAllRead}
-            style={{ fontSize: "13px" }}
-          >
-            Mark all as read
-          </button>
-        )}
-      </header>
+    <PortalPage>
+      <PortalPageHeader title="Notifications" eyebrow="Doctor / Care updates" description={`${unreadCount} unread · Patient sessions, check-ins, and reminders.`} actions={unreadCount > 0 ? <button type="button" className="btn btn-secondary" onClick={handleMarkAllRead}>Mark all as read</button> : undefined} />
 
       {error && <div className="admin-feedback admin-feedback-error" role="alert"><CircleAlert aria-hidden="true" />{error}</div>}
 
@@ -99,9 +65,8 @@ export default function DoctorNotificationsPage() {
         <NotificationsPanel
           notifications={notifications}
           onMarkRead={handleMarkRead}
-          onMarkAllRead={handleMarkAllRead}
         />
       </div>
-    </div>
+    </PortalPage>
   );
 }

@@ -7,6 +7,7 @@ import {
     ValidatedSessionUpdateInput
 } from "../utils/careValidation";
 import { roundScore } from "../utils/score";
+import { isSideSelectableExercise } from "../utils/exerciseAnalysisModel";
 
 const exerciseSelect = {
     id: true,
@@ -365,7 +366,7 @@ export const recordExerciseSession = async (
     }
 
     if (options.visitId) {
-        if (!options.selectedSide || !["shoulder_flexion", "shoulder_abduction"].includes(assignment.exercise.analysisModelKey ?? "")) {
+        if (!options.selectedSide || !isSideSelectableExercise(assignment.exercise.analysisModelKey)) {
             throw new HttpError(400, "A shared visit is only available for side-selectable shoulder exercises.");
         }
         const siblings = await prisma.exerciseSession.findMany({

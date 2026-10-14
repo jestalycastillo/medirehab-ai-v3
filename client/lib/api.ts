@@ -1,3 +1,5 @@
+import { getExerciseIllustrationUrl } from "./pose/exercise-model-config";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export function resolveMediaUrl(url?: string | null): string | null {
@@ -18,6 +20,8 @@ export function getExerciseImageUrl(exercise?: { name?: string; analysisModelKey
   }
   const key = (exercise.analysisModelKey || "").toLowerCase();
   const name = (exercise.name || "").toLowerCase();
+  const illustration = getExerciseIllustrationUrl(key, name);
+  if (illustration) return illustration;
   if (key.includes("flexion") || name.includes("flexion")) {
     return "/exercises/shoulder_flexion.png";
   }
@@ -88,8 +92,20 @@ export interface ApiExercise {
   name: string;
   description: string;
   analysisModelKey?: string | null;
+  guidelineSlides?: string[];
+  guidelineVersion?: number;
   archivedAt: string | null;
   images: ExerciseImage[];
+}
+
+export interface ExercisePreset {
+  id: string;
+  name: string;
+  description: string;
+  exerciseNames: string[];
+  exercises: ApiExercise[];
+  missingExerciseNames: string[];
+  assignedExerciseIds: string[];
 }
 
 export interface ExerciseResult {
@@ -426,11 +442,19 @@ export const api = {
     });
   },
 
-  updateExercise(exerciseId: string, data: Partial<{ name: string; exercise: string; description: string; images: ExerciseImage[] }>) {
+  updateExercise(exerciseId: string, data: Partial<{ name: string; exercise: string; description: string; analysisModelKey: string | null; images: ExerciseImage[]; guidelineSlides: string[] }>) {
     return request<{ success: boolean; exercise: ApiExercise }>(`/exercises/${exerciseId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
+  },
+
+  getExerciseGuidelineProgress(exerciseId: string) {
+    return request<{ success: boolean; slides: unknown; version: number; hasReadCurrentVersion: boolean }>(`/exercises/${exerciseId}/guideline-progress`);
+  },
+
+  acknowledgeExerciseGuideline(exerciseId: string) {
+    return request<{ success: boolean }>(`/exercises/${exerciseId}/guideline-acknowledgement`, { method: "POST" });
   },
 
   deleteExercise(exerciseId: string) {
@@ -523,6 +547,17 @@ export const api = {
   },
 
   // --- Doctor: Exercise Assignments ---
+  getExercisePresets(patientId: string) {
+    return request<{ success: boolean; presets: ExercisePreset[] }>(`/exercises/patients/${patientId}/presets`);
+  },
+
+  assignExercisePreset(patientId: string, presetId: string) {
+    return request<{ success: boolean; presetName: string; assignedCount: number; skippedCount: number }>(`/exercises/patients/${patientId}/presets/assign`, {
+      method: "POST",
+      body: JSON.stringify({ presetId }),
+    });
+  },
+
   getAvailableExercises(patientId: string) {
     return request<{ success: boolean; exercises: ApiExercise[] }>(`/exercises/patients/${patientId}/available`);
   },

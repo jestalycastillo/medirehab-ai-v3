@@ -1,0 +1,142 @@
+[
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P01_AF_VFL_GM.mp4",
+    "group": "P01",
+    "side": "unverified",
+    "view": "AF",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P01_AL_VFL_GM.mp4",
+    "group": "P01",
+    "side": "unverified",
+    "view": "AL",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P01_AR_VFL_GM.mp4",
+    "group": "P01",
+    "side": "unverified",
+    "view": "AR",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P02_AF_VFL_GM.mp4",
+    "group": "P02",
+    "side": "unverified",
+    "view": "AF",
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P02_AL_VFL_GM.mp4",
+    "group": "P02",
+    "side": "unverified",
+    "view": "AL",
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P02_AR_VFL_GM.mp4",
+    "group": "P02",
+    "side": "unverified",
+    "view": "AR",
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P03_AF_VFL_GM.mp4",
+    "group": "P03",
+    "side": "unverified",
+    "view": "AF",
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P03_AL_VFL_GM.mp4",
+    "group": "P03",
+    "side": "unverified",
+    "view": "AL",
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P03_AR_VFL_GM.mp4",
+    "group": "P03",
+    "side": "unverified",
+    "view": "AR",
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P04_AF_VFL_GM.mp4",
+    "group": "P04",
+    "side": "unverified",
+    "view": "AF",
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P04_AL_VFL_GM.mp4",
+    "group": "P04",
+    "side": "unverified",
+    "view": "AL",
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P04_AR_VFL_GM.mp4",
+    "group": "P04",
+    "side": "unverified",
+    "view": "AR",
+    "split": "test"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P05_AF_VFL_GM.mp4",
+    "group": "P05",
+    "side": "unverified",
+    "view": "AF",
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P05_AL_VFL_GM.mp4",
+    "group": "P05",
+    "side": "unverified",
+    "view": "AL",
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P05_AR_VFL_GM.mp4",
+    "group": "P05",
+    "side": "unverified",
+    "view": "AR",
+    "split": "validation"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P06_AF_VFL_GM.mp4",
+    "group": "P06",
+    "side": "unverified",
+    "view": "AF",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P06_AL_VFL_GM.mp4",
+    "group": "P06",
+    "side": "unverified",
+    "view": "AL",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P06_AR_VFL_GM.mp4",
+    "group": "P06",
+    "side": "unverified",
+    "view": "AR",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P07_AF_VFL_GM.mp4",
+    "group": "P07",
+    "side": "unverified",
+    "view": "AF",
+    "split": "train"
+  },
+  {
+    "path": "C:\\proj\\medirehab\\Physiotherapy\\internal-rotation\\E04_P07_AL_VFL_GM.mp4",
+    "group": "P07",
+    "side": "unverified",
+    "view": "AL",
+    "split": "train"
+  }
+]
