@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Stethoscope, UserCheck } from "lucide-react";
 import { MediRehabLogo } from "@/components/medirehab-logo";
+import "../public-responsive.css";
 
 export const metadata: Metadata = {
   title: "Let's Get Started — MediRehab AI",
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function GetStartedPage() {
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#FAFCFB] px-6 py-16 text-[#0F2926]">
+    <main className="get-started-page relative grid min-h-screen place-items-center overflow-hidden bg-[#FAFCFB] px-6 py-16 text-[#0F2926]">
       {/* Background Soft Glow */}
       <div className="pointer-events-none absolute left-1/2 top-0 size-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#D3F0EC]/50 blur-3xl" />
 
