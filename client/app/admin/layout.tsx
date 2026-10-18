@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MediRehabLogo } from "@/components/medirehab-logo";
 import "./admin-responsive.css";
+import "../portal-responsive.css";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {

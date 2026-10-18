@@ -1,0 +1,409 @@
+/* Screen-only adaptations preserve the existing progress-report print layout. */
+@media screen {
+  .doctor-portal :is(.portal-content, .admin-main-content) {
+    min-height: 0;
+  }
+
+  .doctor-portal .admin-main-content {
+    container: portal-workspace / inline-size;
+    overscroll-behavior-y: contain;
+  }
+
+  .admin-portal .admin-main-content {
+    container-name: admin-content portal-workspace;
+  }
+
+  .doctor-portal .admin-sidebar {
+    overflow-y: auto;
+  }
+
+  .doctor-portal .admin-sidebar > *,
+  .doctor-portal .admin-mobile-header {
+    flex-shrink: 0;
+  }
+
+  .doctor-portal .admin-mobile-menu {
+    flex: 0 0 auto;
+    max-height: 60dvh;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  :is(.admin-portal, .doctor-portal) :is(.portal-page, .role-dashboard, .portal-modal-panel, .doctor-care-drawer, .weekly-sessions-modal-container) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  :is(.admin-portal, .doctor-portal) :is(.portal-page, .role-dashboard, .portal-modal-panel, .doctor-care-drawer) :is(div, label, fieldset, input, select, textarea) {
+    min-width: 0;
+  }
+
+  :is(.admin-portal, .doctor-portal) :is(.portal-page-header, .role-dashboard-header) > div {
+    min-width: 0;
+  }
+
+  :is(.admin-portal, .doctor-portal) :is(.badge-green, .badge-amber, .badge-red) {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  :is(.admin-portal, .doctor-portal) .portal-modal-panel {
+    overflow-y: auto;
+  }
+
+  :is(.admin-portal, .doctor-portal) .portal-modal-form-content {
+    flex: 1 1 auto;
+  }
+
+  :is(.admin-portal, .doctor-portal) .portal-modal-section-heading {
+    flex-wrap: wrap;
+  }
+
+  .doctor-portal .progress-report-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .doctor-portal .progress-doc-table {
+    min-width: 680px;
+  }
+
+  .doctor-portal .weekly-sessions-modal-container {
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+
+  .doctor-portal .weekly-sessions-modal-container > * {
+    flex-shrink: 0;
+  }
+
+  .doctor-portal .weekly-sessions-list-body {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .doctor-portal :is(.weekly-sessions-close-btn, .weekly-sessions-tab, .quick-chat-close, .quick-chat-toolbar-button, .doctor-care-drawer-close) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .doctor-portal .quick-chat-patient-list {
+    min-height: 0;
+  }
+
+  .doctor-portal .quick-chat-drawer {
+    width: min(440px, calc(100vw - 32px));
+  }
+
+  .doctor-portal .quick-chat-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .doctor-portal .quick-chat-panel > [aria-live] {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+  }
+
+  .doctor-portal .quick-chat-panel > div:first-child,
+  .doctor-portal .chat-panel-composer {
+    flex-shrink: 0;
+  }
+
+  .doctor-portal .chat-panel-composer {
+    padding: 10px 0 0;
+  }
+
+  @container portal-workspace (max-width: 1000px) {
+    :is(.admin-portal, .doctor-portal) :is(.portal-page-header, .role-dashboard-header, .admin-directory-toolbar) {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    :is(.admin-portal, .doctor-portal) :is(.admin-directory-filters, .care-page-filters) {
+      width: 100%;
+      flex-basis: auto;
+      justify-content: flex-start;
+    }
+
+    .doctor-portal .doctor-table-wrap {
+      display: none;
+    }
+
+    .doctor-portal .doctor-list-card {
+      display: flex;
+    }
+
+    .admin-portal .admin-directory-table,
+    .admin-portal .admin-directory-table tbody {
+      display: block;
+      width: 100%;
+    }
+
+    .admin-portal .admin-directory-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .admin-portal .admin-directory-table tbody {
+      display: grid;
+      gap: 12px;
+    }
+
+    .admin-portal .admin-directory-table .directory-data-row {
+      display: block;
+      overflow: visible;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+    }
+
+    .admin-portal .admin-directory-table .directory-data-row td {
+      display: grid;
+      width: 100%;
+      grid-template-columns: 100px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      text-align: left !important;
+    }
+
+    .admin-portal .admin-directory-table .directory-data-row td + td {
+      border-top: 1px solid var(--color-border) !important;
+    }
+
+    .admin-portal .directory-data-row td::before {
+      content: attr(data-label);
+      color: var(--color-text-muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .admin-portal .admin-directory-table .directory-data-row :is(td:first-child, td:last-child) {
+      display: block;
+    }
+
+    .admin-portal .directory-data-row td:first-child::before {
+      display: none;
+    }
+
+    .admin-portal .directory-data-row td:last-child::before {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .admin-portal .directory-row-actions {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .doctor-portal .role-dashboard-quick-links {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .doctor-portal .role-dashboard-quick-links > * + * {
+      border-top: 1px solid var(--color-border);
+      border-left: 0;
+    }
+  }
+
+  @container portal-workspace (max-width: 600px) {
+    :is(.admin-portal, .doctor-portal) .portal-page .admin-directory-filters {
+      flex-direction: column;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    :is(.admin-portal, .doctor-portal) .portal-page .admin-directory-filters .input {
+      flex: 0 1 auto;
+      width: 100%;
+      max-width: 100% !important;
+    }
+
+    :is(.admin-portal, .doctor-portal) .portal-page .care-page-filters .input {
+      flex: 0 1 auto;
+      width: 100%;
+      max-width: 100% !important;
+    }
+
+    :is(.admin-portal, .doctor-portal) :is(.doctor-form-grid, .admin-profile-grid, .doctor-two-column) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    :is(.admin-portal, .doctor-portal) :is(.portal-list-row, .doctor-attention-header) {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .doctor-portal .doctor-attention-row {
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 8px 12px;
+      padding: 14px;
+    }
+
+    .doctor-portal .doctor-attention-row > svg {
+      display: none;
+    }
+
+    .doctor-portal :is(.doctor-attention-plan, .doctor-attention-missed) {
+      grid-column: 2;
+      justify-self: start;
+    }
+
+    .doctor-portal .doctor-patient-copy strong {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .doctor-portal .doctor-patient-header-actions {
+      width: 100%;
+    }
+
+    .doctor-portal .progress-doc-letterhead > div:first-child {
+      flex-wrap: wrap;
+    }
+
+    .doctor-portal .progress-doc-meta-table :is(tbody, tr, td) {
+      display: block;
+      width: 100% !important;
+    }
+  }
+
+  @container portal-workspace (max-width: 440px) {
+    .admin-portal .admin-directory-table .directory-data-row td {
+      grid-template-columns: minmax(0, 1fr);
+      justify-items: start;
+    }
+
+    :is(.admin-portal, .doctor-portal) :is(.portal-page-actions, .doctor-patient-header-actions, .exercise-catalog-actions) {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    :is(.admin-portal, .doctor-portal) .account-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    :is(.admin-portal, .doctor-portal) .account-tab {
+      flex: 1 1 auto;
+    }
+
+    :is(.admin-portal, .doctor-portal) .portal-page :is(.btn, [data-slot="button"]) {
+      max-width: 100%;
+      height: auto;
+      min-height: 44px;
+      padding-block: 10px;
+      white-space: normal;
+    }
+
+    .doctor-portal :is(.care-disclosure-content, .doctor-attention-list) {
+      padding-inline: 12px;
+    }
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .doctor-portal .admin-sidebar {
+    display: none;
+  }
+
+  .doctor-portal .admin-mobile-header {
+    display: flex !important;
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px !important;
+  }
+
+  .doctor-portal .admin-mobile-header a {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .doctor-portal .admin-mobile-menu {
+    display: block !important;
+  }
+
+  .doctor-portal .admin-main-content {
+    padding: 24px !important;
+    padding-bottom: max(96px, calc(80px + env(safe-area-inset-bottom))) !important;
+  }
+
+  .doctor-portal .quick-chat {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  :is(.admin-portal, .doctor-portal) .input {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  .doctor-portal .chat-panel-composer textarea {
+    font-size: 16px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .doctor-portal .admin-main-content {
+    padding-inline: 16px !important;
+    padding-top: 20px !important;
+  }
+
+  .doctor-portal .weekly-sessions-modal-overlay {
+    padding: 8px;
+  }
+
+  .doctor-portal .weekly-sessions-modal-container {
+    max-height: calc(100dvh - 16px);
+  }
+
+  .doctor-portal :is(.weekly-sessions-modal-header, .weekly-sessions-controls, .weekly-sessions-list-body, .weekly-sessions-modal-footer) {
+    padding-inline: 16px;
+  }
+
+  .doctor-portal .weekly-sessions-summary-card {
+    margin-inline: 16px;
+  }
+
+  .doctor-portal .weekly-sessions-summary-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doctor-portal .weekly-sessions-filter-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .doctor-portal :is(.weekly-exercise-row, .weekly-sessions-modal-footer) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .doctor-portal .weekly-exercise-right {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .doctor-portal .weekly-sessions-modal-container :is(div, span) {
+    min-width: 0;
+  }
+
+  .doctor-portal .weekly-exercise-schedule {
+    white-space: normal;
+  }
+
+  .doctor-portal .doctor-care-drawer-heading,
+  .doctor-portal .doctor-care-drawer-form {
+    padding-inline: 16px;
+  }
+}
