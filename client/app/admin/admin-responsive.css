@@ -1,0 +1,167 @@
+/* Keep these adaptations within the admin portal while other roles are reviewed. */
+.admin-portal .portal-content,
+.admin-portal .admin-main-content {
+  min-height: 0;
+}
+
+.admin-portal .admin-main-content {
+  container: admin-content / inline-size;
+  overscroll-behavior-y: contain;
+}
+
+.admin-portal .admin-sidebar {
+  overflow-y: auto;
+}
+
+.admin-portal .admin-sidebar > * {
+  flex-shrink: 0;
+}
+
+.admin-portal .admin-mobile-header {
+  flex-shrink: 0;
+}
+
+.admin-portal .admin-mobile-menu {
+  flex: 0 0 auto;
+  max-height: 60dvh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.admin-simple-dashboard,
+.admin-simple-dashboard :is([data-slot="card"], [data-slot="card-header"], [data-slot="card-content"], .admin-audit-row > div, .role-summary-heading > div) {
+  min-width: 0;
+}
+
+.admin-simple-dashboard :is(h1, h3, p, .admin-audit-row small, .admin-audit-row time, .admin-setup-list > a > span) {
+  overflow-wrap: anywhere;
+}
+
+.admin-simple-dashboard .role-dashboard-disclosure > summary > svg {
+  flex-shrink: 0;
+}
+
+.admin-simple-dashboard .admin-activity-bars {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+/* Respond to usable content width, including space taken by the desktop sidebar. */
+@container admin-content (max-width: 800px) {
+  .admin-simple-dashboard .role-dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@container admin-content (max-width: 600px) {
+  .admin-simple-dashboard .role-dashboard-quick-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-simple-dashboard .role-dashboard-quick-links a + a {
+    border-top: 1px solid var(--color-control-border);
+    border-left: 0;
+  }
+
+  .admin-simple-dashboard .role-dashboard-disclosure > summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 16px;
+  }
+
+  .admin-simple-dashboard .role-dashboard-disclosure > summary > span:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .admin-simple-dashboard .role-dashboard-disclosure > summary > svg {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  .admin-simple-dashboard .admin-audit-row {
+    grid-template-columns: 9px minmax(0, 1fr);
+    gap: 6px 12px;
+    padding-inline: 16px;
+  }
+
+  .admin-simple-dashboard .admin-audit-row time {
+    grid-column: 2;
+  }
+}
+
+@container admin-content (max-width: 440px) {
+  .admin-simple-dashboard .role-dashboard-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .admin-simple-dashboard .role-dashboard-actions [data-slot="button"] {
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    padding-block: 10px;
+    white-space: normal;
+  }
+
+  .admin-simple-dashboard :is([data-slot="card-header"], [data-slot="card-content"]) {
+    padding-inline: 16px;
+  }
+
+  .admin-simple-dashboard .admin-audit-list {
+    padding-inline: 0;
+  }
+
+  .admin-simple-dashboard .role-dashboard-disclosure-content {
+    gap: 12px;
+    padding: 0 10px 10px;
+  }
+
+  .admin-simple-dashboard .role-summary-heading {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .admin-simple-dashboard [data-slot="card-title"] {
+    line-height: 1.3;
+  }
+
+  .admin-simple-dashboard .admin-activity-total {
+    flex-wrap: wrap;
+  }
+
+  .admin-simple-dashboard .admin-activity-bars {
+    gap: 4px;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  .admin-portal .admin-sidebar {
+    display: none;
+  }
+
+  .admin-portal .admin-mobile-header {
+    display: flex !important; /* Overrides the existing inline desktop default. */
+    padding: 12px 16px !important;
+    padding-top: max(12px, env(safe-area-inset-top)) !important;
+  }
+
+  .admin-portal .admin-mobile-menu {
+    display: block !important;
+  }
+
+  .admin-portal .admin-main-content {
+    padding: 24px !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .admin-portal .admin-main-content {
+    padding-inline: 16px !important;
+    padding-top: 20px !important;
+  }
+}

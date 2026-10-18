@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MediRehabLogo } from "@/components/medirehab-logo";
+import "./admin-responsive.css";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -123,7 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell admin-portal" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       {/* ── Desktop Sidebar ── */}
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
