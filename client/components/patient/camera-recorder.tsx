@@ -1522,6 +1522,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             {isCheckInOpen && (
                 <div
+                    className="recorder-check-in-overlay"
                     style={{
                         position: "fixed",
                         inset: 0,
@@ -1538,7 +1539,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     <div
                         ref={checkInModalRef}
                         tabIndex={-1}
-                        className="card animate-slide-up"
+                        className="card recorder-check-in-card animate-slide-up"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="exercise-check-in-title"
@@ -1583,7 +1584,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         </div>
 
                         <div style={{ padding: "20px 22px 22px 22px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
+                            <div className="recorder-check-in-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px" }}>
                                 {[
                                     {
                                         key: "painLevel",

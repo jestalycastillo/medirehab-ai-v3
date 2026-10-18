@@ -9,6 +9,7 @@ import { MediRehabLogo } from "@/components/medirehab-logo";
 import { QuickChat } from "@/components/care/quick-chat";
 import "../portal-responsive.css";
 import "./patient-responsive.css";
+import "./recorder-responsive.css";
 
 function LayoutDashboardIcon() {
   return (
