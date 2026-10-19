@@ -2,16 +2,22 @@
 
 ## Deployment
 
-Apply database changes before starting the API:
+Docker builds and container startup never apply migrations or seeds. Configure
+an existing PostgreSQL database through the root deployment `.env` and follow
+[the deployment instructions](../README.md#deployment).
 
-```powershell
-cd server
-npx prisma migrate deploy
-```
+Review pending migrations and obtain explicit approval before applying database
+changes. The deployment owner can then run `npx prisma migrate deploy` from
+`server` after installing its development dependencies. The runtime image does
+not include migration tooling. That operation
+can modify persisted schema and catalog data; do not run it as a startup hook.
+If the application schema and database differ, report the mismatch instead of
+resetting or replacing the database.
 
-The repository's Docker Compose backend command already runs this step. The
-live-chat branch adds migrations for chat, presence, care plans, help requests,
-consent/audit records, notification preferences, and daily adherence targets.
+The frontend and backend must be served over HTTPS for camera access and secure
+session cookies. Use frontend/API origins on the same site. Back up the backend
+upload volume in addition to PostgreSQL; the AI service's evaluation files are
+temporary and are removed after each request.
 
 ## Adherence Scheduling
 

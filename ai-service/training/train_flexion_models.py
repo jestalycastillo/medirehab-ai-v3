@@ -359,7 +359,8 @@ def train_model(train_data, val_data, input_dim, model_name):
 
     # Save to checkpoints and app/models
     ckpt_path = os.path.join(CHECKPOINTS_DIR, f"{model_name}.pth")
-    app_model_path = os.path.join(APP_MODELS_DIR, f"{model_name}.pth")
+    runtime_name = model_name.removesuffix("_v2")
+    app_model_path = os.path.join(APP_MODELS_DIR, f"{runtime_name}.pth")
     torch.save(checkpoint_payload, ckpt_path)
     torch.save(checkpoint_payload, app_model_path)
     print(f"\n✓ Saved {model_name} checkpoint to {ckpt_path} and {app_model_path}")
@@ -401,7 +402,6 @@ if __name__ == "__main__":
 
     # Also save standard name for backwards compatibility
     shutil.copy(os.path.join(CHECKPOINTS_DIR, "left_flexion_v2.pth"), os.path.join(CHECKPOINTS_DIR, "left_flexion.pth"))
-    shutil.copy(os.path.join(APP_MODELS_DIR, "left_flexion_v2.pth"), os.path.join(APP_MODELS_DIR, "left_flexion.pth"))
 
     # 3. Train Right Flexion Model (_v2)
     right_train, right_val, right_test, right_dim = prepare_dataset(RIGHT_CSV_DIR)
@@ -410,7 +410,6 @@ if __name__ == "__main__":
 
     # Also save standard name for backwards compatibility
     shutil.copy(os.path.join(CHECKPOINTS_DIR, "right_flexion_v2.pth"), os.path.join(CHECKPOINTS_DIR, "right_flexion.pth"))
-    shutil.copy(os.path.join(APP_MODELS_DIR, "right_flexion_v2.pth"), os.path.join(APP_MODELS_DIR, "right_flexion.pth"))
 
     print("\n==================================================================")
     print("SUCCESS: Trained and saved both models (left_flexion_v2 / right_flexion_v2)!")

@@ -7,6 +7,11 @@ import { auditMiddleware } from "./middlewares/audit.middleware";
 
 export const app = express();
 
+// Liveness only: no database access or audit writes.
+app.get("/health", (_req, res) => {
+    res.json({ status: "ok" });
+});
+
 app.use(cors({
     origin:process.env.CLIENT_URL || "http://localhost:3000",
     credentials: true

@@ -4613,23 +4613,13 @@ a.admin-metric:hover {
   background: var(--color-surface);
 }
 
-.exercise-thumbnail-still,
-.exercise-thumbnail-video {
+.exercise-thumbnail-still {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.exercise-thumbnail-video {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  background: var(--color-surface);
-}
-
-.patient-exercise-card-image .exercise-thumbnail-still,
-.patient-exercise-card-image .exercise-thumbnail-video {
+.patient-exercise-card-image .exercise-thumbnail-still {
   position: absolute;
   inset: 0;
 }

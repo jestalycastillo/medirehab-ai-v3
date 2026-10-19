@@ -3,3 +3,8 @@
 /brag-output/
 /brag-output-*/
 /ai-service/training/runs/*/*/traces/
+
+# Deployment secrets
+/.env
+/.env.*
+!/.env.example

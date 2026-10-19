@@ -1,28 +1,36 @@
 services:
   frontend:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set the browser-facing API URL}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       backend:
-        condition: service_started
-  
+        condition: service_healthy
+
   backend:
     build: ./server
     environment:
-      DATABASE_URL: "postgresql://postgres:password@db:5432/medirehab_ai"
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Set the URL of the existing database}
+      JWT_SECRET: ${JWT_SECRET:?Set a production JWT secret}
+      CLIENT_URL: ${CLIENT_URL:?Set the browser-facing client origin}
+      EXPRESS_SERVER_PORT: "5000"
+      UPLOAD_DIR: /server/uploads
       AI_SERVICE_URL: "http://ai-service:8000"
       AI_SERVICE_TIMEOUT_MS: "120000"
       ADHERENCE_TIME_ZONE: "Asia/Manila"
       ADHERENCE_ALERT_INTERVAL_MS: "900000"
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - backend_uploads:/server/uploads
     depends_on:
-      db:
-        condition: service_healthy
       ai-service:
-        condition: service_started
-    command: ["sh", "-c", "npx prisma migrate deploy && npm run db:seed:exercises && npm start"]
+        condition: service_healthy
+    restart: unless-stopped
 
   ai-service:
     build: ./ai-service
@@ -32,16 +40,12 @@ services:
       OLLAMA_MODEL: "coach-qwen:latest"
       OLLAMA_TIMEOUT_MS: "30000"
       OLLAMA_KEEP_ALIVE: "10m"
-    ports:
-      - "8000:8000"
     depends_on:
       ollama-init:
         condition: service_completed_successfully
 
   ollama:
     image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
     healthcheck:
@@ -63,21 +67,7 @@ services:
         condition: service_healthy
     command: "ollama pull qwen3.5:0.8b && ollama create coach-qwen:latest -f /models/Modelfile"
     restart: "no"
-  
-  db:
-    image: postgres:18
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: medirehab_ai
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d medirehab_ai"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
 
 volumes:
   ollama_models:
-
+  backend_uploads:
