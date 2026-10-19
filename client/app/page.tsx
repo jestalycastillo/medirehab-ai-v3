@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Activity, ShieldCheck } from "lucide-react";
 import { MediRehabLogo } from "@/components/medirehab-logo";
+import "./public-responsive.css";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#FAFCFB] text-[#0F2926] antialiased selection:bg-[#0F766E]/15 selection:text-[#0F766E]">
+    <div className="landing-page min-h-screen bg-[#FAFCFB] text-[#0F2926] antialiased selection:bg-[#0F766E]/15 selection:text-[#0F766E]">
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-40 border-b border-[#E2ECE9]/60 bg-[#FAFCFB]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-12">

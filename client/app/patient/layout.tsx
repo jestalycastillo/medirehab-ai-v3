@@ -7,6 +7,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MediRehabLogo } from "@/components/medirehab-logo";
 import { QuickChat } from "@/components/care/quick-chat";
+import "../portal-responsive.css";
+import "./patient-responsive.css";
+import "./recorder-responsive.css";
 
 function LayoutDashboardIcon() {
   return (
@@ -145,7 +148,7 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
   }
 
   return (
-    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell patient-portal" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <MediRehabLogo />

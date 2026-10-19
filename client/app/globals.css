@@ -416,12 +416,17 @@ body {
 .auth-hero li svg { width: 18px; height: 18px; color: var(--color-primary); }
 .auth-footer { padding: 18px 24px; color: var(--color-text-muted); font-size: 12px; text-align: center; }
 .auth-loading { display: grid; min-height: 100dvh; place-items: center; background: var(--color-page-bg); }
+.auth-login-grid > *, .auth-form > *, .auth-input-wrap { min-width: 0; }
+.auth-page :is(h1, h2, p, .auth-error) { overflow-wrap: anywhere; }
 @media (max-width: 800px) {
   .auth-login-grid { max-width: 500px; grid-template-columns: 1fr; gap: 28px; }
   .auth-hero h1 { font-size: 32px; }
   .auth-hero ul { display: none; }
 }
 @media (max-width: 520px) {
+  .auth-page .input { font-size: 16px; }
+  .auth-brand { min-height: 44px; }
+  .auth-login-grid { gap: 24px; }
   .auth-main { align-items: start; padding: 20px 16px 40px; }
   .auth-topbar { padding: 16px 20px; }
   .auth-card-header, .auth-card-body { padding: 22px 20px; }

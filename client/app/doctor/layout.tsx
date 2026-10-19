@@ -7,6 +7,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { QuickChat } from "@/components/care/quick-chat";
 import { MediRehabLogo } from "@/components/medirehab-logo";
+import "../portal-responsive.css";
 
 /* ── Icons ── */
 function LayoutDashboardIcon() {
@@ -157,7 +158,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="portal-shell" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
+    <div className="portal-shell doctor-portal" style={{ display: "flex", backgroundColor: "var(--color-page-bg)" }}>
       {/* ── Desktop Sidebar ── */}
       <aside className="admin-sidebar">
         <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
