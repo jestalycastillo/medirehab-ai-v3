@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { useSideArmsRaiseGuidance } from "@/hooks/use-side-arms-raise-guidance";
 import { getExerciseModelGuidanceConfig } from "@/lib/pose/exercise-model-config";
@@ -927,7 +928,8 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 </span>
             )}
 
-            {isOpen && (
+            {/* Keep fixed overlays outside cards whose hover transforms change their containing block. */}
+            {isOpen && createPortal(
                 <div
                     ref={recorderModalRef}
                     tabIndex={-1}
@@ -1517,10 +1519,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             </div>
                         </div>
                     )}
-                </div>
+                </div>,
+                document.body,
             )}
 
-            {isCheckInOpen && (
+            {isCheckInOpen && createPortal(
                 <div
                     className="recorder-check-in-overlay"
                     style={{
@@ -1662,7 +1665,8 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body,
             )}
         </>
     );
