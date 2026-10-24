@@ -2,6 +2,7 @@
 
 import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError, type ApiExercise, type ApiPatient, type AssignmentPlanUpdate, type ExerciseAssignment, type ExercisePreset } from "@/lib/api";
@@ -37,8 +38,8 @@ function AddExercisesDrawer({
 }) {
   const [activeTab, setActiveTab] = useState<"presets" | "individual">("presets");
   if (!open) return null;
-  return (
-    <>
+  return createPortal(
+    <div className="doctor-portal" style={{ display: "contents" }}>
       <button type="button" className="doctor-care-drawer-backdrop" onClick={onClose} aria-label="Close available exercises" />
       <aside className="doctor-care-drawer" role="dialog" aria-labelledby="add-exercises-drawer-title">
         <header className="doctor-care-drawer-heading">
@@ -74,7 +75,8 @@ function AddExercisesDrawer({
           </div>
         </div>
       </aside>
-    </>
+    </div>,
+    document.body,
   );
 }
 

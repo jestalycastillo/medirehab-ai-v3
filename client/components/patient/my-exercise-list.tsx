@@ -2,6 +2,7 @@
 
 import { CalendarDays, Dumbbell, X } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
 
@@ -51,8 +52,8 @@ function ExerciseDetailPanel({
       ? `${assignment.targetSessionsPerDay} session${assignment.targetSessionsPerDay === 1 ? "" : "s"} each day`
       : `${assignment.targetSessionsPerWeek ?? 3} sessions each week`;
 
-  return (
-    <>
+  return createPortal(
+    <div className="patient-portal" style={{ display: "contents" }}>
       <button type="button" className="patient-exercise-detail-backdrop" onClick={onClose} aria-label="Close exercise details" />
       <aside className="patient-exercise-detail-panel" id="exercise-details-panel" role="dialog" aria-labelledby="exercise-details-title">
         <header className="patient-exercise-detail-heading">
@@ -99,7 +100,8 @@ function ExerciseDetailPanel({
           </section>
         </div>
       </aside>
-    </>
+    </div>,
+    document.body,
   );
 }
 
