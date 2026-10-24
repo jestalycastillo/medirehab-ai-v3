@@ -37,7 +37,7 @@ export default function HomePage() {
     <div className="landing-page min-h-screen bg-[#FAFCFB] text-[#0F2926] antialiased selection:bg-[#0F766E]/15 selection:text-[#0F766E] overflow-x-hidden">
       {/* ── HEADER ── */}
       <header className="sticky top-0 z-50 border-b border-[#E2ECE9]/70 bg-[#FAFCFB]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-12">
+        <div className="landing-header-bar mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-12">
           {/* Brand / Logo */}
           <Link
             href="/"
@@ -69,7 +69,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 sm:gap-4">
             <Link
               href="/get-started"
-              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-[#0F766E] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#0B4A47] hover:-translate-y-0.5 active:translate-y-0"
+              className="landing-header-cta inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-[#0F766E] px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#0B4A47] hover:-translate-y-0.5 active:translate-y-0"
             >
               <span>Get Started</span>
               <ArrowRight className="size-3.5 sm:size-4" />
@@ -91,7 +91,7 @@ export default function HomePage() {
 
       {/* Mobile Navigation Dropdown Overlay */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-x-0 top-16 bottom-0 z-50 flex flex-col justify-between bg-[#FAFCFB] px-5 py-6 sm:px-6 sm:py-8 md:hidden overflow-y-auto border-b border-[#D7E7E3] shadow-2xl">
+        <div className="landing-mobile-nav fixed inset-x-0 top-16 bottom-0 z-50 flex flex-col justify-between bg-[#FAFCFB] px-5 py-6 sm:px-6 sm:py-8 md:hidden overflow-y-auto border-b border-[#D7E7E3] shadow-2xl">
           <nav className="flex flex-col gap-1.5" aria-label="Mobile Navigation">
             <a
               href="#home"
@@ -162,7 +162,7 @@ export default function HomePage() {
         {/* ── HERO SECTION ── */}
         <section
           id="home"
-          className="relative flex min-h-[82vh] sm:min-h-[85vh] w-full items-center overflow-hidden bg-[#FAFCFB] px-4 py-16 sm:px-6 sm:py-20 lg:min-h-[88vh] lg:px-12 lg:py-28"
+          className="landing-hero relative flex min-h-[82vh] sm:min-h-[85vh] w-full items-center overflow-hidden bg-[#FAFCFB] px-4 py-16 sm:px-6 sm:py-20 lg:min-h-[88vh] lg:px-12 lg:py-28"
         >
           {/* Full-Width Background Layer */}
           <div className="absolute inset-0 z-0">
@@ -186,24 +186,24 @@ export default function HomePage() {
 
           {/* Content Card with Mobile Glassmorphic Backing */}
           <div className="relative z-10 mx-auto w-full max-w-7xl">
-            <div className="max-w-2xl lg:max-w-3xl rounded-3xl sm:rounded-none bg-[#FAFCFB]/80 sm:bg-transparent p-5 sm:p-0 backdrop-blur-md sm:backdrop-blur-none border border-white/80 sm:border-0 shadow-xl shadow-[#0F766E]/5 sm:shadow-none">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D7E7E3] bg-white/90 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0F766E] shadow-sm mb-4 sm:mb-6">
+            <div className="landing-hero-copy max-w-2xl lg:max-w-3xl rounded-3xl sm:rounded-none bg-[#FAFCFB]/80 sm:bg-transparent p-5 sm:p-0 backdrop-blur-md sm:backdrop-blur-none border border-white/80 sm:border-0 shadow-xl shadow-[#0F766E]/5 sm:shadow-none">
+              <span className="landing-hero-badge inline-flex items-center gap-1.5 rounded-full border border-[#D7E7E3] bg-white/90 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0F766E] shadow-sm mb-4 sm:mb-6">
                 <Sparkles className="size-3.5 text-[#0F766E]" />
                 Next-Gen Physical Therapy
               </span>
 
-              <h1 className="text-balance text-4xl font-black tracking-[-0.04em] text-[#0F2926] sm:text-6xl lg:text-7xl xl:text-8xl leading-[1.05]">
+              <h1 className="landing-hero-title text-balance text-4xl font-black tracking-[-0.04em] text-[#0F2926] sm:text-6xl lg:text-7xl xl:text-8xl leading-[1.05]">
                 Smarter Recovery.
                 <span className="block bg-gradient-to-r from-[#0F766E] to-[#14B8A6] bg-clip-text text-transparent">
                   Better Movement.
                 </span>
               </h1>
 
-              <p className="mt-4 sm:mt-6 text-base sm:text-lg lg:text-xl text-[#3A5350] max-w-xl font-normal leading-relaxed">
+              <p className="landing-hero-description mt-4 sm:mt-6 text-base sm:text-lg lg:text-xl text-[#3A5350] max-w-xl font-normal leading-relaxed">
                 AI-assisted clinical motion guidance, real-time posture feedback, and personalized exercise tracking from the comfort of home.
               </p>
 
-              <div className="mt-8 sm:mt-10 lg:mt-12 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4">
+              <div className="landing-hero-actions mt-8 sm:mt-10 lg:mt-12 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 sm:gap-4">
                 <Link
                   href="/get-started"
                   className="inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#0F766E] to-[#0B4A47] px-8 py-3.5 sm:px-9 sm:py-4 text-base font-bold text-white shadow-lg shadow-[#0F766E]/20 transition-all duration-300 hover:scale-105 hover:brightness-110 active:scale-100"
@@ -221,7 +221,7 @@ export default function HomePage() {
               </div>
 
               {/* Trust Indicators */}
-              <div className="mt-8 flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-semibold text-[#4A6360]">
+              <div className="landing-hero-trust mt-8 flex flex-wrap items-center gap-y-2 gap-x-4 text-xs font-semibold text-[#4A6360]">
                 <span className="inline-flex items-center gap-1.5">
                   <CheckCircle2 className="size-4 text-[#0F766E]" />
                   Real-time pose guidance

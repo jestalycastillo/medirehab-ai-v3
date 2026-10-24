@@ -65,3 +65,47 @@ html {
     overflow-wrap: anywhere;
   }
 }
+
+/* Compact copy within the original full-size photographic sections. */
+.landing-page .landing-header-bar { height: 64px; }
+.landing-page .landing-mobile-nav { top: 65px; }
+.landing-page .landing-hero-copy { max-width: 680px; }
+.landing-page #home .landing-hero-title {
+  font-size: clamp(34px, 4.2vw, 64px);
+  line-height: 1.08;
+  letter-spacing: -.045em;
+}
+.landing-page .landing-hero-badge { margin-bottom: 16px; }
+.landing-page .landing-hero-description { margin-top: 16px; max-width: 520px; font-size: 17px; line-height: 1.6; }
+.landing-page .landing-hero-actions { margin-top: 24px; gap: 12px; }
+.landing-page .landing-hero-actions a { min-height: 48px; padding: 12px 24px; font-size: 14px; }
+.landing-page .landing-hero-trust { margin-top: 20px; gap: 8px 16px; }
+@media (max-width: 767px) {
+  .landing-page #home { min-height: 82svh; }
+  .landing-page :is(#technology, #showcase) { min-height: 75svh; }
+  .landing-page #cta { min-height: 55svh; }
+  .landing-page .landing-hero-copy { padding: 18px; border-radius: 20px; }
+  .landing-page #home .landing-hero-title { font-size: clamp(27px, 7.3vw, 38px); line-height: 1.1; }
+  .landing-page .landing-hero-badge { margin-bottom: 12px; padding: 5px 10px; font-size: 10px; letter-spacing: .055em; }
+  .landing-page .landing-hero-description { margin-top: 12px; font-size: 14px; line-height: 1.6; }
+  .landing-page .landing-hero-actions { flex-direction: row; flex-wrap: wrap; margin-top: 20px; gap: 10px; }
+  .landing-page .landing-hero-actions a { flex: 1 1 120px; gap: 6px; padding: 10px 12px; font-size: 13px; white-space: nowrap; }
+  .landing-page .landing-hero-actions a svg { width: 16px; height: 16px; }
+  .landing-page .landing-hero-trust { margin-top: 16px; font-size: 11px; }
+}
+@media (max-width: 380px) {
+  .landing-page .landing-header-cta { display: none; }
+  .landing-page .landing-hero-copy { padding: 14px; }
+}
+@media (max-height: 500px) and (min-width: 480px) {
+  .landing-page .landing-header-bar { height: 52px; }
+  .landing-page .landing-mobile-nav { top: 53px; }
+  .landing-page #home { min-height: calc(100svh - 53px); padding-block: 12px; }
+  .landing-page .landing-hero-copy { padding: 12px; }
+  .landing-page #home .landing-hero-title { font-size: clamp(28px, 4.5vw, 40px); line-height: 1.05; }
+  .landing-page .landing-hero-badge { margin-bottom: 8px; font-size: 10px; }
+  .landing-page .landing-hero-description { margin-top: 8px; font-size: 13px; line-height: 1.4; }
+  .landing-page .landing-hero-actions { margin-top: 12px; }
+  .landing-page .landing-hero-actions a { min-height: 44px; padding-block: 8px; }
+  .landing-page .landing-hero-trust { display: none; }
+}
