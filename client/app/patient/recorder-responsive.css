@@ -1,53 +1,66 @@
 @media screen {
-  .patient-portal :is(.recorder-fullscreen-container, .recorder-check-in-card) {
+  :is(.patient-portal, body, :root) :is(.recorder-fullscreen-container, .recorder-check-in-card, .recorder-centered-card) {
     overflow-wrap: anywhere;
   }
 
-  .patient-portal :is(.recorder-fullscreen-container, .recorder-check-in-card) :is(div, h3, p, input, textarea) {
+  :is(.patient-portal, body, :root) :is(.recorder-fullscreen-container, .recorder-check-in-card, .recorder-centered-card) :is(div, h3, h4, p, input, textarea) {
     min-width: 0;
   }
 
-  .patient-portal .recorder-demo-screen {
+  :is(.patient-portal, body, :root) .recorder-demo-screen {
     align-items: safe center;
+    padding: 16px;
   }
 
-  .patient-portal .recorder-demo-card {
+  :is(.patient-portal, body, :root) .recorder-demo-card {
     min-width: 0;
+    max-width: 100%;
   }
 
-  .patient-portal :is(.recorder-demo-actions, .recorder-floating-bottom-right-actions, .recorder-empty-state) [data-slot="button"] {
+  :is(.patient-portal, body, :root) :is(.recorder-demo-actions, .recorder-floating-bottom-right-actions, .recorder-empty-state) [data-slot="button"] {
     min-height: 44px;
     height: auto;
     padding-block: 10px;
     white-space: normal;
   }
 
-  .patient-portal .recorder-check-in-overlay {
+  :is(.patient-portal, body, :root) .recorder-check-in-overlay {
     padding: 12px !important;
     overflow-y: auto;
     align-items: safe center !important;
     overscroll-behavior-y: contain;
   }
 
-  .patient-portal .recorder-check-in-card {
+  :is(.patient-portal, body, :root) .recorder-check-in-card {
     max-height: calc(100dvh - 24px);
     overflow-y: auto !important;
+    width: 100%;
+    max-width: 520px;
   }
 
-  .patient-portal .recorder-check-in-card button[aria-label="Close check-in"] {
+  :is(.patient-portal, body, :root) .recorder-check-in-card button[aria-label="Close check-in"] {
     flex: 0 0 44px;
     min-width: 44px !important;
+    min-height: 44px !important;
   }
 
-  .patient-portal .recorder-centered-card-overlay {
+  :is(.patient-portal, body, :root) .recorder-centered-card-overlay {
     overflow-y: auto;
     align-items: safe center;
+    padding: 16px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-centered-card {
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    width: 100%;
+    max-width: 540px;
   }
 }
 
-/* Give each control group its own space instead of layering it over the camera. */
+/* Give each control group its own space on mobile & tablets instead of overlapping the camera */
 @media screen and (max-width: 1024px) {
-  .patient-portal .recorder-fullscreen-container:not(.recorder-demo-active) {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-container:not(.recorder-demo-active) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
@@ -66,80 +79,146 @@
     background: #0f172a;
   }
 
-  .patient-portal .recorder-fullscreen-container:not(.recorder-demo-active) :is(.recorder-floating-header, .recorder-floating-top-left) {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-container:not(.recorder-demo-active) :is(.recorder-floating-header, .recorder-floating-top-left) {
     display: contents;
   }
 
-  .patient-portal .recorder-fullscreen-container:not(.recorder-demo-active) .recorder-fullscreen-stage {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-container:not(.recorder-demo-active) .recorder-fullscreen-stage {
     grid-area: camera;
     position: relative;
     inset: auto;
     min-height: 220px;
     border: 1px solid #334155;
-    border-radius: 12px;
+    border-radius: 14px;
+    overflow: hidden;
   }
 
-  .patient-portal .recorder-floating-title-badge {
+  :is(.patient-portal, body, :root) .recorder-floating-title-badge {
     grid-area: title;
     width: 100%;
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  .patient-portal .recorder-floating-title-badge > svg {
+  :is(.patient-portal, body, :root) .recorder-floating-title-badge > svg {
     flex-shrink: 0;
   }
 
-  .patient-portal .recorder-floating-title-badge h3 {
-    font-size: 16px;
+  :is(.patient-portal, body, :root) .recorder-floating-title-badge h3 {
+    font-size: 15px;
     line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .patient-portal .recorder-floating-header-controls {
+  :is(.patient-portal, body, :root) .recorder-floating-header-controls {
     grid-area: controls;
-    gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 8px;
+    width: 100%;
   }
 
-  .patient-portal :is(.recorder-floating-close-btn, .recorder-settings-trigger-btn, .recorder-timer-dropdown-trigger) {
+  :is(.patient-portal, body, :root) :is(.recorder-floating-close-btn, .recorder-settings-trigger-btn, .recorder-timer-dropdown-trigger) {
     min-height: 44px;
     min-width: 44px;
   }
 
-  .patient-portal .recorder-floating-close-btn {
+  :is(.patient-portal, body, :root) .recorder-arm-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 3px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    padding-inline: 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #cbd5e1 !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 999px !important;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-tab:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-tab-active {
+    background: #0f766e !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-tab:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-active-arm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.25);
+    border: 1px solid rgba(20, 184, 166, 0.4);
+    color: #2dd4bf;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-floating-close-btn {
     margin-left: auto;
   }
 
-  .patient-portal .recorder-floating-guidance {
+  :is(.patient-portal, body, :root) .recorder-floating-guidance {
     grid-area: guidance;
     position: static;
     width: 100%;
     align-self: start;
   }
 
-  .patient-portal .recorder-floating-top-left :is(.follow-along-card, .follow-along-reopen-btn) {
+  :is(.patient-portal, body, :root) .recorder-floating-top-left :is(.follow-along-card, .follow-along-reopen-btn) {
     grid-area: demo;
     width: 100%;
     align-self: start;
   }
 
-  .patient-portal .recorder-floating-footer {
+  :is(.patient-portal, body, :root) .recorder-floating-footer {
     grid-area: feedback;
     position: static;
     padding: 0;
     background: none;
   }
 
-  .patient-portal .recorder-floating-footer :is(.live-guidance-cue, .live-coaching-message) {
+  :is(.patient-portal, body, :root) .recorder-floating-footer :is(.live-guidance-cue, .live-coaching-message) {
     position: static;
     transform: none;
   }
 
-  .patient-portal .recorder-footer-cue-container {
+  :is(.patient-portal, body, :root) .recorder-footer-cue-container {
     width: 100%;
   }
 
-  .patient-portal .recorder-floating-bottom-right-actions {
+  :is(.patient-portal, body, :root) .recorder-floating-bottom-right-actions {
     grid-area: actions;
     position: sticky;
     inset: auto 0 0;
@@ -150,13 +229,17 @@
     border: 1px solid #334155;
     border-radius: 12px;
     background: #0f172a;
+    z-index: 50;
   }
 
-  .patient-portal .recorder-floating-bottom-right-actions [data-slot="button"] {
+  :is(.patient-portal, body, :root) .recorder-floating-bottom-right-actions [data-slot="button"] {
     flex: 1 1 160px;
+    min-height: 48px;
+    font-size: 14px;
+    font-weight: 700;
   }
 
-  .patient-portal :is(.recorder-timer-dropdown-menu, .recorder-settings-popover) {
+  :is(.patient-portal, body, :root) :is(.recorder-timer-dropdown-menu, .recorder-settings-popover) {
     position: fixed;
     top: 120px !important;
     right: 12px;
@@ -166,51 +249,145 @@
     max-height: calc(100dvh - 144px);
     overflow-y: auto;
     overscroll-behavior-y: contain;
+    z-index: 100;
   }
 
-  .patient-portal .recorder-fullscreen-stage .recorder-empty-state {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-stage .recorder-empty-state {
     max-height: 100%;
     overflow-y: auto;
     padding: 16px;
   }
 
-  .patient-portal .recorder-demo-screen {
+  :is(.patient-portal, body, :root) .recorder-demo-screen {
     padding: 16px;
   }
 
-  .patient-portal .recorder-demo-actions button {
+  :is(.patient-portal, body, :root) .recorder-demo-actions button {
     flex: 1 1 180px;
   }
 
-  .patient-portal .recorder-check-in-card :is(.input, textarea),
-  .patient-portal .recorder-timer-custom-form input {
+  :is(.patient-portal, body, :root) .recorder-check-in-card :is(.input, textarea),
+  :is(.patient-portal, body, :root) .recorder-timer-custom-form input {
     font-size: 16px;
   }
+
+  :is(.patient-portal, body, :root) .recorder-scores-display-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-score-card {
+    padding: 12px 14px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-score-card-value {
+    font-size: 28px;
+  }
 }
 
+/* Handset Mobile Phones (iPhone, Android < 600px) */
 @media screen and (max-width: 600px) {
-  .patient-portal .recorder-fullscreen-container:not(.recorder-demo-active) {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-container:not(.recorder-demo-active) {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "title" "controls" "camera" "actions" "feedback" "demo" "guidance";
+    grid-template-areas:
+      "title"
+      "controls"
+      "camera"
+      "actions"
+      "feedback"
+      "demo"
+      "guidance";
     grid-template-rows: auto auto minmax(220px, 45dvh) auto auto auto auto;
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom)) 10px;
+    gap: 10px;
   }
 
-  .patient-portal .recorder-check-in-metrics {
+  :is(.patient-portal, body, :root) .recorder-floating-header-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-switcher {
+    width: 100%;
+    order: 2;
+    display: flex;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    padding: 3px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-tab {
+    flex: 1;
+    min-height: 42px;
+    justify-content: center;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-arm-tab-active {
+    background: #0f766e !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-active-arm {
+    width: 100%;
+    order: 2;
+    text-align: center;
+    min-height: 38px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-timer-dropdown-container {
+    order: 1;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-settings-trigger-btn {
+    order: 1;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-floating-close-btn {
+    order: 1;
+    margin-left: auto;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-check-in-metrics {
     grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px;
   }
 
-  .patient-portal .recorder-floating-bottom-right-actions [data-slot="button"] {
-    flex-basis: 130px;
+  :is(.patient-portal, body, :root) .recorder-floating-bottom-right-actions [data-slot="button"] {
+    flex: 1 1 100%;
+    min-height: 48px;
     padding-inline: 12px;
   }
+
+  :is(.patient-portal, body, :root) .recorder-scores-display-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-score-card {
+    padding: 10px;
+  }
+
+  :is(.patient-portal, body, :root) .recorder-score-card-value {
+    font-size: 24px;
+  }
 }
 
+/* Landscape mobile phones */
 @media screen and (max-width: 1024px) and (max-height: 500px) {
-  .patient-portal .recorder-fullscreen-container:not(.recorder-demo-active) {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-container:not(.recorder-demo-active) {
     grid-template-rows: auto auto minmax(140px, calc(100dvh - 230px)) auto auto auto;
   }
 
-  .patient-portal .recorder-fullscreen-container:not(.recorder-demo-active) .recorder-fullscreen-stage {
+  :is(.patient-portal, body, :root) .recorder-fullscreen-container:not(.recorder-demo-active) .recorder-fullscreen-stage {
     min-height: 140px;
   }
 }

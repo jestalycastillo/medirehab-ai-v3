@@ -78,6 +78,18 @@ function ExerciseDetailPanel({
             {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
           </section>
 
+          <div className="patient-exercise-detail-primary-action" style={{ margin: "20px 0 12px 0" }}>
+            <CameraRecorder
+              exerciseName={assignment.exercise?.name}
+              analysisModelKey={assignment.exercise?.analysisModelKey}
+              exerciseId={assignment.exercise?.id}
+              assignmentId={assignment.id}
+              targetDurationSeconds={assignment.targetDurationSeconds}
+              minimumDurationSeconds={assignment.minimumDurationSeconds}
+              guidelineSlides={assignment.exercise?.guidelineSlides}
+            />
+          </div>
+
           <section className="patient-exercise-detail-section">
             <h3>Guidance</h3>
             <div className="patient-guidance-actions">

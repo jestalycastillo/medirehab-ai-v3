@@ -68,6 +68,15 @@ function MenuIcon() {
   );
 }
 
+function XIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/patient/dashboard", icon: <LayoutDashboardIcon /> },
   { name: "My Exercises", href: "/patient/exercises", icon: <ActivityIcon /> },
@@ -225,8 +234,8 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
             <MediRehabLogo />
             <span style={{ fontSize: "16px", fontWeight: 700 }}>Patient Portal</span>
           </div>
-          <button ref={mobileMenuButtonRef} type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isMobileMenuOpen} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer" }}>
-            <MenuIcon />
+          <button ref={mobileMenuButtonRef} type="button" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={isMobileMenuOpen} style={{ background: "none", border: "none", color: "var(--color-text-primary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", minWidth: "44px", minHeight: "44px" }}>
+            {isMobileMenuOpen ? <XIcon /> : <MenuIcon />}
           </button>
         </header>
 
@@ -240,10 +249,30 @@ export default function PatientLayout({ children }: { children: React.ReactNode 
             <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {NAV_ITEMS.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/patient/dashboard" && pathname.startsWith(item.href));
+                const isNotifications = item.href === "/patient/notifications";
                 return (
-                  <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", borderRadius: "var(--radius-md)", color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)", backgroundColor: isActive ? "var(--color-primary-light)" : "transparent", fontWeight: isActive ? 600 : 500, textDecoration: "none" }}>
-                    <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>{item.icon}</div>
-                    {item.name}
+                  <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", borderRadius: "var(--radius-md)", color: isActive ? "var(--color-primary-dark)" : "var(--color-text-secondary)", backgroundColor: isActive ? "var(--color-primary-light)" : "transparent", fontWeight: isActive ? 600 : 500, textDecoration: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-muted)" }}>{item.icon}</div>
+                      <span>{item.name}</span>
+                    </div>
+                    {isNotifications && unreadNotificationsCount > 0 && (
+                      <span
+                        style={{
+                          backgroundColor: "var(--color-primary)",
+                          color: "#ffffff",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          padding: "2px 7px",
+                          borderRadius: "999px",
+                          minWidth: "20px",
+                          textAlign: "center",
+                          lineHeight: "1.3",
+                        }}
+                      >
+                        {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

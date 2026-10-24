@@ -6,7 +6,7 @@ export function formatScore(score?: number | null): string {
 }
 
 export function formatAssignmentScoreSummary(assignment: ExerciseAssignment): string {
-  if (getExerciseModelGuidanceConfig(assignment.exercise.analysisModelKey)?.selectableSide) {
+  if (getExerciseModelGuidanceConfig(assignment.exercise.analysisModelKey, assignment.exercise.name)?.selectableSide) {
     const sides = (["left", "right"] as const)
       .filter((side) => assignment.latestScoresBySide?.[side] !== undefined)
       .map((side) => `${side === "left" ? "Left" : "Right"} ${formatScore(assignment.latestScoresBySide?.[side])}`);

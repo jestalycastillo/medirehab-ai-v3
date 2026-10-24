@@ -14,6 +14,7 @@ import { formatScore } from "@/lib/score";
 import { Button } from "@/components/ui/button";
 import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import {
+    ArrowLeftRight,
     Camera,
     Check,
     CheckCircle2,
@@ -108,6 +109,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [cameraAccessIssue, setCameraAccessIssue] = useState<CameraAccessIssue>(null);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [evaluationScore, setEvaluationScore] = useState<number | null>(null);
+    const [showEvaluationSuccess, setShowEvaluationSuccess] = useState(false);
     const [sessionIds, setSessionIds] = useState<string[]>([]);
     const [qualificationReason, setQualificationReason] = useState<string | null>(null);
     const [isCheckInOpen, setIsCheckInOpen] = useState(false);
@@ -170,7 +172,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         };
     }, [isTimerDropdownOpen, isSettingsOpen]);
 
-    const modelGuidance = getExerciseModelGuidanceConfig(analysisModelKey);
+    const modelGuidance = getExerciseModelGuidanceConfig(analysisModelKey, exerciseName);
     const isSideSelectable = modelGuidance?.selectableSide ?? false;
     const targetSide = resolveRecordingSide(modelGuidance, selectedSide);
     const recordedUrl = recordedClips.find((clip) => (clip.side ?? "both") === reviewClipKey)?.url ?? null;
@@ -587,6 +589,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         setClipResults([]);
         setIsEvaluating(false);
         setEvaluationScore(null);
+        setShowEvaluationSuccess(false);
         setSessionIds([]);
         setQualificationReason(null);
         setIsCheckInOpen(false);
@@ -783,10 +786,32 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         }
     };
 
-    const handleSwitchArm = () => {
-        if (!isRecording || isFinalizingRecording || !canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side))) return;
-        stopDispositionRef.current = "switch";
-        stopRecording();
+    const handleSelectArm = (side: ArmSide) => {
+        if (isRecording || isFinalizingRecording || countdown !== null) return;
+        if (recordedClips.some((c) => c.side === side)) return;
+        setSelectedSide(side);
+        setElapsedSeconds(0);
+        setLiveCoachingMessage(null);
+        lastSpokenMessageRef.current = "";
+        lastSpokenAtRef.current = 0;
+    };
+
+    const handleToggleArm = () => {
+        if (isRecording || isFinalizingRecording || countdown !== null) return;
+        const current = targetSide ?? "left";
+        const nextSide: ArmSide = current === "left" ? "right" : "left";
+        handleSelectArm(nextSide);
+    };
+
+    const handleSwitchArmToRecord = async (side: ArmSide) => {
+        if (isEvaluating) return;
+        setSelectedSide(side);
+        setReviewClipKey(null);
+        setElapsedSeconds(0);
+        setLiveCoachingMessage(null);
+        lastSpokenMessageRef.current = "";
+        lastSpokenAtRef.current = 0;
+        await handleStartCamera();
     };
 
     const handleRetakeClip = async () => {
@@ -843,8 +868,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             setQualificationReason(results.some((result) => result.adherenceQualified)
                 ? null
                 : results.map((result) => result.qualificationReason).filter(Boolean).join(" ") || "This visit did not meet the prescribed qualification rules.");
-            setIsOpen(false);
-            setIsCheckInOpen(true);
+            setShowEvaluationSuccess(true);
         } catch (err: unknown) {
             const message = getErrorMessage(err, "An error occurred during evaluation. Saved arm results will not be sent again; please retry.");
             console.warn("Evaluation request failed:", message);
@@ -933,7 +957,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                 <div
                     ref={recorderModalRef}
                     tabIndex={-1}
-                    className={`recorder-fullscreen-container animate-fade-in ${(isDemoStep || isGuidelineStep) ? "recorder-demo-active" : ""}`}
+                    className={`recorder-fullscreen-container patient-portal animate-fade-in ${(isDemoStep || isGuidelineStep) ? "recorder-demo-active" : ""}`}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="exercise-recorder-title"
@@ -1116,10 +1140,45 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         </div>
 
                         <div className="recorder-floating-header-controls">
-                            {targetSide && !recordedUrl && (
+                            {/* During active recording: show only static indicator, no switch button */}
+                            {isRecording && targetSide && (
                                 <span className="recorder-active-arm" aria-live="polite">
-                                    {isRecording ? "Recording" : recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
+                                    Recording: {targetSide === "left" ? "Left arm" : "Right arm"}
                                 </span>
+                            )}
+
+                            {/* When camera appears before recording: show interactive arm switcher */}
+                            {!isRecording && !recordedUrl && (
+                                isSideSelectable ? (
+                                    <div className="recorder-arm-switcher" role="group" aria-label="Select arm to record">
+                                        <button
+                                            type="button"
+                                            className={`recorder-arm-tab ${targetSide === "left" ? "recorder-arm-tab-active" : ""}`}
+                                            onClick={() => handleSelectArm("left")}
+                                            disabled={isFinalizingRecording || countdown !== null || recordedClips.some((c) => c.side === "left")}
+                                            aria-pressed={targetSide === "left"}
+                                            title={recordedClips.some((c) => c.side === "left") ? "Left arm already recorded" : "Switch to Left arm"}
+                                        >
+                                            <span>Left Arm</span>
+                                            {recordedClips.some((c) => c.side === "left") && <Check size={12} />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`recorder-arm-tab ${targetSide === "right" ? "recorder-arm-tab-active" : ""}`}
+                                            onClick={() => handleSelectArm("right")}
+                                            disabled={isFinalizingRecording || countdown !== null || recordedClips.some((c) => c.side === "right")}
+                                            aria-pressed={targetSide === "right"}
+                                            title={recordedClips.some((c) => c.side === "right") ? "Right arm already recorded" : "Switch to Right arm"}
+                                        >
+                                            <span>Right Arm</span>
+                                            {recordedClips.some((c) => c.side === "right") && <Check size={12} />}
+                                        </button>
+                                    </div>
+                                ) : targetSide ? (
+                                    <span className="recorder-active-arm" aria-live="polite">
+                                        {recordedClips.length > 0 ? "Next" : "Start with"}: {targetSide === "left" ? "Left arm" : "Right arm"}
+                                    </span>
+                                ) : null
                             )}
 
                             {!recordedUrl && (
@@ -1410,6 +1469,30 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
                         {isDemoStep || isGuidelineStep || (error && cameraAccessIssue) ? null : recordedUrl ? (
                             <>
+                                {/* When done recording: if user hasn't evaluated yet, they can switch arm and record the other arm */}
+                                {isSideSelectable && clipResults.length < 2 && (
+                                    (() => {
+                                        const recordedSides = recordedClips.map((c) => c.side);
+                                        const unrecordedSide: ArmSide | null = !recordedSides.includes("left")
+                                            ? "left"
+                                            : !recordedSides.includes("right")
+                                                ? "right"
+                                                : null;
+                                        if (!unrecordedSide) return null;
+                                        return (
+                                            <Button
+                                                variant="outline"
+                                                size="lg"
+                                                onClick={() => handleSwitchArmToRecord(unrecordedSide)}
+                                                disabled={isEvaluating}
+                                                className="recorder-switch-record-btn"
+                                            >
+                                                <ArrowLeftRight />
+                                                Switch to {unrecordedSide === "left" ? "Left Arm" : "Right Arm"} &amp; Record
+                                            </Button>
+                                        );
+                                    })()
+                                )}
                                 <Button
                                     variant="outline"
                                     size="lg"
@@ -1440,11 +1523,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             </Button>
                         ) : isRecording ? (
                             <>
-                                {canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side)) && (
-                                    <Button variant="outline" size="lg" onClick={handleSwitchArm} disabled={isFinalizingRecording}>
-                                        Switch arm
-                                    </Button>
-                                )}
+                                {/* Ongoing recording: do NOT display switch arm button */}
                                 <Button
                                     size="lg"
                                     onClick={stopRecording}
@@ -1456,6 +1535,18 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             </>
                         ) : stream ? (
                             <>
+                                {/* Camera preview: add button to switch arm before starting recording */}
+                                {isSideSelectable && canSwitchArm(modelGuidance, targetSide, recordedClips.map((clip) => clip.side)) && (
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        onClick={handleToggleArm}
+                                        className="recorder-switch-arm-btn"
+                                    >
+                                        <ArrowLeftRight />
+                                        Switch to {targetSide === "left" ? "Right Arm" : "Left Arm"}
+                                    </Button>
+                                )}
                                 {recordedClips.length > 0 && (
                                     <Button variant="outline" size="lg" onClick={handleReviewSavedClips}>
                                         Review saved arm
@@ -1480,42 +1571,100 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     </div>
 
                     {/* Centered Modal Overlay for Evaluation Result */}
-                    {evaluationScore !== null && (
+                    {showEvaluationSuccess && (
                         <div className="recorder-centered-card-overlay animate-fade-in">
-                            <div className="card" style={{ maxWidth: "480px", width: "100%", padding: "40px 24px", textAlign: "center", background: "#ffffff", borderRadius: "20px" }}>
+                            <div className="card" style={{ maxWidth: "560px", width: "100%", padding: "36px 28px", textAlign: "center", background: "#ffffff", borderRadius: "20px", boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}>
                                 <div style={{
-                                    width: "80px",
-                                    height: "80px",
+                                    width: "72px",
+                                    height: "72px",
                                     borderRadius: "50%",
                                     backgroundColor: "rgba(22, 163, 74, 0.15)",
                                     border: "3px solid #16A34A",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    margin: "0 auto 20px auto",
+                                    margin: "0 auto 16px auto",
                                     color: "#16A34A"
                                 }}>
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="20 6 9 17 4 12"></polyline>
                                     </svg>
                                 </div>
-                                <h4 style={{ fontSize: "22px", fontWeight: 750, margin: "0 0 8px 0", color: "var(--color-text-primary)" }}>Evaluation Complete!</h4>
-                                <p style={{ color: "var(--color-text-secondary)", margin: "0 0 16px 0", fontSize: "14px" }}>
-                                    Your exercise performance has been evaluated.
+                                <h4 style={{ fontSize: "24px", fontWeight: 750, margin: "0 0 6px 0", color: "var(--color-text-primary)" }}>Evaluation Complete!</h4>
+                                <p style={{ color: "var(--color-text-secondary)", margin: "0 0 20px 0", fontSize: "14px" }}>
+                                    {clipResults.length > 1
+                                        ? "Your exercise performance has been evaluated for both arms."
+                                        : "Your exercise performance has been evaluated."}
                                 </p>
-                                <div style={{ fontSize: "52px", fontWeight: 800, color: "#16A34A", margin: "16px 0" }}>
-                                    {formatScore(evaluationScore)} <span style={{ fontSize: "20px", fontWeight: 500, color: "var(--color-text-muted)" }}>/ 100</span>
+
+                                {/* If 2 recordings evaluated: show 2 scores for Left and Right */}
+                                {clipResults.length > 1 ? (
+                                    <>
+                                        <div className="recorder-scores-display-grid">
+                                            {["left", "right"].map((sideKey) => {
+                                                const result = clipResults.find((r) => r.side === sideKey) || clipResults.find((r) => r.side === undefined);
+                                                if (!result) return null;
+                                                return (
+                                                    <div className="recorder-score-card" key={sideKey}>
+                                                        <span className="recorder-score-card-label">{sideKey === "left" ? "Left Arm" : "Right Arm"}</span>
+                                                        <div className="recorder-score-card-value">
+                                                            {formatScore(result.score)} <span className="recorder-score-card-max">/ 100</span>
+                                                        </div>
+                                                        <span className={`recorder-score-card-badge ${result.adherenceQualified ? "" : "recorder-score-card-badge-note"}`}>
+                                                            {result.adherenceQualified ? "Adherence Met ✓" : "Recorded for Doctor"}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="recorder-scores-combined-summary">
+                                            Combined Average: {formatScore(clipResults.reduce((sum, r) => sum + r.score, 0) / clipResults.length)} / 100
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div style={{ margin: "20px 0" }}>
+                                        <div style={{ fontSize: "52px", fontWeight: 800, color: "#16A34A", margin: "8px 0" }}>
+                                            {formatScore(clipResults[0]?.score ?? evaluationScore)} <span style={{ fontSize: "20px", fontWeight: 500, color: "var(--color-text-muted)" }}>/ 100</span>
+                                        </div>
+                                        {clipResults[0]?.side && (
+                                            <div style={{ fontSize: "14px", fontWeight: 650, color: "var(--color-text-secondary)" }}>
+                                                {clipResults[0].side === "left" ? "Left Arm Performance" : "Right Arm Performance"}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {qualificationReason && (
+                                    <div style={{ marginBottom: "16px", padding: "10px 12px", borderRadius: "10px", background: "#FEF3C7", color: "#92400E", fontSize: "13px" }}>
+                                        {qualificationReason}
+                                    </div>
+                                )}
+
+                                <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        style={{ flex: 1 }}
+                                        onClick={() => {
+                                            handleClose();
+                                            window.location.reload();
+                                        }}
+                                    >
+                                        Done
+                                    </Button>
+                                    <Button
+                                        size="lg"
+                                        className="recorder-primary-action-btn"
+                                        style={{ flex: 1 }}
+                                        onClick={() => {
+                                            setShowEvaluationSuccess(false);
+                                            setIsOpen(false);
+                                            setIsCheckInOpen(true);
+                                        }}
+                                    >
+                                        Continue to Check-in
+                                    </Button>
                                 </div>
-                                <Button
-                                    size="lg"
-                                    style={{ width: "100%", marginTop: "12px" }}
-                                    onClick={() => {
-                                        handleClose();
-                                        window.location.reload();
-                                    }}
-                                >
-                                    Done
-                                </Button>
                             </div>
                         </div>
                     )}
@@ -1525,7 +1674,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             {isCheckInOpen && createPortal(
                 <div
-                    className="recorder-check-in-overlay"
+                    className="recorder-check-in-overlay patient-portal"
                     style={{
                         position: "fixed",
                         inset: 0,
@@ -1566,8 +1715,22 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     <h3 id="exercise-check-in-title" style={{ fontSize: "20px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
                                         How did that session feel?
                                     </h3>
-                                    <p style={{ margin: "8px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
-                                        Share a quick self-report for your doctor. {clipResults.map((result) => `${result.side ? `${result.side === "left" ? "Left" : "Right"} arm` : "Exercise"}: ${formatScore(result.score)}/100`).join(" · ")}
+                                    {clipResults.length > 0 && (
+                                        <div className="recorder-checkin-scores-container">
+                                            {clipResults.map((result) => (
+                                                <div key={result.sessionId || result.clientSessionId} className="recorder-checkin-score-pill">
+                                                    <span className="recorder-checkin-score-side">
+                                                        {result.side ? `${result.side === "left" ? "Left" : "Right"} Arm Score` : "Exercise Score"}
+                                                    </span>
+                                                    <span className="recorder-checkin-score-val">
+                                                        {formatScore(result.score)} <span className="recorder-checkin-score-max">/ 100</span>
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <p style={{ margin: "10px 0 0 0", color: "var(--color-text-secondary)", fontSize: "14px" }}>
+                                        Share a quick self-report for your doctor.
                                     </p>
                                     {qualificationReason && <div style={{ marginTop: "10px", padding: "10px 12px", borderRadius: "10px", background: "#FEF3C7", color: "#92400E", fontSize: "13px" }}>Recorded for your doctor, but not counted toward adherence: {qualificationReason}</div>}
                                 </div>

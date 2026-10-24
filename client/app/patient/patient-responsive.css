@@ -124,7 +124,63 @@
 }
 
 @media screen and (max-width: 1024px) {
+  .patient-portal .admin-mobile-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    backdrop-filter: blur(12px) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-bottom: 1px solid var(--color-border) !important;
+  }
+
+  .patient-portal .admin-mobile-menu {
+    position: sticky !important;
+    top: 57px !important;
+    z-index: 39 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  }
+
   .patient-portal .patient-search input {
     font-size: 16px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .patient-portal .patient-dashboard-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .patient-portal :is(.patient-dashboard-summary-grid, .patient-next-content) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .patient-portal .patient-next-content {
+    gap: 20px;
+    padding: 20px 16px;
+  }
+
+  .patient-portal .patient-exercise-visual {
+    width: 100%;
+    max-width: 360px;
+    justify-self: center;
+  }
+
+  .patient-portal .patient-profile-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .patient-portal .patient-profile-form-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .patient-portal :is(.patient-dashboard-all-link, .patient-search, .patient-dashboard-primary-action, .patient-dashboard-primary-action .camera-launch-button, .patient-exercise-card-action, .patient-exercise-card-action .camera-launch-button, .patient-exercise-detail-primary-action .camera-launch-button) {
+    width: 100% !important;
+  }
+
+  .patient-portal .patient-exercise-detail-panel {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
