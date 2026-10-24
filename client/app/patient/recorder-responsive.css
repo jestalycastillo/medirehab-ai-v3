@@ -70,6 +70,8 @@
 .recorder-rotate-prompt .recorder-rotate-hint { margin-bottom: 12px; font-size: 13px; }
 .recorder-rotate-icon { width: 64px; height: 64px; margin-bottom: 12px; transform: rotate(90deg); color: #5eead4; }
 .recorder-rotate-prompt [data-slot="button"] { min-height: 48px; width: min(100%, 280px); }
+.recorder-rotate-prompt .recorder-landscape-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; width: min(100%, 280px); }
+.recorder-landscape-action svg { width: 18px; height: 18px; flex-shrink: 0; }
 .recorder-rotate-prompt .recorder-rotate-close { color: #0f172a; }
 
 /* The camera fills the viewport. Compact controls stay at its edges. */
@@ -125,4 +127,47 @@
 @media screen and (max-width: 600px) {
   :is(.patient-portal, body, :root) .recorder-check-in-metrics { grid-template-columns: minmax(0, 1fr) !important; gap: 12px; }
   :is(.patient-portal, body, :root) .recorder-scores-display-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+}
+
+.recorder-flip-camera-btn, .recorder-mobile-options { display: none; }
+@media screen and (pointer: coarse) and (max-width: 1366px) {
+  :is(.patient-portal, body, :root) .recorder-floating-top-left { max-width: calc(100% - 160px); }
+  :is(.patient-portal, body, :root) .recorder-floating-header-controls { flex: 0 0 auto; }
+  :is(.patient-portal, body, :root) :is(.recorder-mobile-fullscreen-btn, .recorder-arm-switcher, .recorder-timer-dropdown-container) { display: none; }
+  :is(.patient-portal, body, :root) .recorder-flip-camera-btn { display: inline-flex; align-items: center; justify-content: center; }
+  :is(.patient-portal, body, :root) .recorder-flip-camera-btn:disabled { opacity: .45; cursor: not-allowed; }
+  :is(.patient-portal, body, :root) .recorder-mobile-options { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--color-border); }
+  :is(.patient-portal, body, :root) .recorder-mobile-options label { color: var(--color-text-primary); font-size: 13px; font-weight: 700; }
+  :is(.patient-portal, body, :root) .recorder-mobile-options select { width: 100%; min-height: 44px; border: 1px solid var(--color-control-border); border-radius: 8px; padding: 8px; background: #fff; color: #10211f; font-size: 16px; }
+  :is(.patient-portal, body, :root) .recorder-floating-top-left .follow-along-card { width: clamp(124px, 21vw, 180px); }
+  :is(.patient-portal, body, :root) .follow-along-video-wrapper {
+    height: clamp(100px, calc(100dvh - 210px), 230px);
+    max-height: none;
+    aspect-ratio: auto;
+  }
+  :is(.patient-portal, body, :root) .follow-along-card .animated-exercise-container { height: 100%; min-height: 0; aspect-ratio: auto; border-radius: 0; }
+  :is(.patient-portal, body, :root) .follow-along-card .animated-exercise-svg { flex: 1 1 auto; min-height: 0; height: 100%; width: 100%; }
+  :is(.patient-portal, body, :root) .follow-along-card .animated-exercise-footer { flex: 0 0 auto; padding: 2px 4px; }
+  :is(.patient-portal, body, :root) .recorder-active-arm { padding: 6px 10px; font-size: 12px; }
+}
+@media screen and (pointer: coarse) and (max-width: 1366px) and (orientation: landscape) {
+  :is(.patient-portal, body, :root) .recorder-demo-card:not(.recorder-guideline-card) {
+    width: min(100%, 840px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "copy visual" "actions visual";
+    padding: 16px;
+    gap: 14px;
+  }
+  :is(.patient-portal, body, :root) .recorder-demo-card:not(.recorder-guideline-card) .recorder-demo-copy { grid-area: copy; }
+  :is(.patient-portal, body, :root) .recorder-demo-card:not(.recorder-guideline-card) .recorder-demo-copy h3 { font-size: 24px; }
+  :is(.patient-portal, body, :root) .recorder-demo-card:not(.recorder-guideline-card) .recorder-demo-copy p { font-size: 13px; }
+  :is(.patient-portal, body, :root) .recorder-demo-visual { grid-area: visual; max-height: calc(100dvh - 66px); overflow-y: auto; overscroll-behavior: contain; }
+  :is(.patient-portal, body, :root) .recorder-demo-card:not(.recorder-guideline-card) .recorder-demo-actions { grid-area: actions; align-content: end; }
+}
+@media screen and (pointer: coarse) and (max-width: 1366px) {
+  :is(.patient-portal, body, :root) .recorder-flip-camera-btn:hover:not(:disabled) { background: rgba(15, 118, 110, .85); }
+  :is(.patient-portal, body, :root) .key-point-panel-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  :is(.patient-portal, body, :root) .key-point-count { white-space: nowrap; }
+  :is(.patient-portal, body, :root) .recorder-inline-error { max-width: min(90vw, 420px); padding: 8px 12px; border-radius: 10px; background: rgba(15, 23, 42, .92); font-size: 12px; }
+  :is(.patient-portal, body, :root) .recorder-mobile-options input { width: 100%; min-height: 44px; margin-top: 6px; padding: 8px; border: 1px solid var(--color-control-border); border-radius: 8px; color: #10211f; background: #fff; font-size: 16px; }
 }

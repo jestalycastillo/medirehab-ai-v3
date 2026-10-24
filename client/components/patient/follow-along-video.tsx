@@ -95,6 +95,7 @@ export function FollowAlongVideo({
             {/* Avatar Guide Display */}
             <div className="follow-along-video-wrapper" style={{ backgroundColor: "#ffffff", background: "#ffffff" }}>
                 <ExerciseMovementGuide
+                    compact
                     exerciseName={exerciseName}
                     selectedSide={selectedSide}
                     analysisModelKey={analysisModelKey}

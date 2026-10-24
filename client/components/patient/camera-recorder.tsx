@@ -16,6 +16,7 @@ import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
 import {
     ArrowLeftRight,
     Camera,
+    SwitchCamera,
     Check,
     CheckCircle2,
     ChevronDown,
@@ -48,6 +49,7 @@ interface CameraRecorderProps {
 }
 
 type RecordedClip = {
+    mirrored: boolean;
     side?: ArmSide;
     blob: Blob;
     url: string;
@@ -63,6 +65,12 @@ const LIVE_VOICE_STORAGE_KEY = "medirehab-live-voice-enabled";
 const MOBILE_CAMERA_QUERY = "(pointer: coarse) and (max-width: 1366px)";
 const needsLandscape = () => window.matchMedia(MOBILE_CAMERA_QUERY).matches
     && window.matchMedia("(orientation: portrait)").matches;
+type CameraFullscreenDocument = Document & {
+    webkitFullscreenElement?: Element | null;
+    webkitExitFullscreen?: () => Promise<void> | void;
+};
+const currentFullscreenElement = () => document.fullscreenElement
+    ?? (document as CameraFullscreenDocument).webkitFullscreenElement;
 const GUIDANCE_MESSAGES_TO_SKIP = new Set([
     "Preparing live guidance...",
     "Preparing live guidance…",
@@ -93,7 +101,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [isOpen, setIsOpen] = useState(false);
     const [isMobilePortrait, setIsMobilePortrait] = useState(false);
     const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+    const [isRequestingFullscreen, setIsRequestingFullscreen] = useState(false);
+    const [fullscreenMessage, setFullscreenMessage] = useState<string | null>(null);
+    const fullscreenRequestRef = useRef(false);
     const ownsFullscreenRef = useRef(false);
+    const ownsOrientationLockRef = useRef(false);
     const [isGuidelineStep, setIsGuidelineStep] = useState(false);
     const [isDemoStep, setIsDemoStep] = useState(false);
     const [guidelines, setGuidelines] = useState<string[]>(getSafetyGuidelines(guidelineSlides));
@@ -104,6 +116,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const [guidelineError, setGuidelineError] = useState("");
     const [isSavingGuideline, setIsSavingGuideline] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+    const facingModeRef = useRef<"user" | "environment">("user");
+    const switchingCameraRef = useRef(false);
     const [isRecording, setIsRecording] = useState(false);
     const [isFinalizingRecording, setIsFinalizingRecording] = useState(false);
     const [isCameraStarting, setIsCameraStarting] = useState(false);
@@ -372,8 +387,9 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         }
     }, [stream, error, recordedUrl, isOpen]);
 
-    const startCamera = async (): Promise<MediaStream | null> => {
+    const startCamera = async (requestedFacing = facingModeRef.current, requireFacing = false): Promise<MediaStream | null> => {
         if (needsLandscape()) return null;
+        const cameraVisitId = visitIdRef.current;
         setError(null);
         setCameraAccessIssue(null);
         setReviewClipKey(null);
@@ -389,13 +405,21 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: "user",
+                    facingMode: requireFacing ? { exact: requestedFacing } : { ideal: requestedFacing },
                     width: { ideal: 640 },
                     height: { ideal: 480 },
                     frameRate: { ideal: 10 },
                 },
                 audio: false
             });
+            if (cameraVisitId !== visitIdRef.current || needsLandscape()) {
+                mediaStream.getTracks().forEach((track) => track.stop());
+                return null;
+            }
+            const actualFacing = mediaStream.getVideoTracks()[0]?.getSettings().facingMode;
+            const activeFacing = actualFacing === "environment" ? "environment" : actualFacing === "user" ? "user" : requestedFacing;
+            facingModeRef.current = activeFacing;
+            setFacingMode(activeFacing);
             mediaStream.getVideoTracks().forEach((track) => {
                 track.addEventListener("ended", () => {
                     if (streamRef.current !== mediaStream) return;
@@ -417,6 +441,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
             }
             return mediaStream;
         } catch (err: unknown) {
+            if (requireFacing) return null;
             console.error("Error accessing camera:", err);
             const errorName = err instanceof DOMException ? err.name : "";
 
@@ -504,7 +529,25 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
         }
     };
 
+    const handleFlipCamera = async () => {
+        if (switchingCameraRef.current || isCameraStarting || isRecording || isFinalizingRecording || countdown !== null || !stream || needsLandscape()) return;
+        switchingCameraRef.current = true;
+        const previousFacing = facingModeRef.current;
+        const visitId = visitIdRef.current;
+        stopCamera();
+        try {
+            const nextStream = await startCamera(previousFacing === "user" ? "environment" : "user", true);
+            if (!nextStream && visitId === visitIdRef.current && !needsLandscape()) {
+                const restored = await startCamera(previousFacing);
+                if (restored) setError("The other camera is unavailable. Your previous camera is ready to use.");
+            }
+        } finally {
+            switchingCameraRef.current = false;
+        }
+    };
+
     const handleOpen = () => {
+        setFullscreenMessage(null);
         setError(null);
         setCameraAccessIssue(null);
         discardRecordingRef.current = false;
@@ -717,6 +760,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                     const url = URL.createObjectURL(blob);
                     clipUrlsRef.current.add(url);
                     const clip: RecordedClip = {
+                        mirrored: facingMode === "user",
                         side: recordingSideRef.current,
                         blob,
                         url,
@@ -924,22 +968,60 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
     const checkInModalRef = usePortalModalFocus(isCheckInOpen, handleCloseCheckIn);
 
     const requestMobileFullscreen = async () => {
-        const panel = recorderModalRef.current;
-        if (!panel || !window.matchMedia(MOBILE_CAMERA_QUERY).matches) return;
+        const panel = recorderModalRef.current as (HTMLDivElement & {
+            webkitRequestFullscreen?: () => Promise<void> | void;
+        }) | null;
+        if (!panel || fullscreenRequestRef.current || !window.matchMedia(MOBILE_CAMERA_QUERY).matches) return;
+        fullscreenRequestRef.current = true;
+        const requestVisitId = visitIdRef.current;
+        setIsRequestingFullscreen(true);
+        setFullscreenMessage(null);
         try {
-            if (!document.fullscreenElement && panel.requestFullscreen) {
-                await panel.requestFullscreen({ navigationUI: "hide" });
+            let fullscreenFailed = false;
+            try {
+                if (currentFullscreenElement() !== panel) {
+                    // Invoke the native API directly in the tap handler, before
+                    // any camera permission request or other asynchronous work.
+                    if (panel.requestFullscreen) await panel.requestFullscreen({ navigationUI: "hide" });
+                    else if (panel.webkitRequestFullscreen) await panel.webkitRequestFullscreen();
+                    else fullscreenFailed = true;
+                }
+            } catch {
+                fullscreenFailed = true;
             }
-            if (document.fullscreenElement === panel) {
+            if (requestVisitId !== visitIdRef.current) return;
+            if (currentFullscreenElement() === panel) {
                 ownsFullscreenRef.current = true;
-                const orientation = screen.orientation as ScreenOrientation & {
-                    lock?: (orientation: "landscape") => Promise<void>;
-                };
-                await orientation?.lock?.("landscape");
             }
-        } catch {
-            // Keep the viewport-filling camera and manual rotation prompt on
-            // browsers that do not support fullscreen or orientation locking.
+            setIsNativeFullscreen(currentFullscreenElement() === panel);
+
+            const orientation = screen.orientation as (ScreenOrientation & {
+                lock?: (orientation: "landscape") => Promise<void>;
+            }) | undefined;
+            if (orientation?.lock) {
+                try {
+                    // Also try in installed/standalone browsers, which can
+                    // permit orientation lock without an element in fullscreen.
+                    await orientation.lock("landscape");
+                    if (requestVisitId !== visitIdRef.current) {
+                        orientation.unlock();
+                        return;
+                    }
+                    ownsOrientationLockRef.current = true;
+                    setFullscreenMessage("Landscape mode requested. Hold your phone sideways.");
+                    return;
+                } catch {
+                    setFullscreenMessage("Your browser blocked automatic landscape. Turn on auto-rotate, then hold your phone sideways. You can also tap below to retry.");
+                }
+            } else {
+                setFullscreenMessage("This browser cannot force landscape. Turn on auto-rotate and hold your phone sideways to continue.");
+            }
+            if (fullscreenFailed && !needsLandscape()) {
+                setFullscreenMessage("Fullscreen was not allowed. Try again, or open this page directly in your phone’s browser.");
+            }
+        } finally {
+            fullscreenRequestRef.current = false;
+            setIsRequestingFullscreen(false);
         }
     };
 
@@ -975,17 +1057,27 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
 
     useEffect(() => {
         if (!isOpen) return;
+        const panel = recorderModalRef.current;
         const updateFullscreen = () => {
-            setIsNativeFullscreen(document.fullscreenElement === recorderModalRef.current);
+            setIsNativeFullscreen(currentFullscreenElement() === panel);
         };
         document.addEventListener("fullscreenchange", updateFullscreen);
+        document.addEventListener("webkitfullscreenchange", updateFullscreen);
         const frame = requestAnimationFrame(updateFullscreen);
         return () => {
             cancelAnimationFrame(frame);
             document.removeEventListener("fullscreenchange", updateFullscreen);
+            document.removeEventListener("webkitfullscreenchange", updateFullscreen);
+            if (ownsOrientationLockRef.current || ownsFullscreenRef.current) {
+                try { screen.orientation?.unlock?.(); } catch { /* Not supported by every browser. */ }
+                ownsOrientationLockRef.current = false;
+            }
             if (ownsFullscreenRef.current) {
-                screen.orientation?.unlock?.();
-                if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+                if (currentFullscreenElement() === panel) {
+                    const fullscreenDocument = document as CameraFullscreenDocument;
+                    if (document.exitFullscreen) void document.exitFullscreen().catch(() => undefined);
+                    else void Promise.resolve(fullscreenDocument.webkitExitFullscreen?.()).catch(() => undefined);
+                }
                 ownsFullscreenRef.current = false;
             }
         };
@@ -1052,8 +1144,11 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                             <Smartphone className="recorder-rotate-icon" aria-hidden="true" />
                             <h2 id="recorder-rotate-title">Rotate your phone</h2>
                             <p>Hold your device in landscape to use the full-screen camera.</p>
-                            <p className="recorder-rotate-hint">If it does not rotate, turn off your device’s rotation lock.</p>
-                            <Button onClick={() => void requestMobileFullscreen()}><Maximize /> Use fullscreen</Button>
+                            <p className="recorder-rotate-hint" role="status" aria-live="polite">{fullscreenMessage || "Tap below to request fullscreen and landscape mode."}</p>
+                            <button type="button" className="btn btn-primary recorder-landscape-action" disabled={isRequestingFullscreen} onClick={() => void requestMobileFullscreen()}>
+                                {isRequestingFullscreen ? <LoaderCircle className="recorder-spin" /> : <Maximize />}
+                                {isRequestingFullscreen ? "Opening landscape…" : fullscreenMessage ? "Retry fullscreen & landscape" : "Use fullscreen & landscape"}
+                            </button>
                             <Button variant="outline" className="recorder-rotate-close" onClick={handleClose}>Close camera</Button>
                         </section>
                     )}
@@ -1134,7 +1229,7 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     muted
                                     playsInline
                                     preload="auto"
-                                    style={{ width: "100%", height: "100%", objectFit: "contain", transform: "scaleX(-1)" }}
+                                    style={{ width: "100%", height: "100%", objectFit: "contain", transform: selectedReviewClip?.mirrored ? "scaleX(-1)" : "none" }}
                                 />
                                 <div className="recorder-preview-label">
                                     <CheckCircle2 size={15} />
@@ -1164,10 +1259,12 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                     playsInline
                                     muted
                                     className="recorder-video"
+                                    style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
                                 />
 
                                 {stream && (
                                     <RoboticSkeletonOverlay
+                                        mirrored={facingMode === "user"}
                                         videoRef={videoRef}
                                         landmarks={liveGuidance.landmarks}
                                         selectedSide={targetSide}
@@ -1236,6 +1333,16 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                         </div>
 
                         <div className="recorder-floating-header-controls">
+                            {stream && !recordedUrl && (
+                                <button
+                                    type="button"
+                                    className="recorder-flip-camera-btn recorder-floating-close-btn"
+                                    onClick={() => void handleFlipCamera()}
+                                    disabled={isCameraStarting || isRecording || isFinalizingRecording || countdown !== null}
+                                    aria-label={facingMode === "user" ? "Switch to rear camera" : "Switch to front camera"}
+                                    title={facingMode === "user" ? "Switch to rear camera" : "Switch to front camera"}
+                                ><SwitchCamera size={21} aria-hidden="true" /></button>
+                            )}
                             {!isNativeFullscreen && !isGuidelineStep && !isDemoStep && (
                                 <button type="button" className="recorder-mobile-fullscreen-btn recorder-floating-close-btn" aria-label="Enter fullscreen camera" onClick={() => void requestMobileFullscreen()}>
                                     <Maximize size={20} aria-hidden="true" />
@@ -1428,6 +1535,18 @@ export function CameraRecorder({ exerciseName = "Exercise", analysisModelKey, ex
                                             </div>
 
                                             <div className="recorder-settings-list">
+                                                <div className="recorder-mobile-options">
+                                                    <label htmlFor="recorder-mobile-timer">Recording timer</label>
+                                                    <select id="recorder-mobile-timer" value={selectedTargetDuration === null ? "none" : [20, 30, 60].includes(selectedTargetDuration) ? selectedTargetDuration : "custom"} disabled={isRecording || isFinalizingRecording || countdown !== null} onChange={(event) => setSelectedTargetDuration(event.target.value === "none" ? null : event.target.value === "custom" ? Math.min(600, Math.max(5, Number(customDurationInput) || 45)) : Number(event.target.value))}>
+                                                        <option value="none">No timer</option>
+                                                        <option value="20">20 seconds</option>
+                                                        <option value="30">30 seconds</option>
+                                                        <option value="60">1 minute</option>
+                                                        <option value="custom">Custom duration</option>
+                                                    </select>
+                                                    {selectedTargetDuration !== null && ![20, 30, 60].includes(selectedTargetDuration) && <label>Custom seconds<input type="number" min="5" max="600" value={customDurationInput} disabled={isRecording || isFinalizingRecording || countdown !== null} onChange={(event) => setCustomDurationInput(event.target.value)} onBlur={(event) => setSelectedTargetDuration(Math.min(600, Math.max(5, Number(event.target.value) || 45)))} /></label>}
+                                                    {!isNativeFullscreen && <button type="button" className="btn btn-secondary" onClick={() => { setIsSettingsOpen(false); void requestMobileFullscreen(); }}><Maximize size={18} /> Enter fullscreen</button>}
+                                                </div>
                                                 {/* Skeleton HUD Toggle */}
                                                 <div className="recorder-settings-row">
                                                     <div className="recorder-settings-info">
