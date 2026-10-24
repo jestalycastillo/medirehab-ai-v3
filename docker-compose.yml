@@ -1,5 +1,6 @@
 services:
   frontend:
+    restart: unless-stopped
     build:
       context: ./client
       args:
@@ -33,6 +34,7 @@ services:
     restart: unless-stopped
 
   ai-service:
+    restart: unless-stopped
     build: ./ai-service
     environment:
       # `localhost` here would be the ai-service container, not Ollama.
@@ -46,6 +48,7 @@ services:
 
   ollama:
     image: ollama/ollama:latest
+    restart: unless-stopped
     volumes:
       - ollama_models:/root/.ollama
     healthcheck:
@@ -65,7 +68,8 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    command: "ollama pull qwen3.5:0.8b && ollama create coach-qwen:latest -f /models/Modelfile"
+    command:
+      - "ollama pull qwen3.5:0.8b && ollama create coach-qwen:latest -f /models/Modelfile"
     restart: "no"
 
 volumes:

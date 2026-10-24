@@ -1,0 +1,16 @@
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	@backend path /api /api/* /uploads /uploads/*
+	handle @backend {
+		reverse_proxy backend:5000 {
+			transport http {
+				response_header_timeout 180s
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

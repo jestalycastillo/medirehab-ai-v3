@@ -1,0 +1,9 @@
+# Local Linux host: reuse its PostgreSQL socket without exposing the database.
+# Selected on this host through COMPOSE_FILE in the untracked root .env.
+services:
+  backend:
+    environment:
+      # Local HTTP must use non-Secure authentication cookies.
+      NODE_ENV: development
+    volumes:
+      - /var/run/postgresql:/var/run/postgresql:ro
