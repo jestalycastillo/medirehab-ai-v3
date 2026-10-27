@@ -52,50 +52,10 @@ MODEL_REGISTRY = {
             "Right Elbow_y",
         ),
     ),
-    "left_flexion_v2": AnalysisModelDefinition(
-        checkpoint_path=Path(__file__).resolve().parent
-        / "models"
-        / "left_flexion_v2.pth",
-        input_frames=200,
-        features=(
-            "Chest_x",
-            "Chest_y",
-            "Nose_x",
-            "Nose_y",
-            "Left Shoulder_x",
-            "Left Shoulder_y",
-            "Right Shoulder_x",
-            "Right Shoulder_y",
-            "Left Elbow_x",
-            "Left Elbow_y",
-            "Right Elbow_x",
-            "Right Elbow_y",
-        ),
-    ),
     "right_flexion": AnalysisModelDefinition(
         checkpoint_path=Path(__file__).resolve().parent
         / "models"
         / "right_flexion.pth",
-        input_frames=200,
-        features=(
-            "Chest_x",
-            "Chest_y",
-            "Nose_x",
-            "Nose_y",
-            "Left Shoulder_x",
-            "Left Shoulder_y",
-            "Right Shoulder_x",
-            "Right Shoulder_y",
-            "Left Elbow_x",
-            "Left Elbow_y",
-            "Right Elbow_x",
-            "Right Elbow_y",
-        ),
-    ),
-    "right_flexion_v2": AnalysisModelDefinition(
-        checkpoint_path=Path(__file__).resolve().parent
-        / "models"
-        / "right_flexion_v2.pth",
         input_frames=200,
         features=(
             "Chest_x",
@@ -132,50 +92,10 @@ MODEL_REGISTRY = {
             "Right Elbow_y",
         ),
     ),
-    "left_abduction_v2": AnalysisModelDefinition(
-        checkpoint_path=Path(__file__).resolve().parent
-        / "models"
-        / "left_abduction_v2.pth",
-        input_frames=200,
-        features=(
-            "Chest_x",
-            "Chest_y",
-            "Nose_x",
-            "Nose_y",
-            "Left Shoulder_x",
-            "Left Shoulder_y",
-            "Right Shoulder_x",
-            "Right Shoulder_y",
-            "Left Elbow_x",
-            "Left Elbow_y",
-            "Right Elbow_x",
-            "Right Elbow_y",
-        ),
-    ),
     "right_abduction": AnalysisModelDefinition(
         checkpoint_path=Path(__file__).resolve().parent
         / "models"
         / "right_abduction.pth",
-        input_frames=200,
-        features=(
-            "Chest_x",
-            "Chest_y",
-            "Nose_x",
-            "Nose_y",
-            "Left Shoulder_x",
-            "Left Shoulder_y",
-            "Right Shoulder_x",
-            "Right Shoulder_y",
-            "Left Elbow_x",
-            "Left Elbow_y",
-            "Right Elbow_x",
-            "Right Elbow_y",
-        ),
-    ),
-    "right_abduction_v2": AnalysisModelDefinition(
-        checkpoint_path=Path(__file__).resolve().parent
-        / "models"
-        / "right_abduction_v2.pth",
         input_frames=200,
         features=(
             "Chest_x",
@@ -214,6 +134,18 @@ MODEL_REGISTRY = {
     ),
 }
 
+
+# Versioned keys remain valid for existing exercise and session records.
+# These checkpoints are identical to their canonical runtime models.
+MODEL_ALIASES = {
+    "left_flexion_v2": "left_flexion",
+    "right_flexion_v2": "right_flexion",
+    "left_abduction_v2": "left_abduction",
+    "right_abduction_v2": "right_abduction",
+}
+for alias, canonical_key in MODEL_ALIASES.items():
+    MODEL_REGISTRY[alias] = MODEL_REGISTRY[canonical_key]
+
 for exercise_key in ("arm_circumduction", "cross_body_shoulder_stretch", "external_rotation", "internal_rotation"):
     MODEL_REGISTRY[exercise_key] = AnalysisModelDefinition(
         checkpoint_path=Path(__file__).resolve().parent / "models" / f"{exercise_key}.pth",
@@ -239,6 +171,7 @@ def get_model_definition(model_key: str) -> AnalysisModelDefinition:
 
 
 def get_loaded_model(model_key: str) -> LoadedAnalysisModel:
+    model_key = MODEL_ALIASES.get(model_key, model_key)
     definition = get_model_definition(model_key)
 
     with _MODEL_LOAD_LOCK:

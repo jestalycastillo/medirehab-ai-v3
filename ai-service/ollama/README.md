@@ -11,25 +11,25 @@ AI service the Docker-network address `http://ollama:11434`. Do not use
 `127.0.0.1:11434` for `OLLAMA_BASE_URL` in this setup: it points at the AI
 service container itself.
 
-From the repository root, start the stack:
+Configure the root deployment `.env` first (see [Deployment](../../README.md#deployment)).
+From the repository root, start the stack against the existing database:
 
 ```powershell
-docker compose up --build
+docker compose --env-file .env up --build -d
 ```
 
 On the first run, `ollama-init` downloads `qwen3.5:0.8b` and creates
 `coach-qwen:latest` from `ai-service/ollama/Modelfile`. This can take several
 minutes. The model is kept in the named `ollama_models` volume, so later
-starts do not download it again. Compose applies the database migrations before
-starting the Node server.
+starts reuse that volume. Database migrations and seeds are never run by
+Compose startup; they require a separately approved manual operation.
 
-Once the services are up, send a coaching request that does not require a
+The AI port is private to Docker. Once the services are up, send a request from
+inside its container that does not require a
 camera, browser, login, or exercise assignment:
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:8000/coaching `
-  -ContentType 'application/json' `
-  -Body '{"exercise_name":"Shoulder Flexion","event":"issue_resolved"}'
+docker compose exec -T ai-service python -c 'import json, urllib.request; payload=json.dumps({"exercise_name":"Shoulder Flexion","event":"issue_resolved"}).encode(); request=urllib.request.Request("http://127.0.0.1:8000/coaching", data=payload, headers={"Content-Type":"application/json"}); print(urllib.request.urlopen(request, timeout=40).read().decode())'
 ```
 
 Expect `source` to be `ollama`. Use `docker compose logs ollama-init` if the

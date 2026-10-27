@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { type AssignmentPlanUpdate, type ExerciseAssignment } from "@/lib/api";
@@ -28,8 +29,8 @@ function CarePlanDrawer({
 }) {
   if (!assignment) return null;
 
-  return (
-    <>
+  return createPortal(
+    <div className="doctor-portal" style={{ display: "contents" }}>
       <button type="button" className="doctor-care-drawer-backdrop" onClick={onClose} aria-label="Close care plan editor" />
       <aside className="doctor-care-drawer" id="care-plan-drawer" role="dialog" aria-labelledby="care-plan-drawer-title">
         <header className="doctor-care-drawer-heading">
@@ -77,7 +78,8 @@ function CarePlanDrawer({
           <div className="portal-list-actions"><button className="btn btn-primary" type="submit" disabled={isBusy}>Save plan</button><button className="btn btn-secondary" type="button" onClick={onClose} disabled={isBusy}>Cancel</button></div>
         </form>
       </aside>
-    </>
+    </div>,
+    document.body,
   );
 }
 

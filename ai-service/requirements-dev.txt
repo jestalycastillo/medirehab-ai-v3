@@ -1,0 +1,7 @@
+-r requirements.txt
+# Research notebooks, training, and evaluation; excluded from production images.
+jupyter==1.1.1
+matplotlib==3.10.9
+scikit-learn==1.7.2
+scipy==1.15.3
+seaborn==0.13.2

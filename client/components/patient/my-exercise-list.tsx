@@ -2,6 +2,7 @@
 
 import { CalendarDays, Dumbbell, X } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { getExerciseImageUrl, type ExerciseAssignment } from "@/lib/api";
 import { CameraRecorder } from "./camera-recorder";
 
@@ -51,8 +52,8 @@ function ExerciseDetailPanel({
       ? `${assignment.targetSessionsPerDay} session${assignment.targetSessionsPerDay === 1 ? "" : "s"} each day`
       : `${assignment.targetSessionsPerWeek ?? 3} sessions each week`;
 
-  return (
-    <>
+  return createPortal(
+    <div className="patient-portal" style={{ display: "contents" }}>
       <button type="button" className="patient-exercise-detail-backdrop" onClick={onClose} aria-label="Close exercise details" />
       <aside className="patient-exercise-detail-panel" id="exercise-details-panel" role="dialog" aria-labelledby="exercise-details-title">
         <header className="patient-exercise-detail-heading">
@@ -78,6 +79,18 @@ function ExerciseDetailPanel({
             {assignment.minimumDurationSeconds && <p><strong>Minimum recording:</strong> {assignment.minimumDurationSeconds} seconds</p>}
           </section>
 
+          <div className="patient-exercise-detail-primary-action" style={{ margin: "20px 0 12px 0" }}>
+            <CameraRecorder
+              exerciseName={assignment.exercise?.name}
+              analysisModelKey={assignment.exercise?.analysisModelKey}
+              exerciseId={assignment.exercise?.id}
+              assignmentId={assignment.id}
+              targetDurationSeconds={assignment.targetDurationSeconds}
+              minimumDurationSeconds={assignment.minimumDurationSeconds}
+              guidelineSlides={assignment.exercise?.guidelineSlides}
+            />
+          </div>
+
           <section className="patient-exercise-detail-section">
             <h3>Guidance</h3>
             <div className="patient-guidance-actions">
@@ -87,7 +100,8 @@ function ExerciseDetailPanel({
           </section>
         </div>
       </aside>
-    </>
+    </div>,
+    document.body,
   );
 }
 

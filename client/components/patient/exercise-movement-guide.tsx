@@ -6,9 +6,10 @@ import { getNewExerciseInstructions } from "@/lib/pose/exercise-model-config";
 
 type Props = React.ComponentProps<typeof AnimatedExerciseGuide>;
 
-export function ExerciseMovementGuide(props: Props) {
+export function ExerciseMovementGuide({ compact = false, ...props }: Props & { compact?: boolean }) {
     const instructions = getNewExerciseInstructions(props.analysisModelKey, props.exerciseName);
     if (!instructions) return <AnimatedExerciseGuide {...props} />;
+    if (compact) return <NewExerciseAnimatedGuide {...props} />;
     return (
         <div aria-label={`${props.exerciseName} movement instructions`} style={{ padding: "18px", color: "#0f172a", background: "#ffffff", lineHeight: 1.6 }}>
             <NewExerciseAnimatedGuide {...props} />

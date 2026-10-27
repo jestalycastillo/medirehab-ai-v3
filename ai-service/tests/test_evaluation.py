@@ -49,6 +49,12 @@ class ModelRegistryTests(unittest.TestCase):
 
         self.assertIs(first, second)
 
+    def test_versioned_aliases_share_the_canonical_checkpoint_and_cache(self):
+        for key in ("left_flexion", "right_flexion", "left_abduction", "right_abduction"):
+            with self.subTest(model_key=key):
+                self.assertIs(get_model_definition(f"{key}_v2"), get_model_definition(key))
+                self.assertIs(get_loaded_model(f"{key}_v2"), get_loaded_model(key))
+
     def test_side_specific_models_return_matching_feedback(self):
         for key, direction in (
             ("left_flexion", "forward"),

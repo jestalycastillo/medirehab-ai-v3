@@ -10,6 +10,11 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 app = FastAPI()
 
+
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

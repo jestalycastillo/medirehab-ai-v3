@@ -21,8 +21,13 @@ const MODEL_GUIDANCE: Record<string, ExerciseModelGuidanceConfig> = {
   right_abduction_v2: { guidanceName: "Shoulder Abduction", selectableSide: false, fixedSide: "right" },
 };
 
-export function getExerciseModelGuidanceConfig(modelKey?: string | null): ExerciseModelGuidanceConfig | null {
-  return modelKey ? MODEL_GUIDANCE[modelKey] ?? null : null;
+export function getExerciseModelGuidanceConfig(modelKey?: string | null, exerciseName?: string): ExerciseModelGuidanceConfig | null {
+  if (modelKey && MODEL_GUIDANCE[modelKey]) return MODEL_GUIDANCE[modelKey];
+  if (exerciseName) {
+    const key = exerciseName.trim().toLowerCase().replaceAll(/[-\s]+/g, "_");
+    if (MODEL_GUIDANCE[key]) return MODEL_GUIDANCE[key];
+  }
+  return null;
 }
 
 const NEW_EXERCISE_INSTRUCTIONS: Record<string, string> = {

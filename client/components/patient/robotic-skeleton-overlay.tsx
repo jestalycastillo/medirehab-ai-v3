@@ -10,6 +10,7 @@ interface RoboticSkeletonOverlayProps {
     exerciseName?: string;
     enabled?: boolean;
     hasReliablePose?: boolean;
+    mirrored?: boolean;
 }
 
 interface Point2D {
@@ -64,6 +65,7 @@ export function RoboticSkeletonOverlay({
     exerciseName = "",
     enabled = true,
     hasReliablePose = true,
+    mirrored = true,
 }: RoboticSkeletonOverlayProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const smoothedLandmarksRef = useRef<Partial<Record<PoseLandmarkKey, Point2D>>>({});
@@ -332,7 +334,7 @@ export function RoboticSkeletonOverlay({
 
                 if (key === "chest") {
                     // Central Hexagonal Cyber-Core Reactor
-                    drawChestReactorNode(ctx, pt.x, pt.y, pulse);
+                    drawChestReactorNode(ctx, pt.x, pt.y, pulse, mirrored);
                 } else if (key === "nose") {
                     // Biometric Head Orientation Reticle
                     drawHeadReticleNode(ctx, pt.x, pt.y);
@@ -347,7 +349,7 @@ export function RoboticSkeletonOverlay({
                     if (shoulderPt && wristPt && shoulderPt.vis > 0.4 && wristPt.vis > 0.4) {
                         angleDeg = calculateAngleDeg(shoulderPt, pt, wristPt);
                     }
-                    drawElbowJointNode(ctx, pt.x, pt.y, isActive, angleDeg, isLeft);
+                    drawElbowJointNode(ctx, pt.x, pt.y, isActive, angleDeg, isLeft, mirrored);
                 } else if (key.includes("Wrist")) {
                     // Wrist End-Effector Node
                     drawWristNode(ctx, pt.x, pt.y, isActive);
@@ -370,7 +372,7 @@ export function RoboticSkeletonOverlay({
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [enabled, exerciseName, hasReliablePose, landmarks, selectedSide, videoRef]);
+    }, [enabled, exerciseName, hasReliablePose, landmarks, selectedSide, videoRef, mirrored]);
 
     if (!enabled) return null;
 
@@ -385,7 +387,7 @@ export function RoboticSkeletonOverlay({
                 width: "100%",
                 height: "100%",
                 pointerEvents: "none",
-                transform: "scaleX(-1)", // Exactly mirrors video element
+                transform: mirrored ? "scaleX(-1)" : "none",
                 zIndex: 8,
             }}
         />
@@ -396,7 +398,7 @@ export function RoboticSkeletonOverlay({
 // Robotic Node Rendering Helpers (Systematic High-Tech HUD Style)
 // -----------------------------------------------------------------------------
 
-function drawChestReactorNode(ctx: CanvasRenderingContext2D, x: number, y: number, pulse: number) {
+function drawChestReactorNode(ctx: CanvasRenderingContext2D, x: number, y: number, pulse: number, mirrored: boolean) {
     const size = 11;
 
     ctx.save();
@@ -441,7 +443,7 @@ function drawChestReactorNode(ctx: CanvasRenderingContext2D, x: number, y: numbe
 
     // Telemetry label
     ctx.save();
-    ctx.scale(-1, 1); // un-mirror text so it reads left-to-right
+    if (mirrored) ctx.scale(-1, 1);
     ctx.font = "bold 8px ui-monospace, 'JetBrains Mono', monospace";
     ctx.fillStyle = "rgba(0, 240, 255, 0.85)";
     ctx.fillText("CORE", -12, size + 14);
@@ -538,6 +540,7 @@ function drawElbowJointNode(
     isActive: boolean,
     angleDeg: number,
     isLeft: boolean,
+    mirrored: boolean,
 ) {
     const r = isActive ? 7.5 : 5.5;
     const color = isActive ? "#00FF9D" : "#38BDF8";
@@ -565,7 +568,7 @@ function drawElbowJointNode(
     // Live Angle Telemetry Readout (displayed next to active elbow)
     if (isActive && angleDeg > 0) {
         ctx.save();
-        ctx.scale(-1, 1); // Un-mirror text
+        if (mirrored) ctx.scale(-1, 1);
 
         const text = `${angleDeg}°`;
         const textX = isLeft ? 14 : -38;

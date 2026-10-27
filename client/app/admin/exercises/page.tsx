@@ -3,13 +3,14 @@
 import { PortalPage, PortalPageHeader } from "@/components/ui/portal-page";
 import { PortalActionMenu } from "@/components/ui/portal-action-menu";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, type ApiExercise, ApiError, type ExerciseImage, getExerciseImageUrl } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExerciseForm } from "@/components/admin/exercise-form";
 import { ExerciseThumbnail } from "@/components/ui/exercise-thumbnail";
 import { usePortalModalFocus } from "@/components/ui/use-portal-modal-focus";
-import { CheckCircle2, CircleAlert } from "lucide-react";
+import { CheckCircle2, CircleAlert, X } from "lucide-react";
 
 function EditIcon() {
   return (
@@ -74,7 +75,7 @@ export default function ExercisesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ApiExercise | undefined>(undefined);
   const [viewingExercise, setViewingExercise] = useState<ApiExercise | undefined>(undefined);
-  const detailModalRef = usePortalModalFocus(Boolean(viewingExercise), () => setViewingExercise(undefined));
+  const detailPanelRef = usePortalModalFocus(Boolean(viewingExercise), () => setViewingExercise(undefined));
   const [formLoading, setFormLoading] = useState(false);
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -288,7 +289,6 @@ export default function ExercisesPage() {
                           <ExerciseThumbnail
                             imagePath={mainImage}
                             alt={exercise.name}
-                            modelKey={exercise.analysisModelKey}
                             onImageError={(e) => {
                               e.currentTarget.style.display = "none";
                               const fallbackParent = e.currentTarget.parentElement;
@@ -381,28 +381,34 @@ export default function ExercisesPage() {
         onCancel={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
       />
 
-      {/* Details Display Modal */}
-      {viewingExercise && (
-        <div className="portal-modal-overlay" onClick={() => setViewingExercise(undefined)}>
+      {viewingExercise && createPortal(
+        <>
+          <button
+            type="button"
+            className="doctor-care-drawer-backdrop"
+            onClick={() => setViewingExercise(undefined)}
+            aria-label="Close exercise details"
+          />
           <div
-            ref={detailModalRef} tabIndex={-1}
-            className="portal-modal-panel portal-modal-detail animate-slide-up"
+            ref={detailPanelRef} tabIndex={-1}
+            className="doctor-care-drawer"
             role="dialog" aria-modal="true" aria-labelledby="exercise-detail-title"
-            onClick={(e) => e.stopPropagation()}
           >
-            <div className="portal-modal-header portal-modal-detail-heading">
-              <div><span className="role-dashboard-eyebrow">Exercise library</span><h2 id="exercise-detail-title">
+            <header className="doctor-care-drawer-heading">
+              <div><span>Exercise library</span><h2 id="exercise-detail-title">
                 {viewingExercise.name}
               </h2></div>
               <button
-                className="btn btn-secondary"
+                type="button"
+                className="doctor-care-drawer-close"
                 onClick={() => setViewingExercise(undefined)}
+                aria-label="Close exercise details"
               >
-                Close
+                <X aria-hidden="true" />
               </button>
-            </div>
+            </header>
 
-            <div className="portal-modal-detail-body">
+            <div className="doctor-care-drawer-content">
             <p style={{ fontSize: "15px", color: "var(--color-text-secondary)", lineHeight: "1.6", marginBottom: "20px", whiteSpace: "pre-wrap" }}>
               {viewingExercise.description || "No description provided."}
             </p>
@@ -437,7 +443,8 @@ export default function ExercisesPage() {
             )}
             </div>
           </div>
-        </div>
+        </>,
+        document.body,
       )}
     </PortalPage>
   );

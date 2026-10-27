@@ -60,3 +60,29 @@ test("rotation models have a single recording with no arm selection", () => {
     assert.equal(canRecordArm(config, null, []), true);
   }
 });
+
+test("patient can switch arm before recording and switch to other arm after one recording", () => {
+  const config = getExerciseModelGuidanceConfig("shoulder_abduction");
+  assert(config?.selectableSide);
+
+  // Before any recording: can choose left or right freely
+  assert.equal(resolveRecordingSide(config, "left"), "left");
+  assert.equal(resolveRecordingSide(config, "right"), "right");
+  assert.equal(canSwitchArm(config, "left", []), true);
+  assert.equal(canSwitchArm(config, "right", []), true);
+
+  // If left was recorded: can switch to right to take second recording
+  assert.equal(canSwitchArm(config, "left", ["left"]), true);
+  assert.equal(canRecordArm(config, "right", ["left"]), true);
+
+  // If right was recorded: can switch to left to take second recording
+  assert.equal(canSwitchArm(config, "right", ["right"]), true);
+  assert.equal(canRecordArm(config, "left", ["right"]), true);
+
+  // Once both arms are recorded: both are recorded, cannot switch for new recordings
+  assert.equal(canSwitchArm(config, "left", ["left", "right"]), false);
+  assert.equal(canSwitchArm(config, "right", ["left", "right"]), false);
+  assert.equal(canRecordArm(config, "left", ["left", "right"]), false);
+  assert.equal(canRecordArm(config, "right", ["left", "right"]), false);
+});
+

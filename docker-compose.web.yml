@@ -1,0 +1,33 @@
+# Public website gateway. Combine with the base stack and host DB override.
+services:
+  frontend:
+    image: medirehab-frontend:web
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: /api
+
+  gateway:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set the public website hostname or HTTP address}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+  backend:
+    environment:
+      NODE_ENV: production
+
+volumes:
+  caddy_data:
+  caddy_config:
